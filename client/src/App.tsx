@@ -11,7 +11,7 @@ import { useGameSocket } from "./game/useGameSocket";
 import Layout from "./components/Layout";
 
 export default function App() {
-  const { connected, roomCode, gameState, roundBanner, snapshot, mySeat, createRoom, join, play, setProfile } = useGameSocket();
+  const { connected, roomCode, gameState, roundBanner, snapshot, mySeat, dealTick, createRoom, join, play, setProfile } = useGameSocket();
   const [selectedHandId, setSelectedHandId] = React.useState<string | null>(null);
   const [selectedTableIds, setSelectedTableIds] = React.useState<string[]>([]);
   const selectedHandCard = React.useMemo(() => {
@@ -42,11 +42,30 @@ export default function App() {
             const code = (document.getElementById("roomCode") as HTMLInputElement).value.trim();
             if (code) join(code);
           }}>Join</button>
-          <span className="text-sm whitespace-nowrap">
-            {connected ? "Connected" : "Disconnected"}
-            {roomCode ? ` • Room ${roomCode}` : ""}
-            {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ""}
-            {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ""}
+          <span className="text-sm whitespace-nowrap flex items-center gap-2 text-white/90">
+            <span className="hidden sm:inline">
+              {connected ? "Connected" : "Disconnected"}
+              {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ""}
+              {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ""}
+            </span>
+            {roomCode && (
+              <span className="inline-flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded bg-white/20 text-white/90 border border-white/20 shadow-sm">Room {roomCode}</span>
+                <button
+                  title="Copy room code"
+                  className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white shadow-sm"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(roomCode).then(() => {
+                      // optional: quick visual feedback
+                      const el = document.getElementById("roomCode");
+                      if (el) { el.classList.add("ring", "ring-white/40"); setTimeout(() => el.classList.remove("ring", "ring-white/40"), 600); }
+                    });
+                  }}
+                >
+                  <span aria-hidden>📋</span>
+                </button>
+              </span>
+            )}
           </span>
         </>
       }
@@ -79,9 +98,20 @@ export default function App() {
           </div>
 
           {/* Opponents (relative to local seat) */}
-          <OpponentHand position="top" />
-          <OpponentHand position="left" />
-          <OpponentHand position="right" />
+          {(() => {
+            const idxBottom = mySeat ?? 0;
+            const idxRight = (idxBottom + 1) % 4;
+            const idxTop = (idxBottom + 2) % 4;
+            const idxLeft = (idxBottom + 3) % 4;
+            const countAt = (i: number) => (gameState?.hands?.[i]?.length ?? 0);
+            return (
+              <>
+                <OpponentHand position="top" count={countAt(idxTop)} />
+                <OpponentHand position="left" count={countAt(idxLeft)} />
+                <OpponentHand position="right" count={countAt(idxRight)} />
+              </>
+            );
+          })()}
 
           {/* Avatar + nickname panels per seat (rotate so local seat is bottom) */}
           {(() => {
@@ -187,6 +217,7 @@ export default function App() {
               setSelectedTableIds([]);
             });
           }}
+          dealTick={dealTick}
         />
         {/* Action bar for selected play */}
         <div className="mt-1 flex items-center justify-center gap-3">

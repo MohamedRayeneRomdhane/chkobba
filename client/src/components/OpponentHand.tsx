@@ -1,8 +1,8 @@
 import React from "react";
 
-type Props = { position: "top" | "left" | "right" };
+type Props = { position: "top" | "left" | "right"; count?: number };
 
-export default function OpponentHand({ position }: Props) {
+export default function OpponentHand({ position, count = 3 }: Props) {
   const baseStyle: React.CSSProperties = {
     position: "absolute",
     display: "flex",
@@ -15,9 +15,11 @@ export default function OpponentHand({ position }: Props) {
       ? { left: 0, top: "50%", transform: "translateY(-50%)", flexDirection: "column", padding: 12 }
       : { right: 0, top: "50%", transform: "translateY(-50%)", flexDirection: "column", padding: 12 };
 
+  const boxes = Math.max(0, Math.min(12, count));
+  const nodes = Array.from({ length: boxes });
   return (
     <div style={{ ...baseStyle, ...posStyle }}>
-      {[0, 1, 2].map((i) => (
+      {nodes.map((_, i) => (
         <div
           key={i}
           style={{
