@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import TableMat from "./components/TableMat";
 import PlayerHand from "./components/PlayerHand";
 import OpponentHand from "./components/OpponentHand";
+import SeatPanel from "./components/SeatPanel";
 import CoffeeProp from "./components/CoffeeProp";
 import ChichaProp from "./components/ChichaProp";
 import CigarettesProp from "./components/CigarettesProp";
@@ -55,10 +56,38 @@ export default function App() {
           <OpponentHand position="left" />
           <OpponentHand position="right" />
 
-          {/* Seat/team indicators */}
-          <div style={{ position: "absolute", top: 8, right: 8, color: "#fff" }}>Seat 1 (Team B)</div>
-          <div style={{ position: "absolute", top: "50%", left: 8, transform: "translateY(-50%)", color: "#fff" }}>Seat 2 (Team A)</div>
-          <div style={{ position: "absolute", top: "50%", right: 8, transform: "translateY(-50%)", color: "#fff" }}>Seat 4 (Team B)</div>
+          {/* Avatar + nickname panels per seat */}
+          {(() => {
+            const seats = snapshot?.seats || [null, null, null, null];
+            const profiles = snapshot?.profiles || {};
+            const current = gameState?.currentPlayerIndex ?? null;
+            const getProfile = (seatIndex: number) => {
+              const sid = seats[seatIndex];
+              return sid ? profiles[sid] : null;
+            };
+            return (
+              <>
+                <SeatPanel
+                  position="top"
+                  avatar={getProfile(1)?.avatar}
+                  nickname={getProfile(1)?.nickname}
+                  highlight={current === 1}
+                />
+                <SeatPanel
+                  position="left"
+                  avatar={getProfile(2)?.avatar}
+                  nickname={getProfile(2)?.nickname}
+                  highlight={current === 2}
+                />
+                <SeatPanel
+                  position="right"
+                  avatar={getProfile(3)?.avatar}
+                  nickname={getProfile(3)?.nickname}
+                  highlight={current === 3}
+                />
+              </>
+            );
+          })()}
 
           {/* Props */}
           <CoffeeProp />
@@ -81,6 +110,14 @@ export default function App() {
             }}
           />
         </div>
+
+        {/* Bottom seat panel for local player */}
+        <SeatPanel
+          position="bottom"
+          avatar={snapshot?.profiles?.[snapshot?.seats?.[0]]?.avatar}
+          nickname={snapshot?.profiles?.[snapshot?.seats?.[0]]?.nickname}
+          highlight={gameState?.currentPlayerIndex === 0}
+        />
       </div>
     </div>
   );
