@@ -9,7 +9,7 @@ import ScoreBoard from "./components/ScoreBoard";
 import { useGameSocket } from "./game/useGameSocket";
 
 export default function App() {
-  const { connected, roomCode, gameState, roundBanner, createRoom, join, play } = useGameSocket();
+  const { connected, roomCode, gameState, roundBanner, snapshot, mySeat, createRoom, join, play } = useGameSocket();
 
   const seats = useMemo(() => {
     return ["You", "Opp 1", "Teammate", "Opp 2"];
@@ -24,7 +24,12 @@ export default function App() {
           const code = (document.getElementById("roomCode") as HTMLInputElement).value.trim();
           if (code) join(code);
         }}>Join</button>
-        <span>{connected ? "Connected" : "Disconnected"} {roomCode ? `• Room ${roomCode}` : ""}</span>
+        <span>
+          {connected ? "Connected" : "Disconnected"}
+          {roomCode ? ` • Room ${roomCode}` : ""}
+          {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ""}
+          {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ""}
+        </span>
       </div>
 
       <div style={{ position: "relative", width: "100%", height: "calc(100% - 50px)" }}>

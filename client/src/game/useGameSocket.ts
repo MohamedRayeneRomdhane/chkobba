@@ -1,12 +1,15 @@
 import { io, Socket } from "socket.io-client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameState } from "../types";
+import type { PlayerIndex } from "../types";
 
 export function useGameSocket() {
   const [connected, setConnected] = useState(false);
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<any | null>(null);
+  const [mySeat, setMySeat] = useState<PlayerIndex | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
   const socket = useMemo(() => {
@@ -20,7 +23,14 @@ export function useGameSocket() {
     socket.on("connect", () => setConnected(true));
     socket.on("disconnect", () => setConnected(false));
     socket.on("room:update", (room) => {
-      // noop for now
+      setSnapshot(room);
+      const idx = room.seats?.findIndex((s: string | null) => s === socket.id);
+      if (idx !== undefined && idx >= 0) setMySeat(idx as PlayerIndex);
+    });
+    socket.on("room:snapshot", (snap) => {
+      setSnapshot(snap);
+      const idx = snap.seats?.findIndex((s: string | null) => s === socket.id);
+      if (idx !== undefined && idx >= 0) setMySeat(idx as PlayerIndex);
     });
     socket.on("game:start", (state: GameState) => setGameState(state));
     socket.on("game:update", (state: GameState) => setGameState(state));
@@ -32,6 +42,7 @@ export function useGameSocket() {
       socket.off("connect");
       socket.off("disconnect");
       socket.off("room:update");
+      socket.off("room:snapshot");
       socket.off("game:start");
       socket.off("game:update");
       socket.off("game:roundEnd");
@@ -58,5 +69,5 @@ export function useGameSocket() {
     });
   }
 
-  return { connected, roomCode, gameState, roundBanner, createRoom, join, play };
+  return { connected, roomCode, gameState, roundBanner, snapshot, mySeat, createRoom, join, play };
 }
