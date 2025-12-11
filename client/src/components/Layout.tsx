@@ -25,8 +25,8 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
         {/* Left margin (ads placeholder) on large screens */}
         <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-r border-tableWood-dark" />
 
-        {/* Main game area: full-height minus header, centered */}
-        <main className="flex-1 h-[calc(100vh-64px)] flex items-center justify-center p-3">
+        {/* Main game area: height accounts for header and footer, centered */}
+        <main className="flex-1 h-[calc(100vh-64px-48px)] flex items-center justify-center p-3 pb-16">
           <div className="w-full max-w-5xl h-full mx-auto">
             {children}
           </div>

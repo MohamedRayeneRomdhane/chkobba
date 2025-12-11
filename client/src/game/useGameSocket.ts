@@ -60,7 +60,14 @@ export function useGameSocket() {
   }
   function join(code: string) {
     return new Promise<boolean>((resolve) => {
-      socket.emit("room:join", code, (ok: boolean) => resolve(ok));
+      socket.emit("room:join", code, (ok: boolean) => {
+        if (ok) {
+          setRoomCode(code);
+          setRoundBanner(`Joined room ${code}`);
+          setTimeout(() => setRoundBanner(null), 2000);
+        }
+        resolve(ok);
+      });
     });
   }
   function play(code: string, cardId: string, combo?: string[]) {
