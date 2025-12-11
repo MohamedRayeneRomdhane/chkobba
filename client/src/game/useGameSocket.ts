@@ -69,5 +69,11 @@ export function useGameSocket() {
     });
   }
 
-  return { connected, roomCode, gameState, roundBanner, snapshot, mySeat, createRoom, join, play };
+  function setProfile(nickname?: string, avatar?: string) {
+    return new Promise<boolean>((resolve) => {
+      socket.emit("profile:set", { nickname, avatar }, (ok: boolean) => resolve(ok));
+    });
+  }
+
+  return { connected, roomCode, gameState, roundBanner, snapshot, mySeat, createRoom, join, play, setProfile };
 }

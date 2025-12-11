@@ -8,9 +8,10 @@ import ChichaProp from "./components/ChichaProp";
 import CigarettesProp from "./components/CigarettesProp";
 import ScoreBoard from "./components/ScoreBoard";
 import { useGameSocket } from "./game/useGameSocket";
+import ProfileEditor from "./components/ProfileEditor";
 
 export default function App() {
-  const { connected, roomCode, gameState, roundBanner, snapshot, mySeat, createRoom, join, play } = useGameSocket();
+  const { connected, roomCode, gameState, roundBanner, snapshot, mySeat, createRoom, join, play, setProfile } = useGameSocket();
 
   const seats = useMemo(() => {
     return ["You", "Opp 1", "Teammate", "Opp 2"];
@@ -31,6 +32,9 @@ export default function App() {
           {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ""}
           {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ""}
         </span>
+        <div style={{ marginLeft: "auto" }}>
+          <ProfileEditor onSave={(nickname, avatar) => { setProfile(nickname, avatar); }} />
+        </div>
       </div>
 
       <div style={{ position: "relative", width: "100%", height: "calc(100% - 50px)" }}>
