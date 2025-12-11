@@ -7,12 +7,13 @@ interface PlayerHandProps {
 }
 
 export default function PlayerHand({ cards, onPlay }: PlayerHandProps) {
+  const isDisabled = cards.length === 0;
   return (
     <div style={{ display: "flex", justifyContent: "center", gap: 16, padding: 16 }}>
       {cards.map((c, i) => (
         <div
           key={c.id}
-          onClick={() => onPlay(c.id)}
+          onClick={() => !isDisabled && onPlay(c.id)}
           style={{
             width: 80,
             height: 120,
@@ -24,7 +25,7 @@ export default function PlayerHand({ cards, onPlay }: PlayerHandProps) {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            cursor: "pointer",
+            cursor: isDisabled ? "not-allowed" : "pointer",
             boxShadow: "0 4px 8px rgba(0,0,0,0.25)",
           }}
           title={`${c.rank} of ${c.suit}`}

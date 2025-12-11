@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { Card, GameState, PlayerIndex, RoomInfo, TEAM_FOR_SEAT, TeamIndex } from "../../../shared/types";
+import { Card, GameState, PlayerIndex, RoomInfo, TEAM_FOR_SEAT, TeamIndex, PlayerProfile, RoomSnapshot } from "../../../shared/types";
 import { createDeck, shuffle } from "./deck";
 import { applyMove } from "./rules";
 import { computeRoundScore } from "./scoring";
@@ -10,6 +10,13 @@ export class GameRoomManager {
   private roomDecks: Map<string, Card[]> = new Map();
   private roomDealerIndex: Map<string, PlayerIndex> = new Map();
   private cardsLeftInCurrentDeal: Map<string, number> = new Map(); // counts down per player turns in a 3-card deal
+  private profiles: Map<string, PlayerProfile> = new Map(); // key: socketId
+  private avatarPool: string[] = [
+    "/assets/avatars/avatar1.png",
+    "/assets/avatars/avatar2.png",
+    "/assets/avatars/avatar3.png",
+    "/assets/avatars/avatar4.png"
+  ];
 
   constructor(private io: Server) {}
 
@@ -33,12 +40,19 @@ export class GameRoomManager {
     room.players.push(socket.id);
     this.io.socketsJoin(code);
 
+    // ensure profile exists with defaults
+    if (!this.profiles.has(socket.id)) {
+      const nickname = this.generateReadableName();
+      const avatar = this.avatarPool[Math.floor(Math.random() * this.avatarPool.length)] || "/assets/avatars/default.png";
+      this.profiles.set(socket.id, { socketId: socket.id, nickname, avatar });
+    }
+
     // assign seat when 4 joined
     if (room.players.length === 4) {
       room.seats = [...room.players];
       this.startGame(room);
     }
-    this.io.to(code).emit("room:update", room);
+    this.emitRoomSnapshot(code);
     return room;
   }
 
@@ -87,6 +101,7 @@ export class GameRoomManager {
     // 3 cards per player in a deal => 12 total turns per deal
     this.cardsLeftInCurrentDeal.set(room.code, 12);
     this.io.to(room.code).emit("game:start", room.gameState);
+    this.emitRoomSnapshot(room.code);
   }
 
   handlePlay(code: string, socketId: string, playedCardId: string, combo?: string[]) {
@@ -127,6 +142,7 @@ export class GameRoomManager {
     }
 
     this.io.to(code).emit("game:update", room.gameState);
+    this.emitRoomSnapshot(code);
   }
 
   private nextDealOrEndRound(code: string, room: RoomInfo) {
@@ -196,6 +212,38 @@ export class GameRoomManager {
       this.roomDealerIndex.set(code, 0);
       this.cardsLeftInCurrentDeal.set(code, 12);
       this.io.to(code).emit("game:start", room.gameState);
+      this.emitRoomSnapshot(code);
     }
+  }
+
+  setProfile(socketId: string, payload: Partial<PlayerProfile>) {
+    const current = this.profiles.get(socketId) || { socketId, nickname: this.generateReadableName(), avatar: "/assets/avatars/default.png" };
+    const nickname = (payload.nickname && payload.nickname.trim()) || current.nickname || this.generateReadableName();
+    const avatar = payload.avatar || current.avatar || "/assets/avatars/default.png";
+    this.profiles.set(socketId, { socketId, nickname, avatar });
+    // find rooms this socket is part of and emit snapshot
+    for (const [code, room] of this.rooms) {
+      if (room.players.includes(socketId)) {
+        this.emitRoomSnapshot(code);
+      }
+    }
+  }
+
+  private emitRoomSnapshot(code: string) {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    const profiles: Record<string, PlayerProfile> = {};
+    for (const sid of room.players) {
+      const p = this.profiles.get(sid);
+      if (p) profiles[sid] = p;
+    }
+    const snapshot: RoomSnapshot = { ...room, profiles };
+    this.io.to(code).emit("room:snapshot", snapshot);
+  }
+
+  private generateReadableName(): string {
+    const adjectives = ["Calm", "Bright", "Swift", "Lucky", "Sunny", "Cozy", "Merry", "Brave"];
+    const nouns = ["Falcon", "Olive", "Cedar", "Caravan", "Harbor", "Atlas", "Nomad", "Sahara"];
+    return `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${nouns[Math.floor(Math.random() * nouns.length)]}`;
   }
 }

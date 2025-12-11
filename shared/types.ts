@@ -30,6 +30,16 @@ export interface RoomInfo {
   gameState?: GameState;
 }
 
+export interface PlayerProfile {
+  socketId: string;
+  nickname: string;
+  avatar: string; // path to avatar asset
+}
+
+export interface RoomSnapshot extends RoomInfo {
+  profiles: Record<string, PlayerProfile>; // by socketId
+}
+
 export interface PlayCardPayload {
   cardId: string;
   chosenCombinationIds?: string[]; // card ids on table chosen to capture

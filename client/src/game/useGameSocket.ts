@@ -6,6 +6,7 @@ export function useGameSocket() {
   const [connected, setConnected] = useState(false);
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [roundBanner, setRoundBanner] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
   const socket = useMemo(() => {
@@ -23,12 +24,17 @@ export function useGameSocket() {
     });
     socket.on("game:start", (state: GameState) => setGameState(state));
     socket.on("game:update", (state: GameState) => setGameState(state));
+    socket.on("game:roundEnd", (payload: { scores: [number, number]; details: any }) => {
+      setRoundBanner(`Round ended • Team A: ${payload.scores[0]} • Team B: ${payload.scores[1]}`);
+      setTimeout(() => setRoundBanner(null), 3000);
+    });
     return () => {
       socket.off("connect");
       socket.off("disconnect");
       socket.off("room:update");
       socket.off("game:start");
       socket.off("game:update");
+      socket.off("game:roundEnd");
     };
   }, [socket]);
 
@@ -52,5 +58,5 @@ export function useGameSocket() {
     });
   }
 
-  return { connected, roomCode, gameState, createRoom, join, play };
+  return { connected, roomCode, gameState, roundBanner, createRoom, join, play };
 }

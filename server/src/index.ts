@@ -3,6 +3,7 @@ import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
 import { GameRoomManager } from "./game/gameRoom";
+import type { PlayerProfile } from "../../shared/types";
 
 const app = express();
 app.use(cors());
@@ -25,6 +26,16 @@ io.on("connection", (socket) => {
       ack?.(true, room.code);
     } catch (e: any) {
       ack?.(false, e?.message || "join failed");
+    }
+  });
+
+  // Allow client to set profile (nickname/avatar); if missing, server uses defaults
+  socket.on("profile:set", (payload: Partial<PlayerProfile>, ack?: (ok: boolean, msg?: string) => void) => {
+    try {
+      manager.setProfile(socket.id, payload);
+      ack?.(true);
+    } catch (e: any) {
+      ack?.(false, e?.message || "profile failed");
     }
   });
 

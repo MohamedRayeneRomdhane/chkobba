@@ -9,7 +9,7 @@ import ScoreBoard from "./components/ScoreBoard";
 import { useGameSocket } from "./game/useGameSocket";
 
 export default function App() {
-  const { connected, roomCode, gameState, createRoom, join, play } = useGameSocket();
+  const { connected, roomCode, gameState, roundBanner, createRoom, join, play } = useGameSocket();
 
   const seats = useMemo(() => {
     return ["You", "Opp 1", "Teammate", "Opp 2"];
@@ -29,6 +29,12 @@ export default function App() {
 
       <div style={{ position: "relative", width: "100%", height: "calc(100% - 50px)" }}>
         <TableMat>
+          {/* Round banner */}
+          {roundBanner && (
+            <div style={{ position: "absolute", top: 50, left: "50%", transform: "translateX(-50%)", background: "rgba(255,255,255,0.9)", padding: 8, borderRadius: 8, boxShadow: "0 2px 6px rgba(0,0,0,0.3)" }}>
+              {roundBanner}
+            </div>
+          )}
           {/* Table cards placeholder */}
           <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", display: "flex", gap: 12 }}>
             {(gameState?.tableCards || []).map((c) => (
@@ -60,10 +66,15 @@ export default function App() {
 
         {/* Player hand at bottom */}
         <div style={{ position: "absolute", bottom: 0, width: "100%" }}>
-          <PlayerHand cards={gameState?.hands?.[0] || []} onPlay={(id) => {
-            if (!roomCode) return;
-            play(roomCode, id);
-          }} />
+          <PlayerHand
+            cards={gameState?.hands?.[0] || []}
+            onPlay={(id) => {
+              if (!roomCode) return;
+              // Only allow play if it's seat 0's turn
+              if (gameState?.currentPlayerIndex !== 0) return;
+              play(roomCode, id);
+            }}
+          />
         </div>
       </div>
     </div>
