@@ -9,9 +9,9 @@ export default function Layout({ headerRight, children }: Props) {
   return (
     <div className="min-h-screen flex flex-col bg-tableWood">
       {/* Top bar */}
-      <div className="w-full bg-tableWood-dark text-white shadow-md">
+      <div className="cafe-header text-white">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-wide">Chkobba</h1>
+          <h1 className="text-xl font-bold tracking-wide drop-shadow">Chkobba</h1>
           <div className="ml-auto flex items-center gap-4">
             {headerRight}
           </div>

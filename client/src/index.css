@@ -5,3 +5,18 @@
 html, body, #root {
   height: 100%;
 }
+
+/* Tunisian café vibe base */
+body {
+  @apply bg-tableWood bg-woodGrain text-[#2b241f];
+}
+
+.cafe-header {
+  @apply w-full bg-tableWood-dark/95 backdrop-blur-sm shadow-caféGlow;
+  background-image: var(--tw-bg-cafeWall);
+}
+
+.table-felt {
+  @apply bg-felt rounded-mat shadow-insetDeep border-[10px] border-tableWood-dark;
+  background-image: var(--tw-bg-feltTexture);
+}

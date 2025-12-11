@@ -8,7 +8,6 @@ import ChichaProp from "./components/ChichaProp";
 import CigarettesProp from "./components/CigarettesProp";
 import ScoreBoard from "./components/ScoreBoard";
 import { useGameSocket } from "./game/useGameSocket";
-import ProfileEditor from "./components/ProfileEditor";
 import Layout from "./components/Layout";
 
 export default function App() {
@@ -22,19 +21,18 @@ export default function App() {
     <Layout
       headerRight={
         <>
-          <button className="px-3 py-1 rounded bg-green-600 text-white" onClick={() => createRoom().then((code) => join(code))}>Create & Join</button>
-          <input id="roomCode" placeholder="Room code" className="px-2 py-1 rounded border border-gray-400" />
-          <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={() => {
+          <button className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white shadow-sm" onClick={() => createRoom().then((code) => join(code))}>Create & Join</button>
+          <input id="roomCode" placeholder="Room code" className="px-3 py-1 rounded-md border border-gray-400 bg-white text-gray-900 placeholder:text-gray-500 shadow-inner" />
+          <button className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow-sm" onClick={() => {
             const code = (document.getElementById("roomCode") as HTMLInputElement).value.trim();
             if (code) join(code);
           }}>Join</button>
-          <span className="text-sm">
+          <span className="text-sm whitespace-nowrap">
             {connected ? "Connected" : "Disconnected"}
             {roomCode ? ` • Room ${roomCode}` : ""}
             {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ""}
             {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ""}
           </span>
-          <ProfileEditor onSave={(nickname, avatar) => { setProfile(nickname, avatar); }} />
         </>
       }
     >
