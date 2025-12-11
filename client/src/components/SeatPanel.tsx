@@ -18,11 +18,11 @@ export default function SeatPanel({ position, avatar, nickname, highlight, isEdi
     display: "flex",
     alignItems: "center",
     gap: 8,
-    padding: 6,
-    borderRadius: 8,
-    background: highlight ? "rgba(255,255,180,0.95)" : "rgba(255,255,255,0.85)",
-    boxShadow: highlight ? "0 0 12px 4px rgba(255,215,0,0.8)" : "0 2px 6px rgba(0,0,0,0.3)",
-    border: highlight ? "2px solid #e0c200" : "1px solid #999",
+    padding: 8,
+    borderRadius: 10,
+    background: highlight ? "rgba(255,240,180,0.95)" : "rgba(255,255,255,0.9)",
+    boxShadow: highlight ? "0 6px 18px rgba(0,0,0,0.35)" : "0 3px 10px rgba(0,0,0,0.25)",
+    border: highlight ? "2px solid #e0c200" : "1px solid #b08968",
   };
   const posStyle: React.CSSProperties =
     position === "bottom"
@@ -44,7 +44,7 @@ export default function SeatPanel({ position, avatar, nickname, highlight, isEdi
         }}
         style={{ width: 36, height: 36, borderRadius: 6, objectFit: "cover", border: "1px solid #666", background: "#ddd" }}
       />
-      <div style={{ fontWeight: 600, color: "#222" }}>{nickname || "Player"}</div>
+      <div style={{ fontWeight: 700, color: "#2b241f" }}>{nickname || "Player"}</div>
       {highlight && <div style={{ marginLeft: 8, color: "#b58900", fontWeight: 700 }}>Your turn</div>}
       {isEditable && !editing && (
         <button
