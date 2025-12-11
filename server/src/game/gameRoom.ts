@@ -1,11 +1,15 @@
 import { Server, Socket } from "socket.io";
-import { v4 as uuidv4 } from "uuid";
 import { Card, GameState, PlayerIndex, RoomInfo, TEAM_FOR_SEAT, TeamIndex } from "../../../shared/types";
 import { createDeck, shuffle } from "./deck";
 import { applyMove } from "./rules";
+import { computeRoundScore } from "./scoring";
 
 export class GameRoomManager {
   rooms: Map<string, RoomInfo> = new Map();
+  // keep per-room deck state and dealer info
+  private roomDecks: Map<string, Card[]> = new Map();
+  private roomDealerIndex: Map<string, PlayerIndex> = new Map();
+  private cardsLeftInCurrentDeal: Map<string, number> = new Map(); // counts down per player turns in a 3-card deal
 
   constructor(private io: Server) {}
 
@@ -71,7 +75,17 @@ export class GameRoomManager {
   }
 
   private startGame(room: RoomInfo) {
-    room.gameState = this.dealInitial();
+    const gs = this.dealInitial();
+    room.gameState = gs;
+    // initialize deck and dealer state tracking
+    const deck = shuffle(createDeck());
+    // remove the cards already dealt (3*4 + 4 table = 16)
+    deck.splice(0, 16);
+    this.roomDecks.set(room.code, deck);
+    // dealer is player 0 at initial deal
+    this.roomDealerIndex.set(room.code, 0);
+    // 3 cards per player in a deal => 12 total turns per deal
+    this.cardsLeftInCurrentDeal.set(room.code, 12);
     this.io.to(room.code).emit("game:start", room.gameState);
   }
 
@@ -89,13 +103,99 @@ export class GameRoomManager {
     if (res.captured.length > 0) {
       const team = TEAM_FOR_SEAT[seatIndex];
       room.gameState.capturesByTeam[team].push(...res.captured);
+      // enforce dealer cannot score chkobba on the very last card of the deal
+      const turnsLeft = this.cardsLeftInCurrentDeal.get(code) ?? 0;
+      const dealer = this.roomDealerIndex.get(code) ?? 0;
+      const isLastCardOfDeal = turnsLeft === 1;
       if (res.chkobba) {
-        room.gameState.chkobbaByTeam[team] += 1;
+        const isDealerTurn = seatIndex === dealer;
+        if (!(isDealerTurn && isLastCardOfDeal)) {
+          room.gameState.chkobbaByTeam[team] += 1;
+        }
       }
     }
     room.gameState.currentPlayerIndex = res.nextPlayer;
     room.gameState.lastCaptureTeam = res.lastCaptureTeam;
 
+    // decrement turns left in current deal for each play
+    const remaining = (this.cardsLeftInCurrentDeal.get(code) ?? 0) - 1;
+    this.cardsLeftInCurrentDeal.set(code, remaining);
+
+    // if all 12 turns of the deal are done, attempt next deal
+    if (remaining <= 0) {
+      this.nextDealOrEndRound(code, room);
+    }
+
     this.io.to(code).emit("game:update", room.gameState);
+  }
+
+  private nextDealOrEndRound(code: string, room: RoomInfo) {
+    const deck = this.roomDecks.get(code) || [];
+    // if deck still has cards, deal next 3 cards to each player
+    if (deck.length >= 12) {
+      for (let r = 0; r < 3; r++) {
+        for (let p = 0; p < 4; p++) {
+          const c = deck.shift();
+          if (!c) break;
+          room.gameState!.hands[p].push(c);
+        }
+      }
+      // reset turns left for new deal
+      this.cardsLeftInCurrentDeal.set(code, 12);
+      // dealer rotates: next dealer is (prev dealer + 1) % 4
+      const prevDealer = this.roomDealerIndex.get(code) ?? 0;
+      const nextDealer = ((prevDealer + 1) % 4) as PlayerIndex;
+      this.roomDealerIndex.set(code, nextDealer);
+    } else {
+      // End of round: sweep any remaining table cards to lastCaptureTeam (no chkobba)
+      const lastTeam = room.gameState!.lastCaptureTeam;
+      if (lastTeam !== undefined && room.gameState!.tableCards.length > 0) {
+        room.gameState!.capturesByTeam[lastTeam].push(...room.gameState!.tableCards);
+        room.gameState!.tableCards = [];
+      }
+      // Compute scoring
+      const roundScore = computeRoundScore(room.gameState!.capturesByTeam, room.gameState!.chkobbaByTeam);
+      room.gameState!.scoresByTeam = [
+        room.gameState!.scoresByTeam[0] + roundScore.teamPoints[0],
+        room.gameState!.scoresByTeam[1] + roundScore.teamPoints[1],
+      ];
+      // broadcast end of round and reset for next round
+      this.io.to(code).emit("game:roundEnd", {
+        scores: room.gameState!.scoresByTeam,
+        details: roundScore.details,
+      });
+      // Prepare next round: new deck, clear captures/chkobba, deal initial
+      const newDeck = shuffle(createDeck());
+      const hands: [Card[], Card[], Card[], Card[]] = [[], [], [], []];
+      const tableCards: Card[] = [];
+      for (let r = 0; r < 3; r++) {
+        for (let p = 0; p < 4; p++) {
+          const c = newDeck.shift();
+          if (!c) throw new Error("Deck exhausted early");
+          hands[p].push(c);
+        }
+      }
+      for (let i = 0; i < 4; i++) {
+        const c = newDeck.shift();
+        if (!c) throw new Error("Deck exhausted early");
+        tableCards.push(c);
+      }
+      room.gameState = {
+        tableCards,
+        hands,
+        capturesByTeam: [[], []],
+        scoresByTeam: room.gameState!.scoresByTeam, // carry forward total scores
+        currentPlayerIndex: 0,
+        roundNumber: room.gameState!.roundNumber + 1,
+        chkobbaByTeam: [0, 0],
+      };
+      // setup deck and dealer for new round
+      const remainingDeck = newDeck; // after initial 16 dealt
+      remainingDeck.splice(0, 0); // no-op to be explicit
+      this.roomDecks.set(code, remainingDeck);
+      this.roomDealerIndex.set(code, 0);
+      this.cardsLeftInCurrentDeal.set(code, 12);
+      this.io.to(code).emit("game:start", room.gameState);
+    }
   }
 }
