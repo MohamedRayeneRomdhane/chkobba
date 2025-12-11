@@ -44,6 +44,11 @@ export default function App() {
           <OpponentHand position="left" />
           <OpponentHand position="right" />
 
+          {/* Seat/team indicators */}
+          <div style={{ position: "absolute", top: 8, right: 8, color: "#fff" }}>Seat 1 (Team B)</div>
+          <div style={{ position: "absolute", top: "50%", left: 8, transform: "translateY(-50%)", color: "#fff" }}>Seat 2 (Team A)</div>
+          <div style={{ position: "absolute", top: "50%", right: 8, transform: "translateY(-50%)", color: "#fff" }}>Seat 4 (Team B)</div>
+
           {/* Props */}
           <CoffeeProp />
           <ChichaProp />
