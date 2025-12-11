@@ -9,6 +9,7 @@ import CigarettesProp from "./components/CigarettesProp";
 import ScoreBoard from "./components/ScoreBoard";
 import { useGameSocket } from "./game/useGameSocket";
 import ProfileEditor from "./components/ProfileEditor";
+import Layout from "./components/Layout";
 
 export default function App() {
   const { connected, roomCode, gameState, roundBanner, snapshot, mySeat, createRoom, join, play, setProfile } = useGameSocket();
@@ -18,30 +19,30 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ width: "100vw", height: "100vh", background: "#8b6b4a" /* wooden table */ }}>
-      <div style={{ padding: 8, display: "flex", gap: 8 }}>
-        <button onClick={() => createRoom().then((code) => join(code))}>Create & Join</button>
-        <input id="roomCode" placeholder="Room code" />
-        <button onClick={() => {
-          const code = (document.getElementById("roomCode") as HTMLInputElement).value.trim();
-          if (code) join(code);
-        }}>Join</button>
-        <span>
-          {connected ? "Connected" : "Disconnected"}
-          {roomCode ? ` • Room ${roomCode}` : ""}
-          {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ""}
-          {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ""}
-        </span>
-        <div style={{ marginLeft: "auto" }}>
+    <Layout
+      headerRight={
+        <>
+          <button className="px-3 py-1 rounded bg-green-600 text-white" onClick={() => createRoom().then((code) => join(code))}>Create & Join</button>
+          <input id="roomCode" placeholder="Room code" className="px-2 py-1 rounded border border-gray-400" />
+          <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={() => {
+            const code = (document.getElementById("roomCode") as HTMLInputElement).value.trim();
+            if (code) join(code);
+          }}>Join</button>
+          <span className="text-sm">
+            {connected ? "Connected" : "Disconnected"}
+            {roomCode ? ` • Room ${roomCode}` : ""}
+            {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ""}
+            {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ""}
+          </span>
           <ProfileEditor onSave={(nickname, avatar) => { setProfile(nickname, avatar); }} />
-        </div>
-      </div>
-
-      <div style={{ position: "relative", width: "100%", height: "calc(100% - 50px)" }}>
+        </>
+      }
+    >
+      <div className="relative w-full h-[calc(100vh-64px)]">
         <TableMat>
           {/* Round banner */}
           {roundBanner && (
-            <div style={{ position: "absolute", top: 50, left: "50%", transform: "translateX(-50%)", background: "rgba(255,255,255,0.9)", padding: 8, borderRadius: 8, boxShadow: "0 2px 6px rgba(0,0,0,0.3)" }}>
+            <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-white/90 px-3 py-2 rounded-lg shadow">
               {roundBanner}
             </div>
           )}
@@ -103,7 +104,7 @@ export default function App() {
         </TableMat>
 
         {/* Player hand at bottom */}
-        <div style={{ position: "absolute", bottom: 0, width: "100%" }}>
+        <div className="absolute bottom-0 w-full">
           <PlayerHand
             cards={gameState?.hands?.[0] || []}
             onPlay={(id) => {
@@ -123,6 +124,6 @@ export default function App() {
           highlight={gameState?.currentPlayerIndex === 0}
         />
       </div>
-    </div>
+    </Layout>
   );
 }

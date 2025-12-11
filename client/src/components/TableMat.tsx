@@ -6,16 +6,7 @@ interface TableMatProps {
 
 export default function TableMat({ children }: TableMatProps) {
   return (
-    <div style={{
-      position: "relative",
-      width: "80%",
-      height: "60vh",
-      margin: "auto",
-      background: "#1a7f38",
-      borderRadius: 12,
-      boxShadow: "0 0 20px rgba(0,0,0,0.4) inset",
-      border: "8px solid #6b4f2f" // wooden rim
-    }}>
+    <div className="relative w-[80%] h-[60vh] mx-auto bg-felt rounded-mat shadow-insetDeep border-[8px] border-tableWood-dark">
       {children}
     </div>
   );

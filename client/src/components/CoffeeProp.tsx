@@ -8,21 +8,7 @@ export default function CoffeeProp() {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={() => { console.log("coffee-clicked"); setGlow(true); setTimeout(() => setGlow(false), 500); }}
-      style={{
-        position: "absolute",
-        bottom: 20,
-        left: 40,
-        width: 100,
-        height: 60,
-        background: hover ? "#f7e7d0" : "#e6d3b0",
-        border: "3px solid #6b4f2f",
-        borderRadius: 8,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: glow ? "0 0 10px 4px rgba(255,200,0,0.8)" : "0 2px 6px rgba(0,0,0,0.3)",
-        cursor: "pointer"
-      }}
+      className={`absolute bottom-5 left-10 w-24 h-16 border-2 rounded-md flex items-center justify-center cursor-pointer ${hover ? "bg-amber-100" : "bg-amber-200"} border-tableWood-dark ${glow ? "shadow-[0_0_10px_4px_rgba(255,200,0,0.8)]" : "shadow"}`}
     >
       Coffee
     </div>

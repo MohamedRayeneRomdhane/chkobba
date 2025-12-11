@@ -1,0 +1,36 @@
+import React from "react";
+
+type Props = {
+  headerRight?: React.ReactNode;
+  children: React.ReactNode;
+};
+
+export default function Layout({ headerRight, children }: Props) {
+  return (
+    <div className="min-h-screen flex flex-col bg-tableWood">
+      {/* Top bar */}
+      <div className="w-full bg-tableWood-dark text-white shadow-md">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
+          <h1 className="text-xl font-bold tracking-wide">Chkobba</h1>
+          <div className="ml-auto flex items-center gap-4">
+            {headerRight}
+          </div>
+        </div>
+      </div>
+
+      {/* Content with side margins for future ads */}
+      <div className="flex-1 flex">
+        {/* Left margin (ads placeholder) */}
+        <aside className="w-48 bg-tableWood-dark/40 border-r border-tableWood-dark" />
+
+        {/* Main game area */}
+        <main className="flex-1 flex items-center justify-center p-4">
+          {children}
+        </main>
+
+        {/* Right margin (ads placeholder) */}
+        <aside className="w-48 bg-tableWood-dark/40 border-l border-tableWood-dark" />
+      </div>
+    </div>
+  );
+}

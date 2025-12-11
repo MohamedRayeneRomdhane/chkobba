@@ -9,29 +9,17 @@ interface PlayerHandProps {
 export default function PlayerHand({ cards, onPlay }: PlayerHandProps) {
   const isDisabled = cards.length === 0;
   return (
-    <div style={{ display: "flex", justifyContent: "center", gap: 16, padding: 16 }}>
+    <div className="flex justify-center gap-4 p-4">
       {cards.map((c, i) => (
         <div
           key={c.id}
           onClick={() => !isDisabled && onPlay(c.id)}
-          style={{
-            width: 80,
-            height: 120,
-            borderRadius: 8,
-            background: "#fff",
-            border: "2px solid #333",
-            transform: `rotate(${(i - 1) * 5}deg)`,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: isDisabled ? "not-allowed" : "pointer",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.25)",
-          }}
+          className={`w-20 h-30 rounded-lg bg-white border-2 border-gray-800 flex flex-col items-center justify-center shadow-md ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+          style={{ transform: `rotate(${(i - 1) * 5}deg)` }}
           title={`${c.rank} of ${c.suit}`}
         >
-          <div style={{ fontWeight: 700 }}>{c.rank}</div>
-          <div style={{ fontSize: 12 }}>{c.suit}</div>
+          <div className="font-bold">{c.rank}</div>
+          <div className="text-xs">{c.suit}</div>
         </div>
       ))}
     </div>
