@@ -6,7 +6,7 @@ interface TableMatProps {
 
 export default function TableMat({ children }: TableMatProps) {
   return (
-    <div className="relative w-[80%] h-[60vh] mx-auto bg-felt rounded-mat shadow-insetDeep border-[8px] border-tableWood-dark">
+    <div className="relative w-full h-full max-w-5xl mx-auto bg-felt rounded-mat shadow-insetDeep border-[10px] border-tableWood-dark">
       {children}
     </div>
   );

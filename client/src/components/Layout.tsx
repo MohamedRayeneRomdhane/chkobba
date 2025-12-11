@@ -18,18 +18,20 @@ export default function Layout({ headerRight, children }: Props) {
         </div>
       </div>
 
-      {/* Content with side margins for future ads */}
+      {/* Content: keep it simple, robust, and centered */}
       <div className="flex-1 flex">
-        {/* Left margin (ads placeholder) */}
-        <aside className="w-48 bg-tableWood-dark/40 border-r border-tableWood-dark" />
+        {/* Left margin (ads placeholder) on large screens */}
+        <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-r border-tableWood-dark" />
 
-        {/* Main game area */}
-        <main className="flex-1 flex items-center justify-center p-4">
-          {children}
+        {/* Main game area: full-height minus header, centered */}
+        <main className="flex-1 h-[calc(100vh-64px)] flex items-center justify-center p-3">
+          <div className="w-full max-w-5xl h-full mx-auto">
+            {children}
+          </div>
         </main>
 
-        {/* Right margin (ads placeholder) */}
-        <aside className="w-48 bg-tableWood-dark/40 border-l border-tableWood-dark" />
+        {/* Right margin (ads placeholder) on large screens */}
+        <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-l border-tableWood-dark" />
       </div>
     </div>
   );

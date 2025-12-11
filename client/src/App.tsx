@@ -38,8 +38,7 @@ export default function App() {
         </>
       }
     >
-      <div className="relative w-full h-[calc(100vh-64px)]">
-        <TableMat>
+      <TableMat>
           {/* Round banner */}
           {roundBanner && (
             <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-white/90 px-3 py-2 rounded-lg shadow">
@@ -103,25 +102,29 @@ export default function App() {
           <ScoreBoard state={gameState || null} />
         </TableMat>
 
-        {/* Player hand at bottom */}
-        <div className="absolute bottom-0 w-full">
-          <PlayerHand
-            cards={gameState?.hands?.[0] || []}
-            onPlay={(id) => {
-              if (!roomCode) return;
-              // Only allow play if it's seat 0's turn
-              if (gameState?.currentPlayerIndex !== 0) return;
-              play(roomCode, id);
-            }}
-          />
-        </div>
-
-        {/* Bottom seat panel for local player */}
-        <SeatPanel
-          position="bottom"
-          avatar={snapshot?.profiles?.[snapshot?.seats?.[0]]?.avatar}
-          nickname={snapshot?.profiles?.[snapshot?.seats?.[0]]?.nickname}
-          highlight={gameState?.currentPlayerIndex === 0}
+      {/* Bottom seat panel for local player with profile edit */}
+      <SeatPanel
+        position="bottom"
+        avatar={
+          mySeat != null && snapshot?.seats ? snapshot?.profiles?.[snapshot.seats[mySeat]]?.avatar : undefined
+        }
+        nickname={
+          mySeat != null && snapshot?.seats ? snapshot?.profiles?.[snapshot.seats[mySeat]]?.nickname : undefined
+        }
+        highlight={gameState?.currentPlayerIndex === mySeat}
+        isEditable={true}
+        onSaveProfile={(nickname, avatar) => setProfile(nickname, avatar)}
+      />
+      {/* Player hand outside (below) the table */}
+      <div className="w-full flex justify-center mt-2">
+        <PlayerHand
+          cards={(mySeat != null && gameState?.hands) ? (gameState.hands[mySeat] || []) : []}
+          onPlay={(id) => {
+            if (!roomCode) return;
+            if (mySeat == null) return;
+            if (gameState?.currentPlayerIndex !== mySeat) return;
+            play(roomCode, id);
+          }}
         />
       </div>
     </Layout>
