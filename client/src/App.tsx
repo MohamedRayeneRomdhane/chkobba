@@ -8,10 +8,11 @@ import ChichaProp from "./components/ChichaProp";
 import CigarettesProp from "./components/CigarettesProp";
 import ScoreBoard from "./components/ScoreBoard";
 import { useGameSocket } from "./game/useGameSocket";
+import EndOverlay from "./components/EndOverlay";
 import Layout from "./components/Layout";
 
 export default function App() {
-  const { connected, roomCode, gameState, roundBanner, lastRound, snapshot, mySeat, dealTick, createRoom, join, play, setProfile, replay, quit } = useGameSocket();
+  const { connected, roomCode, gameState, roundBanner, lastRound, replayWaiting, snapshot, mySeat, dealTick, createRoom, join, play, setProfile, replay, quit } = useGameSocket();
   const [selectedHandId, setSelectedHandId] = React.useState<string | null>(null);
   const [selectedTableIds, setSelectedTableIds] = React.useState<string[]>([]);
   const selectedHandCard = React.useMemo(() => {
@@ -70,126 +71,16 @@ export default function App() {
         </>
       }
     >
-      {/* End screen overlay when round ended */}
-      {roundBanner && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="chalkboard-frame">
-            <div className="chalkboard-surface">
-              <h2 className="chalk-text text-3xl mb-2">Round Summary</h2>
-              <p className="chalk-text text-base opacity-90 mb-3">{roundBanner}</p>
-              {(() => {
-                const scores = lastRound?.scores ?? gameState?.scoresByTeam ?? null;
-                if (!scores) return null;
-                return (
-                  <div className="text-left chalk-text p-3 mb-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="chalk-text text-lg">Team A</span>
-                      <span className="chalk-text text-xl">{scores[0]}</span>
-                    </div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="chalk-text text-lg">Team B</span>
-                      <span className="chalk-text text-xl">{scores[1]}</span>
-                    </div>
-                    <div className="chalk-divider my-2" />
-                    <div className="chalk-text text-xl">
-                      Winner: {scores[0] === scores[1] ? "Tie" : scores[0] > scores[1] ? "Team A" : "Team B"}
-                    </div>
-                  </div>
-                );
-              })()}
-            {/* Detailed scoring breakdown */}
-            {lastRound && (
-              <div className="text-left chalk-text p-4 mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="chalk-text text-xl">Team A</span>
-                  <span className="chalk-text text-2xl">{lastRound.scores[0]}</span>
-                </div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="chalk-text text-xl">Team B</span>
-                  <span className="chalk-text text-2xl">{lastRound.scores[1]}</span>
-                </div>
-                <div className="chalk-divider my-3" />
-                <ul className="space-y-2 text-base">
-                  <li className="chalk-text">Elhaya (most cards): {lastRound.details?.mostCards === 0 ? "Team A" : lastRound.details?.mostCards === 1 ? "Team B" : "—"}</li>
-                  <li className="chalk-text">Dineri (most diamonds): {lastRound.details?.mostDiamonds === 0 ? "Team A" : lastRound.details?.mostDiamonds === 1 ? "Team B" : "—"}</li>
-                  <li className="chalk-text">Karta Bermila (7♦): {lastRound.details?.sevenDiamonds === 0 ? "Team A" : lastRound.details?.sevenDiamonds === 1 ? "Team B" : "—"}</li>
-                  <li className="chalk-text">Chkobbas: Team A {lastRound.details?.chkobba?.[0] ?? 0} • Team B {lastRound.details?.chkobba?.[1] ?? 0}</li>
-                  <li className="chalk-text">Most 7s (tie-break by 6s): {
-                    lastRound.details?.mostSevens === 0 ? "Team A" : lastRound.details?.mostSevens === 1 ? "Team B" : lastRound.details?.mostSevens === "tie" ? "Tie" : "—"
-                  }</li>
-                </ul>
-                {/* Dynamic scoring contribution breakdown */}
-                <div className="chalk-divider my-3" />
-                <div className="chalk-text">
-                  <div className="text-xl mb-2">Points earned by category</div>
-                  {(() => {
-                    const rows: Array<{ label: string; team: string; points: number }> = [];
-                    const teamName = (i: number | "tie" | undefined) => i === 0 ? "Team A" : i === 1 ? "Team B" : i === "tie" ? "Tie" : "—";
-                    // Using common scoring: Elhaya 2, Dineri 1, 7♦ 1, Chkobba 1 each, Most 7s 1 (tie-break by 6s)
-                    const mostCards = lastRound.details?.mostCards as 0 | 1 | undefined;
-                    if (mostCards === 0 || mostCards === 1) rows.push({ label: "Elhaya (most cards)", team: teamName(mostCards), points: 2 });
-                    const mostDiamonds = lastRound.details?.mostDiamonds as 0 | 1 | undefined;
-                    if (mostDiamonds === 0 || mostDiamonds === 1) rows.push({ label: "Dineri (most diamonds)", team: teamName(mostDiamonds), points: 1 });
-                    const sevenDiamonds = lastRound.details?.sevenDiamonds as 0 | 1 | undefined;
-                    if (sevenDiamonds === 0 || sevenDiamonds === 1) rows.push({ label: "Karta Bermila (7♦)", team: teamName(sevenDiamonds), points: 1 });
-                    const chkA = lastRound.details?.chkobba?.[0] ?? 0;
-                    const chkB = lastRound.details?.chkobba?.[1] ?? 0;
-                    if (chkA) rows.push({ label: "Chkobbas", team: "Team A", points: chkA });
-                    if (chkB) rows.push({ label: "Chkobbas", team: "Team B", points: chkB });
-                    const mostSevens = lastRound.details?.mostSevens as 0 | 1 | "tie" | undefined;
-                    if (mostSevens === 0 || mostSevens === 1) rows.push({ label: "Most 7s", team: teamName(mostSevens), points: 1 });
-                    if (rows.length === 0) return null;
-                    return (
-                      <div className="grid grid-cols-3 gap-y-1 text-base">
-                        <div className="opacity-80">Category</div>
-                        <div className="opacity-80">Earned by</div>
-                        <div className="opacity-80 text-right">Points</div>
-                        {rows.map((r, i) => (
-                          <React.Fragment key={i}>
-                            <div>{r.label}</div>
-                            <div>{r.team}</div>
-                            <div className="text-right">{r.points}</div>
-                          </React.Fragment>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
-                <div className="chalk-divider my-3" />
-                <div className="chalk-text text-2xl">
-                  Winner: {
-                    lastRound.scores[0] === lastRound.scores[1]
-                      ? "Tie"
-                      : lastRound.scores[0] > lastRound.scores[1] ? "Team A" : "Team B"
-                  }
-                </div>
-                {/* Scoring legend */}
-                <div className="chalk-divider my-4" />
-                <div className="chalk-text">
-                  <div className="text-xl mb-2">How scoring works</div>
-                  <ul className="space-y-1 text-base">
-                    <li>• Most cards (Elhaya): +2 points</li>
-                    <li>• Most diamonds (Dineri): +1 point</li>
-                    <li>• 7♦ (Karta Bermila): +1 point</li>
-                    <li>• Each chkobba: +1 point</li>
-                    <li>• Most 7s (tie-break by 6s): +1 point</li>
-                  </ul>
-                </div>
-              </div>
-            )}
-            <div className="flex items-center justify-center gap-6">
-              {/* Uiverse.io Cevorob styled replay button */}
-              <button onClick={() => { if (roomCode) replay(roomCode); }} className="replay-btn">
-                <span>Replay</span>
-              </button>
-              <button onClick={() => { if (roomCode) quit(roomCode); }} className="replay-btn replay-btn--danger">
-                <span>Quit</span>
-              </button>
-              <p className="mt-3 chalk-text opacity-80">Waiting for other players to click replay…</p>
-            </div>
-            </div>
-          </div>
-        </div>
+      {/* End screen overlay: show during round end or until all replay votes */}
+      {(lastRound || (replayWaiting && replayWaiting.count < replayWaiting.total)) && (
+        <EndOverlay
+          banner={roundBanner}
+          scores={lastRound?.scores ?? gameState?.scoresByTeam ?? null}
+          details={lastRound?.details ?? null}
+          replayWaiting={replayWaiting}
+          onReplay={() => { if (roomCode) replay(roomCode); }}
+          onQuit={() => { if (roomCode) quit(roomCode); }}
+        />
       )}
       <TableMat>
           {/* Round banner */}

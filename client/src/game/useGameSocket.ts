@@ -9,6 +9,7 @@ export function useGameSocket() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
   const [lastRound, setLastRound] = useState<{ scores: [number, number]; details: any } | null>(null);
+  const [replayWaiting, setReplayWaiting] = useState<{ count: number; total: number } | null>(null);
   const [snapshot, setSnapshot] = useState<any | null>(null);
   const [mySeat, setMySeat] = useState<PlayerIndex | null>(null);
   const [dealTick, setDealTick] = useState<number>(0);
@@ -37,7 +38,7 @@ export function useGameSocket() {
     socket.on("game:start", (state: GameState) => {
       setGameState(state);
       setDealTick((x) => x + 1);
-      setLastRound(null); // Hide end screen overlay on new round
+      // Do not clear replayWaiting/banner here; overlay logic will check count vs total
     });
     socket.on("game:update", (state: GameState) => setGameState(state));
     socket.on("game:roundEnd", (payload: { scores: [number, number]; details: any }) => {
@@ -46,10 +47,12 @@ export function useGameSocket() {
       // do not auto-hide; show end screen until replay or quit
     });
     socket.on("game:replayStatus", (payload: { count: number; total: number }) => {
+      setReplayWaiting(payload);
       setRoundBanner(`Waiting for players: ${payload.count}/${payload.total}`);
     });
     socket.on("room:closed", () => {
-      setRoundBanner("Room closed");
+      setRoundBanner(null);
+      setReplayWaiting(null);
       setLastRound(null);
       setGameState(null);
       setSnapshot(null);
@@ -111,5 +114,5 @@ export function useGameSocket() {
     });
   }
 
-  return { connected, roomCode, gameState, roundBanner, lastRound, snapshot, mySeat, dealTick, createRoom, join, play, setProfile, replay, quit };
+  return { connected, roomCode, gameState, roundBanner, lastRound, replayWaiting, snapshot, mySeat, dealTick, createRoom, join, play, setProfile, replay, quit };
 }
