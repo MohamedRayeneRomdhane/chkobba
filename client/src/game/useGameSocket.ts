@@ -57,6 +57,7 @@ export function useGameSocket() {
       setGameState(null);
       setSnapshot(null);
       setRoomCode(null);
+      setMySeat(null);
     });
     return () => {
       socket.off("connect");

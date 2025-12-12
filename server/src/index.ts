@@ -23,8 +23,9 @@ io.on("connection", (socket) => {
   socket.on("room:join", (code: string, ack?: (ok: boolean, msg?: string) => void) => {
     try {
       console.log(`[room:join] ${socket.id} -> ${code}`);
-      const room = manager.joinRoom(code, socket);
+      // Join the Socket.io room first, so any immediate emits (e.g., game:start) are received
       socket.join(code);
+      const room = manager.joinRoom(code, socket);
       ack?.(true, room.code);
     } catch (e: any) {
       console.error(`[room:join:error] ${socket.id} -> ${code}`, e);
