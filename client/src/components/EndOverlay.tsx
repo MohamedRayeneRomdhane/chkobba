@@ -11,7 +11,7 @@ interface EndOverlayProps {
 
 export default function EndOverlay({ banner, scores, details, replayWaiting, onReplay, onQuit }: EndOverlayProps) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
       <div className="chalkboard-frame">
         <div className="chalkboard-surface">
           <h2 className="chalk-text text-3xl mb-2">Round Summary</h2>

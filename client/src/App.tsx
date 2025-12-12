@@ -86,7 +86,7 @@ export default function App() {
           {/* Round banner */}
           {/* Inline banner removed in favor of end overlay */}
           {/* Table cards placeholder */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 place-items-center max-w-[640px]">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2 place-items-center max-w-[90%]">
             {(gameState?.tableCards || []).map((c) => {
               const selected = selectedTableIds.includes(c.id);
               return (
@@ -96,7 +96,7 @@ export default function App() {
                     // toggle selection for building combinations
                     setSelectedTableIds((prev) => prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id]);
                   }}
-                  className={`w-[64px] h-[92px] rounded-lg bg-white border-2 flex flex-col items-center justify-center shadow-md transition-transform duration-200 ease-out cursor-pointer ${selected ? "ring-2 ring-amber-400 border-gray-800 -translate-y-1" : "border-gray-800 hover:-translate-y-0.5"}`}
+                  className={`w-[48px] h-[72px] sm:w-[58px] sm:h-[84px] md:w-[64px] md:h-[92px] rounded-lg bg-white border-2 flex flex-col items-center justify-center shadow-md transition-transform duration-200 ease-out cursor-pointer ${selected ? "ring-2 ring-amber-400 border-gray-800 -translate-y-1" : "border-gray-800 hover:-translate-y-0.5"}`}
                 >
                   <div className="font-bold">{c.rank}</div>
                   <div className="text-xs">{c.suit}</div>
