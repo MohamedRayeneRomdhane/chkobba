@@ -11,6 +11,7 @@ export class GameRoomManager {
   private roomDealerIndex: Map<string, PlayerIndex> = new Map();
   private cardsLeftInCurrentDeal: Map<string, number> = new Map(); // counts down per player turns in a 3-card deal
   private profiles: Map<string, PlayerProfile> = new Map(); // key: socketId
+  private replayVotes: Map<string, Set<string>> = new Map(); // roomCode -> socketIds who clicked replay
   private avatarPool: string[] = [
     "/assets/avatars/avatar1.png",
     "/assets/avatars/avatar2.png",
@@ -187,11 +188,13 @@ export class GameRoomManager {
         room.gameState!.scoresByTeam[0] + roundScore.teamPoints[0],
         room.gameState!.scoresByTeam[1] + roundScore.teamPoints[1],
       ];
-      // broadcast end of round and reset for next round
+      // broadcast end of round and initialize replay waiting state
       this.io.to(code).emit("game:roundEnd", {
         scores: room.gameState!.scoresByTeam,
         details: roundScore.details,
       });
+      this.replayVotes.set(code, new Set());
+      this.io.to(code).emit("game:replayStatus", { count: 0, total: room.players.length });
       // Prepare next round: new deck, clear captures/chkobba, deal initial
       const newDeck = shuffle(createDeck());
       const hands: [Card[], Card[], Card[], Card[]] = [[], [], [], []];
@@ -226,6 +229,36 @@ export class GameRoomManager {
       this.io.to(code).emit("game:start", room.gameState);
       this.emitRoomSnapshot(code);
     }
+  }
+
+  requestReplay(code: string, socketId: string) {
+    const room = this.rooms.get(code);
+    if (!room) throw new Error("Room not found");
+    const votes = this.replayVotes.get(code) || new Set<string>();
+    votes.add(socketId);
+    this.replayVotes.set(code, votes);
+    const count = votes.size;
+    this.io.to(code).emit("game:replayStatus", { count, total: room.players.length });
+    if (count >= room.players.length) {
+      room.gameState = undefined;
+      this.roomDecks.delete(code);
+      this.roomDealerIndex.delete(code);
+      this.cardsLeftInCurrentDeal.delete(code);
+      this.replayVotes.delete(code);
+      this.startGame(room);
+    }
+  }
+
+  quitRoom(code: string, socketId: string) {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    console.log(`[manager] quitRoom ${code} by ${socketId} -> discarding room`);
+    this.io.to(code).emit("room:closed", { code });
+    this.rooms.delete(code);
+    this.roomDecks.delete(code);
+    this.roomDealerIndex.delete(code);
+    this.cardsLeftInCurrentDeal.delete(code);
+    this.replayVotes.delete(code);
   }
 
   setProfile(socketId: string, payload: Partial<PlayerProfile>) {

@@ -55,6 +55,28 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("game:replay", (payload: { code: string }, ack?: (ok: boolean, msg?: string) => void) => {
+    try {
+      console.log(`[game:replay] ${socket.id} code=${payload.code}`);
+      manager.requestReplay(payload.code, socket.id);
+      ack?.(true);
+    } catch (e: any) {
+      console.error(`[game:replay:error] ${socket.id} code=${payload.code}`, e);
+      ack?.(false, e?.message || "replay failed");
+    }
+  });
+
+  socket.on("room:quit", (payload: { code: string }, ack?: (ok: boolean, msg?: string) => void) => {
+    try {
+      console.log(`[room:quit] ${socket.id} code=${payload.code}`);
+      manager.quitRoom(payload.code, socket.id);
+      ack?.(true);
+    } catch (e: any) {
+      console.error(`[room:quit:error] ${socket.id} code=${payload.code}`, e);
+      ack?.(false, e?.message || "quit failed");
+    }
+  });
+
   socket.on("disconnect", (reason) => {
     console.log(`[socket] disconnected ${socket.id} reason=${reason}`);
   });

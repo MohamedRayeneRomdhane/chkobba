@@ -8,6 +8,7 @@ export function useGameSocket() {
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
+  const [lastRound, setLastRound] = useState<{ scores: [number, number]; details: any } | null>(null);
   const [snapshot, setSnapshot] = useState<any | null>(null);
   const [mySeat, setMySeat] = useState<PlayerIndex | null>(null);
   const [dealTick, setDealTick] = useState<number>(0);
@@ -33,11 +34,26 @@ export function useGameSocket() {
       const idx = snap.seats?.findIndex((s: string | null) => s === socket.id);
       if (idx !== undefined && idx >= 0) setMySeat(idx as PlayerIndex);
     });
-    socket.on("game:start", (state: GameState) => { setGameState(state); setDealTick((x) => x + 1); });
+    socket.on("game:start", (state: GameState) => {
+      setGameState(state);
+      setDealTick((x) => x + 1);
+      setLastRound(null); // Hide end screen overlay on new round
+    });
     socket.on("game:update", (state: GameState) => setGameState(state));
     socket.on("game:roundEnd", (payload: { scores: [number, number]; details: any }) => {
+      setLastRound(payload);
       setRoundBanner(`Round ended • Team A: ${payload.scores[0]} • Team B: ${payload.scores[1]}`);
-      setTimeout(() => setRoundBanner(null), 3000);
+      // do not auto-hide; show end screen until replay or quit
+    });
+    socket.on("game:replayStatus", (payload: { count: number; total: number }) => {
+      setRoundBanner(`Waiting for players: ${payload.count}/${payload.total}`);
+    });
+    socket.on("room:closed", () => {
+      setRoundBanner("Room closed");
+      setLastRound(null);
+      setGameState(null);
+      setSnapshot(null);
+      setRoomCode(null);
     });
     return () => {
       socket.off("connect");
@@ -47,6 +63,8 @@ export function useGameSocket() {
       socket.off("game:start");
       socket.off("game:update");
       socket.off("game:roundEnd");
+      socket.off("game:replayStatus");
+      socket.off("room:closed");
     };
   }, [socket]);
 
@@ -81,5 +99,17 @@ export function useGameSocket() {
     });
   }
 
-  return { connected, roomCode, gameState, roundBanner, snapshot, mySeat, dealTick, createRoom, join, play, setProfile };
+  function replay(code: string) {
+    return new Promise<boolean>((resolve) => {
+      socket.emit("game:replay", { code }, (ok: boolean) => resolve(ok));
+    });
+  }
+
+  function quit(code: string) {
+    return new Promise<boolean>((resolve) => {
+      socket.emit("room:quit", { code }, (ok: boolean) => resolve(ok));
+    });
+  }
+
+  return { connected, roomCode, gameState, roundBanner, lastRound, snapshot, mySeat, dealTick, createRoom, join, play, setProfile, replay, quit };
 }
