@@ -8,7 +8,12 @@
     "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@shared/*": ["../shared/*"],
+      "@server/*": ["*"]
+    }
   },
   "include": ["src", "../shared/**/*.ts"]
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 type Props = {
   headerRight?: React.ReactNode;
@@ -14,24 +14,29 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
   React.useLayoutEffect(() => {
     const update = () => {
       const h = footerRef.current?.offsetHeight ?? 0;
-      if (rootRef.current) rootRef.current.style.setProperty("--footer-h", `${h}px`);
+      if (rootRef.current) rootRef.current.style.setProperty('--footer-h', `${h}px`);
     };
     update();
 
-    // Guarded ResizeObserver usage (no optional chaining on constructor)
-    let ro: any = null;
-    const RO = (typeof window !== "undefined" && (window as any).ResizeObserver) ? (window as any).ResizeObserver : null;
-    if (RO && footerRef.current) {
+    // Guarded ResizeObserver usage
+    let ro: ResizeObserver | null = null;
+    const RO: typeof ResizeObserver | null =
+      typeof window !== 'undefined' && 'ResizeObserver' in window ? ResizeObserver : null;
+    const footerEl = footerRef.current;
+    if (RO && footerEl) {
       ro = new RO(() => update());
-      ro.observe(footerRef.current);
+      ro.observe(footerEl);
     }
-    window.addEventListener("resize", update);
+    window.addEventListener('resize', update);
     return () => {
       try {
-        if (ro && footerRef.current) ro.unobserve(footerRef.current);
-        if (ro && typeof ro.disconnect === "function") ro.disconnect();
-      } catch {}
-      window.removeEventListener("resize", update);
+        if (ro && footerEl) ro.unobserve(footerEl);
+        if (ro) ro.disconnect();
+      } catch (e) {
+        // intentionally swallow cleanup errors
+        void e;
+      }
+      window.removeEventListener('resize', update);
     };
   }, []);
 
@@ -41,9 +46,7 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
       <div className="cafe-header text-white">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
           <h1 className="text-xl font-bold tracking-wide drop-shadow">Chkobba</h1>
-          <div className="ml-auto flex items-center gap-4">
-            {headerRight}
-          </div>
+          <div className="ml-auto flex items-center gap-4">{headerRight}</div>
         </div>
       </div>
 
@@ -53,10 +56,11 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
         <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-r border-tableWood-dark" />
 
         {/* Main game area: centered; bottom padding matches footer height */}
-        <main className="flex-1 flex items-center justify-center p-3" style={{ paddingBottom: "calc(var(--footer-h, 56px) + 8px)" }}>
-          <div className="w-full max-w-5xl mx-auto">
-            {children}
-          </div>
+        <main
+          className="flex-1 flex items-center justify-center p-3"
+          style={{ paddingBottom: 'calc(var(--footer-h, 56px) + 8px)' }}
+        >
+          <div className="w-full max-w-5xl mx-auto">{children}</div>
         </main>
 
         {/* Right margin (ads placeholder) on large screens */}
@@ -66,9 +70,7 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
       {/* Footer */}
       <footer ref={footerRef} className="cafe-header text-white">
         <div className="max-w-6xl mx-auto px-4 py-2 flex flex-wrap items-center gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 text-sm">
-            {footerLeft}
-          </div>
+          <div className="flex items-center gap-2 text-sm">{footerLeft}</div>
           <div className="ml-auto flex items-center gap-2 sm:gap-3 text-xs sm:text-sm opacity-90">
             {footerRight ?? (
               <>
