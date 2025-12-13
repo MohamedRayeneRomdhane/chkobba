@@ -4,6 +4,7 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "dist",
+    "rootDir": "..",
     "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
@@ -13,6 +14,6 @@
       "@shared/*": ["../../shared/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../shared/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
