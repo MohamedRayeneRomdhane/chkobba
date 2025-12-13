@@ -12,7 +12,12 @@
   },
   "scripts": {
     "build": "npm run build -w client && npm run build -w server",
+    "build:server": "npm run build -w server",
+    "build:client": "npm run build -w client",
     "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "start:server": "node server/dist/index.js",
     "install-all": "npm install"
   }
 }
