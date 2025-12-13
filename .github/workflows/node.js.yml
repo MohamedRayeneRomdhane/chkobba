@@ -25,6 +25,11 @@ jobs:
       - name: Install all workspaces
         run: npm install -ws --include-workspace-root
 
+      - name: Fix client CLI execute permissions
+        run: |
+          chmod +x client/node_modules/.bin/* || true
+          ls -l client/node_modules/.bin || true
+
       - name: Lint server
         run: npm run lint -w server
 
