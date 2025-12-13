@@ -1,30 +1,23 @@
 import React from 'react';
 
+type RoundDetails = {
+  mostCards?: 0 | 1;
+  mostDiamonds?: 0 | 1;
+  sevenDiamonds?: 0 | 1;
+  chkobba?: [number, number];
+  mostSevens?: 0 | 1 | 'tie';
+};
+
 interface EndOverlayProps {
   banner: string | null;
   scores: [number, number] | null;
-  details:
-    | {
-        mostCards?: 0 | 1;
-        mostDiamonds?: 0 | 1;
-        sevenDiamonds?: 0 | 1;
-        chkobba?: [number, number];
-        mostSevens?: 0 | 1 | 'tie';
-      }
-    | null;
-  replayWaiting: { count: number; total: number } | null;
+  details: RoundDetails | null;
+  replayWaiting?: { count: number; total: number } | null;
   onReplay: () => void;
   onQuit: () => void;
 }
 
-export default function EndOverlay({
-  banner,
-  scores,
-  details,
-  replayWaiting: _replayWaiting,
-  onReplay,
-  onQuit,
-}: EndOverlayProps) {
+export default function EndOverlay({ banner, scores, details, onReplay, onQuit }: EndOverlayProps) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
       <div className="chalkboard-frame">
