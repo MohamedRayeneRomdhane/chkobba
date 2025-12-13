@@ -22,14 +22,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
 
-      - name: Install dependencies (root workspace)
-        run: npm install
-
-      - name: Install client workspace deps
-        run: npm install -w client
-
-      - name: Install server workspace deps
-        run: npm install -w server
+      - name: Install all workspaces
+        run: npm install -ws --include-workspace-root
 
       - name: Lint server
         run: npm run lint -w server
