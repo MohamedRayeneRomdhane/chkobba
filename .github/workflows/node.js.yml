@@ -45,11 +45,7 @@ jobs:
         continue-on-error: true
 
       - name: Build client
-        working-directory: client
-        run: |
-          npx tsc -p . --noEmit
-          npx --package vite vite build
+        run: npm run build -w client
 
       - name: Build server
-        working-directory: server
-        run: npm run build
+        run: npm run build -w server
