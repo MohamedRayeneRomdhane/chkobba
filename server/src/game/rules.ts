@@ -1,4 +1,4 @@
-import { Card, GameState, PlayerIndex, TEAM_FOR_SEAT, TeamIndex } from "../../../shared/types";
+import { Card, GameState, PlayerIndex, TEAM_FOR_SEAT, TeamIndex } from '../../../shared/types';
 
 export function canCaptureSingle(played: Card, tableCards: Card[]): Card | null {
   return tableCards.find((c) => c.value === played.value) || null;
@@ -40,7 +40,7 @@ export function applyMove(
 ): MoveResult {
   const hand = state.hands[player];
   const playedIndex = hand.findIndex((c) => c.id === playedCardId);
-  if (playedIndex === -1) throw new Error("Card not in hand");
+  if (playedIndex === -1) throw new Error('Card not in hand');
   const played = hand[playedIndex];
 
   const single = canCaptureSingle(played, state.tableCards);
@@ -58,11 +58,11 @@ export function applyMove(
       const byId = new Map(state.tableCards.map((c) => [c.id, c]));
       chosen = chosenCombinationIds.map((id) => {
         const card = byId.get(id);
-        if (!card) throw new Error("Invalid combination id");
+        if (!card) throw new Error('Invalid combination id');
         return card;
       });
       const sum = chosen.reduce((s, c) => s + c.value, 0);
-      if (sum !== played.value) throw new Error("Combination must sum to played value");
+      if (sum !== played.value) throw new Error('Combination must sum to played value');
     } else if (combos.length > 0) {
       chosen = combos[0];
     }
