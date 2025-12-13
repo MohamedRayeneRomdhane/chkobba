@@ -25,6 +25,12 @@ jobs:
       - name: Install dependencies (root workspace)
         run: npm install
 
+      - name: Install client workspace deps
+        run: npm install -w client
+
+      - name: Install server workspace deps
+        run: npm install -w server
+
       - name: Lint server
         run: npm run lint -w server
 
