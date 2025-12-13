@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import ProfileModal from "./components/ProfileModal";
 import TableMat from "./components/TableMat";
 import PlayerHand from "./components/PlayerHand";
 import OpponentHand from "./components/OpponentHand";
@@ -13,6 +14,9 @@ import Layout from "./components/Layout";
 
 export default function App() {
   const { connected, roomCode, gameState, roundBanner, lastRound, replayWaiting, snapshot, mySeat, dealTick, createRoom, join, play, setProfile, replay, quit } = useGameSocket();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  // Optionally, store local profile info for prefill
+  const [localProfile, setLocalProfile] = useState<{ nickname?: string, avatar?: string }>({});
   const [selectedHandId, setSelectedHandId] = React.useState<string | null>(null);
   const [selectedTableIds, setSelectedTableIds] = React.useState<string[]>([]);
   const selectedHandCard = React.useMemo(() => {
@@ -34,55 +38,59 @@ export default function App() {
   }, []);
 
   return (
-    <Layout
-      headerRight={
-        <>
-          <button className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white shadow-sm" onClick={() => createRoom().then((code) => join(code))}>Create & Join</button>
-          <input id="roomCode" placeholder="Room code" className="px-3 py-1 rounded-md border border-gray-400 bg-white text-gray-900 placeholder:text-gray-500 shadow-inner" />
-          <button className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow-sm" onClick={() => {
-            const code = (document.getElementById("roomCode") as HTMLInputElement).value.trim();
-            if (code) join(code);
-          }}>Join</button>
-          <span className="text-sm whitespace-nowrap flex items-center gap-2 text-white/90">
-            <span className="hidden sm:inline">
-              {connected ? "Connected" : "Disconnected"}
-              {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ""}
-              {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ""}
-            </span>
-            {roomCode && (
-              <span className="inline-flex items-center gap-1">
-                <span className="px-2 py-0.5 rounded bg-white/20 text-white/90 border border-white/20 shadow-sm">Room {roomCode}</span>
-                <button
-                  title="Copy room code"
-                  className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white shadow-sm"
-                  onClick={() => {
-                    navigator.clipboard?.writeText(roomCode).then(() => {
-                      // optional: quick visual feedback
-                      const el = document.getElementById("roomCode");
-                      if (el) { el.classList.add("ring", "ring-white/40"); setTimeout(() => el.classList.remove("ring", "ring-white/40"), 600); }
-                    });
-                  }}
-                >
-                  <span aria-hidden>📋</span>
-                </button>
+    <>
+      <Layout
+        headerRight={
+          <>
+            <button className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white shadow-sm" onClick={() => createRoom().then((code) => join(code))}>Create & Join</button>
+            <input id="roomCode" placeholder="Room code" className="px-3 py-1 rounded-md border border-gray-400 bg-white text-gray-900 placeholder:text-gray-500 shadow-inner" />
+            <button className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow-sm" onClick={() => {
+              const code = (document.getElementById("roomCode") as HTMLInputElement).value.trim();
+              if (code) join(code);
+            }}>Join</button>
+            <button className="px-3 py-1 rounded-md bg-gray-700 hover:bg-gray-800 text-white shadow-sm ml-2 flex items-center gap-2" onClick={() => setProfileModalOpen(true)}>
+              <span role="img" aria-label="profile">👤</span> Edit Profile
+            </button>
+            <span className="text-sm whitespace-nowrap flex items-center gap-2 text-white/90">
+              <span className="hidden sm:inline">
+                {connected ? "Connected" : "Disconnected"}
+                {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ""}
+                {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ""}
               </span>
-            )}
-          </span>
-        </>
-      }
-    >
-      {/* End screen overlay: show during round end or until all replay votes */}
-      {(lastRound || (replayWaiting && replayWaiting.count < replayWaiting.total)) && (
-        <EndOverlay
-          banner={roundBanner}
-          scores={lastRound?.scores ?? gameState?.scoresByTeam ?? null}
-          details={lastRound?.details ?? null}
-          replayWaiting={replayWaiting}
-          onReplay={() => { if (roomCode) replay(roomCode); }}
-          onQuit={() => { if (roomCode) quit(roomCode); }}
-        />
-      )}
-      <TableMat>
+              {roomCode && (
+                <span className="inline-flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded bg-white/20 text-white/90 border border-white/20 shadow-sm">Room {roomCode}</span>
+                  <button
+                    title="Copy room code"
+                    className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white shadow-sm"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(roomCode).then(() => {
+                        // optional: quick visual feedback
+                        const el = document.getElementById("roomCode");
+                        if (el) { el.classList.add("ring", "ring-white/40"); setTimeout(() => el.classList.remove("ring", "ring-white/40"), 600); }
+                      });
+                    }}
+                  >
+                    <span aria-hidden>📋</span>
+                  </button>
+                </span>
+              )}
+            </span>
+          </>
+        }
+      >
+        {/* End screen overlay: show during round end or until all replay votes */}
+        {(lastRound || (replayWaiting && replayWaiting.count < replayWaiting.total)) && (
+          <EndOverlay
+            banner={roundBanner}
+            scores={lastRound?.scores ?? gameState?.scoresByTeam ?? null}
+            details={lastRound?.details ?? null}
+            replayWaiting={replayWaiting}
+            onReplay={() => { if (roomCode) replay(roomCode); }}
+            onQuit={() => { if (roomCode) quit(roomCode); }}
+          />
+        )}
+        <TableMat>
           {/* Round banner */}
           {/* Inline banner removed in favor of end overlay */}
           {/* Table cards placeholder */}
@@ -134,7 +142,12 @@ export default function App() {
             const teamName = (i: number) => (teamForSeat(i) === 0 ? "Team A" : "Team B");
             const getProfile = (seatIndex: number) => {
               const sid = seats[seatIndex];
-              return sid ? profiles[sid] : null;
+              const fromSnapshot = sid ? profiles[sid] : null;
+              if (seatIndex === idxBottom) {
+                // Fallback to local profile when not in a room or snapshot missing
+                return fromSnapshot ?? (localProfile.nickname || localProfile.avatar ? { nickname: localProfile.nickname, avatar: localProfile.avatar } : null);
+              }
+              return fromSnapshot;
             };
             return (
               <>
@@ -174,8 +187,6 @@ export default function App() {
                   avatar={getProfile(idxBottom)?.avatar}
                   nickname={getProfile(idxBottom)?.nickname}
                   highlight={current === idxBottom}
-                  isEditable={true}
-                  onSaveProfile={(nickname, avatar) => setProfile(nickname, avatar)}
                   teamLabel={teamName(idxBottom)}
                   teamIndex={teamForSeat(idxBottom) as 0 | 1}
                 />
@@ -192,64 +203,76 @@ export default function App() {
           <ScoreBoard state={gameState || null} />
         </TableMat>
 
-      {/* Player hand outside (below) the table */}
-      <div className="w-full flex justify-center mt-2">
-        <PlayerHand
-          cards={(mySeat != null && gameState?.hands) ? (gameState.hands[mySeat] || []) : []}
-          selectedId={selectedHandId}
-          onSelect={(id) => {
-            // re-clicking toggles: if same id selected, either discard (no table selected) or deselect
-            if (selectedHandId === id) {
-              if (canPlaySelected && selectedTableIds.length === 0) {
-                // discard: place on table
-                if (!roomCode || mySeat == null) return;
-                if (gameState?.currentPlayerIndex !== mySeat) return;
-                play(roomCode, id, undefined).then(() => {
+        {/* Player hand outside (below) the table */}
+        <div className="w-full flex justify-center mt-2">
+          <PlayerHand
+            cards={(mySeat != null && gameState?.hands) ? (gameState.hands[mySeat] || []) : []}
+            selectedId={selectedHandId}
+            onSelect={(id) => {
+              // re-clicking toggles: if same id selected, either discard (no table selected) or deselect
+              if (selectedHandId === id) {
+                if (canPlaySelected && selectedTableIds.length === 0) {
+                  // discard: place on table
+                  if (!roomCode || mySeat == null) return;
+                  if (gameState?.currentPlayerIndex !== mySeat) return;
+                  play(roomCode, id, undefined).then(() => {
+                    setSelectedHandId(null);
+                    setSelectedTableIds([]);
+                  });
+                } else {
                   setSelectedHandId(null);
-                  setSelectedTableIds([]);
-                });
+                }
               } else {
-                setSelectedHandId(null);
+                setSelectedHandId(id);
               }
-            } else {
-              setSelectedHandId(id);
-            }
-          }}
-          onPlay={(id) => {
-            if (!roomCode) return;
-            if (mySeat == null) return;
-            if (gameState?.currentPlayerIndex !== mySeat) return;
-            const combo = (selectedTableIds.length && selectedSum === (selectedHandCard?.value ?? -1)) ? selectedTableIds : undefined;
-            play(roomCode, id, combo).then(() => {
-              setSelectedHandId(null);
-              setSelectedTableIds([]);
-            });
-          }}
-          dealTick={dealTick}
-        />
-        {/* Action bar for selected play */}
-        <div className="mt-1 flex items-center justify-center gap-3">
-          <div className="text-sm px-2 py-1 rounded bg-white/70 shadow">
-            {selectedHandCard ? `Selected: ${selectedHandCard.rank} • Sum: ${selectedSum}` : "Select a card"}
-          </div>
-          <button
-            disabled={!canPlaySelected || !selectedHandCard}
-            className={`px-3 py-1 rounded-md text-white shadow-sm ${canPlaySelected && selectedHandCard ? "bg-amber-600 hover:bg-amber-700" : "bg-gray-500 opacity-60 cursor-not-allowed"}`}
-            onClick={() => {
-              if (!roomCode || !selectedHandCard) return;
+            }}
+            onPlay={(id) => {
+              if (!roomCode) return;
               if (mySeat == null) return;
               if (gameState?.currentPlayerIndex !== mySeat) return;
-              const combo = (selectedTableIds.length && selectedSum === selectedHandCard.value) ? selectedTableIds : undefined;
-              play(roomCode, selectedHandCard.id, combo).then(() => {
+              const combo = (selectedTableIds.length && selectedSum === (selectedHandCard?.value ?? -1)) ? selectedTableIds : undefined;
+              play(roomCode, id, combo).then(() => {
                 setSelectedHandId(null);
                 setSelectedTableIds([]);
               });
             }}
-          >
-            Play Selected
-          </button>
+            dealTick={dealTick}
+          />
+          {/* Action bar for selected play */}
+          <div className="mt-1 flex items-center justify-center gap-3">
+            <div className="text-sm px-2 py-1 rounded bg-white/70 shadow">
+              {selectedHandCard ? `Selected: ${selectedHandCard.rank} • Sum: ${selectedSum}` : "Select a card"}
+            </div>
+            <button
+              disabled={!canPlaySelected || !selectedHandCard}
+              className={`px-3 py-1 rounded-md text-white shadow-sm ${canPlaySelected && selectedHandCard ? "bg-amber-600 hover:bg-amber-700" : "bg-gray-500 opacity-60 cursor-not-allowed"}`}
+              onClick={() => {
+                if (!roomCode || !selectedHandCard) return;
+                if (mySeat == null) return;
+                if (gameState?.currentPlayerIndex !== mySeat) return;
+                const combo = (selectedTableIds.length && selectedSum === selectedHandCard.value) ? selectedTableIds : undefined;
+                play(roomCode, selectedHandCard.id, combo).then(() => {
+                  setSelectedHandId(null);
+                  setSelectedTableIds([]);
+                });
+              }}
+            >
+              Play Selected
+            </button>
+          </div>
         </div>
-      </div>
-    </Layout>
+      </Layout>
+      {/* Profile modal for editing profile anytime */}
+      <ProfileModal
+        open={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        initialNickname={localProfile.nickname}
+        initialAvatar={localProfile.avatar}
+        onSave={(nickname: string, avatar?: string) => {
+          setProfile(nickname, avatar);
+          setLocalProfile({ nickname, avatar });
+        }}
+      />
+    </>
   );
 }

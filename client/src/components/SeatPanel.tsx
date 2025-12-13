@@ -5,17 +5,12 @@ type Props = {
   avatar?: string;
   nickname?: string;
   highlight?: boolean;
-  isEditable?: boolean;
-  onSaveProfile?: (nickname?: string, avatar?: string) => void;
   teamLabel?: string;
   teamIndex?: 0 | 1;
   compact?: boolean;
 };
 
-export default function SeatPanel({ position, avatar, nickname, highlight, isEditable, onSaveProfile, teamLabel, teamIndex, compact }: Props) {
-  const [editing, setEditing] = React.useState(false);
-  const [nickInput, setNickInput] = React.useState(nickname || "");
-  const [avatarInput, setAvatarInput] = React.useState<string | undefined>(avatar);
+export default function SeatPanel({ position, avatar, nickname, highlight, teamLabel, teamIndex, compact }: Props) {
   const baseStyle: React.CSSProperties = {
     position: "absolute",
     display: compact ? "grid" : "flex",
@@ -64,43 +59,7 @@ export default function SeatPanel({ position, avatar, nickname, highlight, isEdi
         </span>
       )}
       {highlight && <div style={{ marginLeft: compact ? 6 : 8, color: "#b58900", fontWeight: 700, fontSize: compact ? 11 : 14 }}>Your turn</div>}
-      {isEditable && !editing && (
-        <button
-          title="Edit profile"
-          onClick={() => { setEditing(true); setNickInput(nickname || ""); setAvatarInput(avatar); }}
-          className="ml-2 px-2 py-1 rounded bg-gray-200 hover:bg-gray-300"
-        >
-          ✎
-        </button>
-      )}
-      {isEditable && editing && (
-        <div className="ml-2 flex items-center gap-2">
-          <input
-            className="px-2 py-1 rounded border border-gray-400"
-            placeholder="Nickname"
-            value={nickInput}
-            onChange={(e) => setNickInput(e.target.value)}
-          />
-          <select
-            className="px-2 py-1 rounded border border-gray-400"
-            value={avatarInput}
-            onChange={(e) => setAvatarInput(e.target.value)}
-          >
-            <option value="">Default</option>
-            <option value="/assets/avatars/avatar1.png">avatar1.png</option>
-            <option value="/assets/avatars/avatar2.png">avatar2.png</option>
-            <option value="/assets/avatars/avatar3.png">avatar3.png</option>
-            <option value="/assets/avatars/avatar4.png">avatar4.png</option>
-          </select>
-          <button
-            className="px-2 py-1 rounded bg-green-600 text-white"
-            onClick={() => { onSaveProfile?.(nickInput || undefined, avatarInput || undefined); setEditing(false); }}
-          >
-            Save
-          </button>
-          <button className="px-2 py-1 rounded bg-gray-500 text-white" onClick={() => setEditing(false)}>Cancel</button>
-        </div>
-      )}
+      {/* Profile editing from player card removed */}
     </div>
   );
 }

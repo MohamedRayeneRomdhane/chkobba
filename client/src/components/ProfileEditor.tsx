@@ -2,33 +2,76 @@ import React, { useState } from "react";
 
 type Props = {
   onSave: (nickname?: string, avatar?: string) => void;
+  onChange?: (nickname?: string, avatar?: string) => void;
   avatars?: string[];
+  showInlineSave?: boolean;
+  initialNickname?: string;
+  initialAvatar?: string;
 };
 
-export default function ProfileEditor({ onSave, avatars = [
-  "/assets/avatars/avatar1.png",
-  "/assets/avatars/avatar2.png",
-  "/assets/avatars/avatar3.png",
-  "/assets/avatars/avatar4.png"
-] }: Props) {
-  const [nickname, setNickname] = useState("");
-  const [avatar, setAvatar] = useState<string | undefined>(undefined);
+// List all avatar image filenames available in the assets/avatars folder
+const defaultAvatars = [
+  "/assets/avatars/avatar1.jpg",
+  "/assets/avatars/avatar2.jpg",
+  "/assets/avatars/avatar3.jpg",
+  "/assets/avatars/avatar4.jpg",
+  "/assets/avatars/avatar5.jpg",
+  "/assets/avatars/avatar6.jpg",
+  "/assets/avatars/avatar7.jpg",
+  "/assets/avatars/avatar8.jpg",
+  "/assets/avatars/avatar9.jpg",
+  "/assets/avatars/avatar10.jpg",
+  "/assets/avatars/avatar11.jpg",
+  "/assets/avatars/default.svg"
+];
+
+export default function ProfileEditor({ onSave, onChange, avatars = defaultAvatars, showInlineSave = true, initialNickname, initialAvatar }: Props) {
+  const [nickname, setNickname] = useState(initialNickname || "");
+  const [avatar, setAvatar] = useState<string | undefined>(initialAvatar || undefined);
+
+  React.useEffect(() => {
+    setNickname(initialNickname || "");
+  }, [initialNickname]);
+
+  React.useEffect(() => {
+    setAvatar(initialAvatar || undefined);
+  }, [initialAvatar]);
 
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
       <input
         placeholder="Nickname"
         value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
+        onChange={(e) => { const v = e.target.value; setNickname(v); onChange?.(v || undefined, avatar); }}
         style={{ padding: 6, borderRadius: 6, border: "1px solid #999" }}
       />
-      <select value={avatar} onChange={(e) => setAvatar(e.target.value)} style={{ padding: 6, borderRadius: 6 }}>
-        <option value="">Default avatar</option>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {avatars.map((a) => (
-          <option key={a} value={a}>{a.split("/").pop()}</option>
+          <img
+            key={a}
+            src={a}
+            alt={a.split("/").pop()}
+            onClick={() => { setAvatar(a); onChange?.(nickname || undefined, a); }}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 6,
+              border: avatar === a ? "2px solid #4ade80" : "1px solid #999",
+              boxShadow: avatar === a ? "0 0 0 2px #bbf7d0" : undefined,
+              cursor: "pointer",
+              objectFit: "cover",
+              background: "#eee",
+              opacity: avatar === a ? 1 : 0.7,
+              transition: "border 0.2s, box-shadow 0.2s, opacity 0.2s"
+            }}
+          />
         ))}
-      </select>
-      <button onClick={() => onSave(nickname || undefined, avatar || undefined)}>Save Profile</button>
+      </div>
+      {showInlineSave && (
+        <button onClick={() => onSave(nickname || undefined, avatar || undefined)} style={{ marginLeft: 8 }}>
+          Save Profile
+        </button>
+      )}
     </div>
   );
 }
