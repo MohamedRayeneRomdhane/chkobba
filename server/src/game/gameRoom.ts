@@ -1,8 +1,16 @@
-import { Server, Socket } from "socket.io";
-import { Card, GameState, PlayerIndex, RoomInfo, TEAM_FOR_SEAT, TeamIndex, PlayerProfile, RoomSnapshot } from "../../../shared/types";
-import { createDeck, shuffle } from "./deck";
-import { applyMove } from "./rules";
-import { computeRoundScore } from "./scoring";
+import { Server, Socket } from 'socket.io';
+import {
+  Card,
+  GameState,
+  PlayerIndex,
+  RoomInfo,
+  TEAM_FOR_SEAT,
+  PlayerProfile,
+  RoomSnapshot,
+} from '../../../shared/types';
+import { createDeck, shuffle } from './deck';
+import { applyMove } from './rules';
+import { computeRoundScore } from './scoring';
 
 export class GameRoomManager {
   rooms: Map<string, RoomInfo> = new Map();
@@ -13,13 +21,13 @@ export class GameRoomManager {
   private profiles: Map<string, PlayerProfile> = new Map(); // key: socketId
   private replayVotes: Map<string, Set<string>> = new Map(); // roomCode -> socketIds who clicked replay
   private avatarPool: string[] = [
-    "/assets/avatars/avatar1.png",
-    "/assets/avatars/avatar2.png",
-    "/assets/avatars/avatar3.png",
-    "/assets/avatars/avatar4.png"
+    '/assets/avatars/avatar1.png',
+    '/assets/avatars/avatar2.png',
+    '/assets/avatars/avatar3.png',
+    '/assets/avatars/avatar4.png',
   ];
 
-  constructor(private io: Server) {}
+  constructor(private readonly io: Server) {}
 
   createRoom(): RoomInfo {
     const code = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -28,7 +36,10 @@ export class GameRoomManager {
       code,
       players: [],
       seats: [null, null, null, null],
-      teams: [[0, 2], [1, 3]],
+      teams: [
+        [0, 2],
+        [1, 3],
+      ],
     };
     this.rooms.set(code, room);
     return room;
@@ -36,9 +47,9 @@ export class GameRoomManager {
 
   joinRoom(code: string, socket: Socket): RoomInfo {
     const room = this.rooms.get(code);
-    if (!room) throw new Error("Room not found");
+    if (!room) throw new Error('Room not found');
     if (room.players.includes(socket.id)) return room;
-    if (room.players.length >= 4) throw new Error("Room full");
+    if (room.players.length >= 4) throw new Error('Room full');
     room.players.push(socket.id);
     console.log(`[manager] joinRoom ${code} player=${socket.id} count=${room.players.length}`);
     // The socket joins the room in the HTTP/Socket handler; avoid joining all sockets globally here.
@@ -46,7 +57,9 @@ export class GameRoomManager {
     // ensure profile exists with defaults
     if (!this.profiles.has(socket.id)) {
       const nickname = this.generateReadableName();
-      const avatar = this.avatarPool[Math.floor(Math.random() * this.avatarPool.length)] || "/assets/avatars/default.png";
+      const avatar =
+        this.avatarPool[Math.floor(Math.random() * this.avatarPool.length)] ||
+        '/assets/avatars/default.png';
       this.profiles.set(socket.id, { socketId: socket.id, nickname, avatar });
     }
 
@@ -69,7 +82,7 @@ export class GameRoomManager {
     for (let r = 0; r < 3; r++) {
       for (let p = 0; p < 4; p++) {
         const c = deck.shift();
-        if (!c) throw new Error("Deck exhausted early");
+        if (!c) throw new Error('Deck exhausted early');
         hands[p].push(c);
       }
     }
@@ -77,7 +90,7 @@ export class GameRoomManager {
     // 4 cards to table
     for (let i = 0; i < 4; i++) {
       const c = deck.shift();
-      if (!c) throw new Error("Deck exhausted early");
+      if (!c) throw new Error('Deck exhausted early');
       tableCards.push(c);
     }
 
@@ -105,19 +118,23 @@ export class GameRoomManager {
     this.roomDealerIndex.set(room.code, 0);
     // 3 cards per player in a deal => 12 total turns per deal
     this.cardsLeftInCurrentDeal.set(room.code, 12);
-    this.io.to(room.code).emit("game:start", room.gameState);
+    this.io.to(room.code).emit('game:start', room.gameState);
     this.emitRoomSnapshot(room.code);
   }
 
   handlePlay(code: string, socketId: string, playedCardId: string, combo?: string[]) {
     const room = this.rooms.get(code);
-    if (!room || !room.gameState) throw new Error("Room not ready");
+    if (!room || !room.gameState) throw new Error('Room not ready');
     const seatIndex = room.seats.findIndex((s) => s === socketId) as PlayerIndex;
     if (seatIndex !== room.gameState.currentPlayerIndex) {
-      console.warn(`[manager] Not your turn socket=${socketId} seat=${seatIndex} current=${room.gameState.currentPlayerIndex}`);
-      throw new Error("Not your turn");
+      console.warn(
+        `[manager] Not your turn socket=${socketId} seat=${seatIndex} current=${room.gameState.currentPlayerIndex}`
+      );
+      throw new Error('Not your turn');
     }
-    console.log(`[manager] handlePlay code=${code} seat=${seatIndex} card=${playedCardId} combo=${combo?.join(",") ?? "-"}`);
+    console.log(
+      `[manager] handlePlay code=${code} seat=${seatIndex} card=${playedCardId} combo=${combo?.join(',') ?? '-'}`
+    );
 
     const res = applyMove(room.gameState, seatIndex, playedCardId, combo);
 
@@ -144,7 +161,9 @@ export class GameRoomManager {
     // decrement turns left in current deal for each play
     const remaining = (this.cardsLeftInCurrentDeal.get(code) ?? 0) - 1;
     this.cardsLeftInCurrentDeal.set(code, remaining);
-    console.log(`[manager] turn advanced next=${room.gameState.currentPlayerIndex} remainingInDeal=${remaining}`);
+    console.log(
+      `[manager] turn advanced next=${room.gameState.currentPlayerIndex} remainingInDeal=${remaining}`
+    );
 
     // if all 12 turns of the deal are done, attempt next deal
     if (remaining <= 0) {
@@ -152,12 +171,14 @@ export class GameRoomManager {
       this.nextDealOrEndRound(code, room);
     }
 
-    this.io.to(code).emit("game:update", room.gameState);
+    this.io.to(code).emit('game:update', room.gameState);
     this.emitRoomSnapshot(code);
   }
 
   private nextDealOrEndRound(code: string, room: RoomInfo) {
-    console.log(`[manager] nextDealOrEndRound room=${code} deckLeft=${(this.roomDecks.get(code) || []).length}`);
+    console.log(
+      `[manager] nextDealOrEndRound room=${code} deckLeft=${(this.roomDecks.get(code) || []).length}`
+    );
     const deck = this.roomDecks.get(code) || [];
     // if deck still has cards, deal next 3 cards to each player
     if (deck.length >= 12) {
@@ -183,18 +204,21 @@ export class GameRoomManager {
         room.gameState!.tableCards = [];
       }
       // Compute scoring
-      const roundScore = computeRoundScore(room.gameState!.capturesByTeam, room.gameState!.chkobbaByTeam);
+      const roundScore = computeRoundScore(
+        room.gameState!.capturesByTeam,
+        room.gameState!.chkobbaByTeam
+      );
       room.gameState!.scoresByTeam = [
         room.gameState!.scoresByTeam[0] + roundScore.teamPoints[0],
         room.gameState!.scoresByTeam[1] + roundScore.teamPoints[1],
       ];
       // broadcast end of round and initialize replay waiting state
-      this.io.to(code).emit("game:roundEnd", {
+      this.io.to(code).emit('game:roundEnd', {
         scores: room.gameState!.scoresByTeam,
         details: roundScore.details,
       });
       this.replayVotes.set(code, new Set());
-      this.io.to(code).emit("game:replayStatus", { count: 0, total: room.players.length });
+      this.io.to(code).emit('game:replayStatus', { count: 0, total: room.players.length });
       // Prepare next round: new deck, clear captures/chkobba, deal initial
       const newDeck = shuffle(createDeck());
       const hands: [Card[], Card[], Card[], Card[]] = [[], [], [], []];
@@ -202,13 +226,13 @@ export class GameRoomManager {
       for (let r = 0; r < 3; r++) {
         for (let p = 0; p < 4; p++) {
           const c = newDeck.shift();
-          if (!c) throw new Error("Deck exhausted early");
+          if (!c) throw new Error('Deck exhausted early');
           hands[p].push(c);
         }
       }
       for (let i = 0; i < 4; i++) {
         const c = newDeck.shift();
-        if (!c) throw new Error("Deck exhausted early");
+        if (!c) throw new Error('Deck exhausted early');
         tableCards.push(c);
       }
       room.gameState = {
@@ -226,19 +250,19 @@ export class GameRoomManager {
       this.roomDecks.set(code, remainingDeck);
       this.roomDealerIndex.set(code, 0);
       this.cardsLeftInCurrentDeal.set(code, 12);
-      this.io.to(code).emit("game:start", room.gameState);
+      this.io.to(code).emit('game:start', room.gameState);
       this.emitRoomSnapshot(code);
     }
   }
 
   requestReplay(code: string, socketId: string) {
     const room = this.rooms.get(code);
-    if (!room) throw new Error("Room not found");
+    if (!room) throw new Error('Room not found');
     const votes = this.replayVotes.get(code) || new Set<string>();
     votes.add(socketId);
     this.replayVotes.set(code, votes);
     const count = votes.size;
-    this.io.to(code).emit("game:replayStatus", { count, total: room.players.length });
+    this.io.to(code).emit('game:replayStatus', { count, total: room.players.length });
     if (count >= room.players.length) {
       room.gameState = undefined;
       this.roomDecks.delete(code);
@@ -253,7 +277,7 @@ export class GameRoomManager {
     const room = this.rooms.get(code);
     if (!room) return;
     console.log(`[manager] quitRoom ${code} by ${socketId} -> discarding room`);
-    this.io.to(code).emit("room:closed", { code });
+    this.io.to(code).emit('room:closed', { code });
     this.rooms.delete(code);
     this.roomDecks.delete(code);
     this.roomDealerIndex.delete(code);
@@ -263,9 +287,16 @@ export class GameRoomManager {
 
   setProfile(socketId: string, payload: Partial<PlayerProfile>) {
     console.log(`[manager] setProfile ${socketId} ->`, payload);
-    const current = this.profiles.get(socketId) || { socketId, nickname: this.generateReadableName(), avatar: "/assets/avatars/default.png" };
-    const nickname = (payload.nickname && payload.nickname.trim()) || current.nickname || this.generateReadableName();
-    const avatar = payload.avatar || current.avatar || "/assets/avatars/default.png";
+    const current = this.profiles.get(socketId) || {
+      socketId,
+      nickname: this.generateReadableName(),
+      avatar: '/assets/avatars/default.png',
+    };
+    const nickname =
+      (payload.nickname && payload.nickname.trim()) ||
+      current.nickname ||
+      this.generateReadableName();
+    const avatar = payload.avatar || current.avatar || '/assets/avatars/default.png';
     this.profiles.set(socketId, { socketId, nickname, avatar });
     // find rooms this socket is part of and emit snapshot
     for (const [code, room] of this.rooms) {
@@ -286,13 +317,13 @@ export class GameRoomManager {
     }
     const snapshot: RoomSnapshot = { ...room, profiles };
     // Emit snapshot for all clients; also emit a legacy 'room:update' for compatibility
-    this.io.to(code).emit("room:snapshot", snapshot);
-    this.io.to(code).emit("room:update", snapshot);
+    this.io.to(code).emit('room:snapshot', snapshot);
+    this.io.to(code).emit('room:update', snapshot);
   }
 
   private generateReadableName(): string {
-    const adjectives = ["Calm", "Bright", "Swift", "Lucky", "Sunny", "Cozy", "Merry", "Brave"];
-    const nouns = ["Falcon", "Olive", "Cedar", "Caravan", "Harbor", "Atlas", "Nomad", "Sahara"];
+    const adjectives = ['Calm', 'Bright', 'Swift', 'Lucky', 'Sunny', 'Cozy', 'Merry', 'Brave'];
+    const nouns = ['Falcon', 'Olive', 'Cedar', 'Caravan', 'Harbor', 'Atlas', 'Nomad', 'Sahara'];
     return `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${nouns[Math.floor(Math.random() * nouns.length)]}`;
   }
 }

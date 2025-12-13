@@ -1,16 +1,22 @@
-import React, { useState } from "react";
-import ProfileEditor from "./ProfileEditor";
+import React, { useState } from 'react';
+import ProfileEditor from './ProfileEditor';
 
 interface ProfileModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (nickname: string, avatar?: string) => void;
+  onSave: (_nickname: string, _avatar?: string) => void;
   initialNickname?: string;
   initialAvatar?: string;
 }
 
-export default function ProfileModal({ open, onClose, onSave, initialNickname, initialAvatar }: ProfileModalProps) {
-  const [nick, setNick] = useState<string>(initialNickname || "");
+export default function ProfileModal({
+  open,
+  onClose,
+  onSave,
+  initialNickname,
+  initialAvatar,
+}: ProfileModalProps) {
+  const [nick, setNick] = useState<string>(initialNickname || '');
   const [av, setAv] = useState<string | undefined>(initialAvatar || undefined);
 
   if (!open) return null;
@@ -29,7 +35,9 @@ export default function ProfileModal({ open, onClose, onSave, initialNickname, i
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-amber-100 to-amber-50 border-b border-gray-200">
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-300 text-amber-900 shadow-inner">👤</span>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-300 text-amber-900 shadow-inner">
+              👤
+            </span>
             <h2 className="text-base sm:text-lg font-semibold text-amber-900">Edit Profile</h2>
           </div>
           <button
@@ -45,8 +53,14 @@ export default function ProfileModal({ open, onClose, onSave, initialNickname, i
         <div className="px-4 sm:px-6 py-5 sm:py-6">
           <div className="grid grid-cols-1 gap-4">
             <ProfileEditor
-              onSave={(nickname, avatar) => { onSave(nickname || "", avatar); onClose(); }}
-              onChange={(nickname, avatar) => { setNick(nickname || ""); setAv(avatar); }}
+              onSave={(nickname, avatar) => {
+                onSave(nickname || '', avatar);
+                onClose();
+              }}
+              onChange={(nickname, avatar) => {
+                setNick(nickname || '');
+                setAv(avatar);
+              }}
               avatars={undefined}
               showInlineSave={false}
               initialNickname={nick}
@@ -57,20 +71,23 @@ export default function ProfileModal({ open, onClose, onSave, initialNickname, i
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-200">
-            <button
-              className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-100"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              className="px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 shadow-sm"
-              onClick={() => { onSave(nick || "", av); onClose(); }}
-              disabled={!nick}
-              title={!nick ? "Enter a nickname to save" : "Save profile"}
-            >
-              Save Profile
-            </button>
+          <button
+            className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-100"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            className="px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 shadow-sm"
+            onClick={() => {
+              onSave(nick || '', av);
+              onClose();
+            }}
+            disabled={!nick}
+            title={!nick ? 'Enter a nickname to save' : 'Save profile'}
+          >
+            Save Profile
+          </button>
         </div>
       </div>
     </div>
