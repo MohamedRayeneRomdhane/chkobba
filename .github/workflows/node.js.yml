@@ -25,10 +25,10 @@ jobs:
       - name: Install all workspaces
         run: npm install -ws --include-workspace-root
 
-      - name: Fix client CLI execute permissions
+      - name: Verify installs
         run: |
-          chmod +x client/node_modules/.bin/* || true
-          ls -l client/node_modules/.bin || true
+          npm ls vite -w client || true
+          node -v && npm -v
 
       - name: Lint server
         run: npm run lint -w server
@@ -44,5 +44,12 @@ jobs:
         run: npx tsc -p client/tsconfig.json --noEmit --pretty false --skipLibCheck
         continue-on-error: true
 
-      - name: Build all workspaces
+      - name: Build client
+        working-directory: client
+        run: |
+          npx tsc -p . --noEmit
+          npx --package vite vite build
+
+      - name: Build server
+        working-directory: server
         run: npm run build
