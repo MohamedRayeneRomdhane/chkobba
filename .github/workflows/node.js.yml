@@ -23,7 +23,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies (root workspace)
-        run: npm ci
+        run: npm install
 
       - name: Lint server
         run: npm run lint -w server
