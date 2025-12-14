@@ -118,8 +118,12 @@ export default function App() {
           </>
         }
       >
-        {/* End screen overlay: show during round end or until all replay votes */}
-        {(lastRound || (replayWaiting && replayWaiting.count < replayWaiting.total)) && (
+        {/* End screen overlay: show after round end and until all replays */}
+        {(() => {
+          const waitingForReplay = replayWaiting ? replayWaiting.count < replayWaiting.total : true; // if replayWaiting not loaded yet, keep overlay visible after end
+          const shouldShowOverlay = !!lastRound && waitingForReplay;
+          return shouldShowOverlay;
+        })() && (
           <EndOverlay
             banner={roundBanner}
             scores={lastRound?.scores ?? gameState?.scoresByTeam ?? null}
