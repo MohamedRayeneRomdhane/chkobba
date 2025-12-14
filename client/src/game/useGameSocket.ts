@@ -18,7 +18,7 @@ export function useGameSocket() {
 
   const socket = useMemo(() => {
     if (!socketRef.current) {
-      socketRef.current = io('http://localhost:3001');
+      socketRef.current = io('https://chkobba-5zq3.onrender.com');
     }
     return socketRef.current;
   }, []);
@@ -74,7 +74,7 @@ export function useGameSocket() {
   }, [socket]);
 
   function createRoom() {
-    return fetch('http://localhost:3001/api/rooms', { method: 'POST' })
+    return fetch('https://chkobba-5zq3.onrender.com/api/rooms', { method: 'POST' })
       .then((r) => r.json())
       .then((j) => j.code as string)
       .then((code) => {
