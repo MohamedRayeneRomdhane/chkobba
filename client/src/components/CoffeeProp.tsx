@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useSound from '../hooks/useSound';
 
 interface CoffeePropProps {
   scale?: number;
@@ -14,15 +15,14 @@ export default function CoffeeProp({
   smokeIntensity = 2,
 }: CoffeePropProps) {
   const [hover, setHover] = useState(false);
+  const { play } = useSound('/assets/soundeffects/coffee.mp3', { interrupt: true, volume: 1 });
   // Clamp intensity
   const intensity = Math.max(0, Math.min(smokeIntensity, 1));
   return (
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={() => {
-        console.log('coffee-clicked');
-      }}
+      onClick={play}
       className={`absolute bottom-6 left-12 cursor-pointer transition-transform duration-150 ease-out`}
       style={{
         transform: `${hover ? 'translateY(-1px)' : 'translateY(0)'} rotate(-2deg) scale(${hover ? scale * 1.03 : scale})`,
