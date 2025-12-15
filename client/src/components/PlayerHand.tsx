@@ -28,7 +28,7 @@ export default function PlayerHand({
             if (onSelect) onSelect(c.id);
             else onPlay(c.id);
           }}
-          className={`w-[68px] h-[98px] sm:w-[82px] sm:h-[118px] md:w-[96px] md:h-[136px] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:-translate-y-1 hover:scale-[1.03]'} ${selectedId === c.id ? 'ring-2 ring-amber-400 border-gray-800' : 'border-gray-800'} ${dealTick ? 'animate-[deal_400ms_ease-out]' : ''}`}
+          className={`w-[clamp(56px,10vw,96px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:-translate-y-1 hover:scale-[1.03]'} ${selectedId === c.id ? 'ring-2 ring-amber-400 border-gray-800' : 'border-gray-800'} ${dealTick ? 'animate-[deal_400ms_ease-out]' : ''}`}
           style={{ transform: `rotate(${(i - 1) * 4}deg)` }}
           title={`${c.rank} of ${c.suit}`}
         >

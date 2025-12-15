@@ -10,8 +10,8 @@ interface CoffeePropProps {
 
 export default function CoffeeProp({
   scale = 0.75,
-  smokeSize = 75,
-  smokeOffsetY = -75,
+  smokeSize = 48,
+  smokeOffsetY = -51,
   smokeIntensity = 2,
 }: CoffeePropProps) {
   const [hover, setHover] = useState(false);
@@ -23,7 +23,7 @@ export default function CoffeeProp({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={play}
-      className={`absolute bottom-6 left-12 cursor-pointer transition-transform duration-150 ease-out`}
+      className={`absolute bottom-2 left-24 cursor-pointer transition-transform duration-150 ease-out`}
       style={{
         transform: `${hover ? 'translateY(-1px)' : 'translateY(0)'} rotate(-2deg) scale(${hover ? scale * 1.03 : scale})`,
         transformOrigin: 'bottom left',
@@ -167,7 +167,7 @@ export default function CoffeeProp({
       <img
         src="/assets/props/coffee.png"
         alt="Coffee cup"
-        className="w-[180px] h-[128px] sm:w-[210px] sm:h-[150px] md:w-[240px] md:h-[170px] object-contain select-none"
+        className="w-[clamp(72px,12vw,150px)] h-auto object-contain select-none"
         draggable={false}
       />
     </div>

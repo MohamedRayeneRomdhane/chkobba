@@ -154,7 +154,7 @@ export default function App() {
                       prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id]
                     );
                   }}
-                  className={`w-[64px] h-[96px] sm:w-[80px] sm:h-[116px] md:w-[96px] md:h-[140px] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out cursor-pointer ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 hover:-translate-y-0.5'}`}
+                  className={`w-[clamp(52px,9vw,96px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out cursor-pointer ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 hover:-translate-y-0.5'}`}
                 >
                   <img
                     src={getCardImage(c)}
