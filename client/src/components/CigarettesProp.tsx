@@ -9,9 +9,18 @@ export default function CigarettesProp() {
       onClick={() => {
         console.log('cigs-clicked');
       }}
-      className={`absolute top-5 right-52 w-24 h-16 border-2 rounded-md flex items-center justify-center cursor-pointer ${hover ? 'bg-neutral-300' : 'bg-neutral-400'} border-tableWood-dark shadow-caféGlow`}
+      className={`absolute top-4 right-6 cursor-pointer transition-transform duration-150 ease-out ${hover ? 'scale-[1.03]' : ''}`}
+      style={{
+        transform: `${hover ? 'translateY(-1px)' : 'translateY(0)'} rotate(-0.5deg)`,
+        filter: 'drop-shadow(0 8px 14px rgba(0,0,0,0.32))',
+      }}
     >
-      Cigs
+      <img
+        src="/assets/props/cigs.png"
+        alt="Cigarette pack"
+        className="w-[170px] h-[120px] sm:w-[190px] sm:h-[134px] md:w-[210px] md:h-[150px] object-contain select-none"
+        draggable={false}
+      />
     </div>
   );
 }

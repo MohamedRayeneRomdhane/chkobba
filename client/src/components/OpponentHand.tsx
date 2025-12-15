@@ -1,4 +1,5 @@
 import React from 'react';
+import { CARD_BACK_IMAGE } from '../game/cardAssets';
 
 type Props = { position: 'top' | 'left' | 'right'; count?: number };
 
@@ -39,14 +40,21 @@ export default function OpponentHand({ position, count = 3 }: Props) {
         <div
           key={i}
           style={{
-            width: isSmall ? 44 : 60,
-            height: isSmall ? 66 : 90,
+            width: isSmall ? 54 : 72,
+            height: isSmall ? 78 : 108,
             borderRadius: 8,
-            background: '#334',
             border: '2px solid #222',
             boxShadow: '0 3px 6px rgba(0,0,0,0.3)',
+            overflow: 'hidden',
           }}
-        />
+        >
+          <img
+            src={CARD_BACK_IMAGE}
+            alt="Card back"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            draggable={false}
+          />
+        </div>
       ))}
     </div>
   );

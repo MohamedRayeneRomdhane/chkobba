@@ -9,9 +9,18 @@ export default function ChichaProp() {
       onClick={() => {
         console.log('chicha-clicked');
       }}
-      className={`absolute bottom-5 right-10 w-32 h-20 border-2 rounded-xl flex items-center justify-center cursor-pointer ${hover ? 'bg-sky-400' : 'bg-sky-500'} border-tableWood-dark shadow-caféGlow`}
+      className={`absolute bottom-0 right-8 cursor-pointer transition-transform duration-150 ease-out ${hover ? 'scale-[1.03]' : ''}`}
+      style={{
+        transform: `${hover ? 'translateY(-1px)' : 'translateY(2px)'} rotate(1.5deg)`,
+        filter: 'drop-shadow(0 12px 18px rgba(0,0,0,0.38))',
+      }}
     >
-      Chicha
+      <img
+        src="/assets/props/chicha.png"
+        alt="Hookah"
+        className="w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[250px] object-contain select-none"
+        draggable={false}
+      />
     </div>
   );
 }

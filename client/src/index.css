@@ -133,7 +133,9 @@ body {
 
 .table-felt {
   @apply bg-felt rounded-mat shadow-insetDeep border-[10px] border-tableWood-dark;
-  background-image: var(--tw-bg-feltTexture);
+  background-image: url('/assets/props/mat.png');
+  background-size: cover;
+  background-position: center;
 }
 
 /* Dealing animation: slide up + fade in */
