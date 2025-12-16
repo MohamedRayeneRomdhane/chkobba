@@ -12,6 +12,7 @@ import ScoreBoard from './components/ScoreBoard';
 import { useGameSocket } from './game/useGameSocket';
 import EndOverlay from './components/EndOverlay';
 import Layout from './components/Layout';
+import { getCardImage } from './game/cardAssets';
 
 export default function App() {
   const {
@@ -153,10 +154,14 @@ export default function App() {
                       prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id]
                     );
                   }}
-                  className={`w-[48px] h-[72px] sm:w-[58px] sm:h-[84px] md:w-[64px] md:h-[92px] rounded-lg bg-white border-2 flex flex-col items-center justify-center shadow-md transition-transform duration-200 ease-out cursor-pointer ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 hover:-translate-y-0.5'}`}
+                  className={`w-[clamp(52px,9vw,96px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out cursor-pointer ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 hover:-translate-y-0.5'}`}
                 >
-                  <div className="font-bold">{c.rank}</div>
-                  <div className="text-xs">{c.suit}</div>
+                  <img
+                    src={getCardImage(c)}
+                    alt={`${c.rank} of ${c.suit}`}
+                    className="w-full h-full object-cover"
+                    draggable={false}
+                  />
                 </div>
               );
             })}

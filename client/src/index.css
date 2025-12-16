@@ -132,8 +132,20 @@ body {
 }
 
 .table-felt {
-  @apply bg-felt rounded-mat shadow-insetDeep border-[10px] border-tableWood-dark;
-  background-image: var(--tw-bg-feltTexture);
+  /* Inner felt surface */
+  @apply bg-felt rounded-mat shadow-insetDeep;
+  /* Use a layered background trick to paint the border with wood texture */
+  border: 16px solid transparent; /* frame thickness */
+  background-image:
+    url('/assets/props/mat.png'),
+    /* inner felt image */ url('/assets/props/wood.png'); /* outer wood texture for the frame */
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  background-repeat: no-repeat, round;
+  background-size: cover, 220px; /* adjust 2nd value to scale wood grain */
+  background-position: center, center;
+  /* Prevent the Tailwind felt background-color from painting into the border */
+  background-color: transparent;
 }
 
 /* Dealing animation: slide up + fade in */

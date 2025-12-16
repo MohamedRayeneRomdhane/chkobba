@@ -45,7 +45,7 @@ export default function ProfileEditor({
   }, [initialAvatar]);
 
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
       <input
         placeholder="Nickname"
         value={nickname}
@@ -54,9 +54,9 @@ export default function ProfileEditor({
           setNickname(v);
           onChange?.(v || undefined, avatar);
         }}
-        style={{ padding: 6, borderRadius: 6, border: '1px solid #999' }}
+        className="px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-300 w-full sm:w-auto"
       />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div className="flex flex-wrap gap-2 items-center">
         {avatars.map((a) => (
           <img
             key={a}
@@ -66,17 +66,11 @@ export default function ProfileEditor({
               setAvatar(a);
               onChange?.(nickname || undefined, a);
             }}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-md object-cover bg-gray-200 cursor-pointer transition"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 6,
               border: avatar === a ? '2px solid #4ade80' : '1px solid #999',
               boxShadow: avatar === a ? '0 0 0 2px #bbf7d0' : undefined,
-              cursor: 'pointer',
-              objectFit: 'cover',
-              background: '#eee',
               opacity: avatar === a ? 1 : 0.7,
-              transition: 'border 0.2s, box-shadow 0.2s, opacity 0.2s',
             }}
           />
         ))}
@@ -84,7 +78,7 @@ export default function ProfileEditor({
       {showInlineSave && (
         <button
           onClick={() => onSave(nickname || undefined, avatar || undefined)}
-          style={{ marginLeft: 8 }}
+          className="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50"
         >
           Save Profile
         </button>
