@@ -132,24 +132,28 @@ function SmokePlane({
   widthFactor: number;
   heightFactor: number;
 }) {
-  const mat = useMemo(() => new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    uniforms: {
-      u_time: { value: 0 },
-      u_opacity: { value: 0 },
-      u_color: { value: new THREE.Color(color) },
-      u_noiseScale: { value: noiseScale },
-      u_blob: { value: 0.7 },
-      u_noiseSpeed: { value: noiseSpeed },
-      u_alphaBoost: { value: alphaBoost },
-      u_seed: { value: seed },
-      u_elongX: { value: elongX },
-      u_elongY: { value: elongY },
-    },
-    fragmentShader: frag,
-    vertexShader: vert,
-  }), [color, noiseScale, noiseSpeed, alphaBoost, seed, elongX, elongY]);
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        uniforms: {
+          u_time: { value: 0 },
+          u_opacity: { value: 0 },
+          u_color: { value: new THREE.Color(color) },
+          u_noiseScale: { value: noiseScale },
+          u_blob: { value: 0.7 },
+          u_noiseSpeed: { value: noiseSpeed },
+          u_alphaBoost: { value: alphaBoost },
+          u_seed: { value: seed },
+          u_elongX: { value: elongX },
+          u_elongY: { value: elongY },
+        },
+        fragmentShader: frag,
+        vertexShader: vert,
+      }),
+    [color, noiseScale, noiseSpeed, alphaBoost, seed, elongX, elongY]
+  );
 
   useFrame((state, delta) => {
     mat.uniforms.u_time.value += delta;
@@ -186,7 +190,28 @@ function Scene({
   widthFactor,
   heightFactor,
   onComplete,
-}: Required<Pick<SmokeGustR3FProps, 'duration' | 'hold' | 'fadeInMs' | 'opacity' | 'color' | 'riseVh' | 'growthFrom' | 'growthTo' | 'layers' | 'noiseScale' | 'noiseSpeed' | 'alphaBoost' | 'elongX' | 'elongY' | 'widthFactor' | 'heightFactor' | 'onComplete'>>) {
+}: Required<
+  Pick<
+    SmokeGustR3FProps,
+    | 'duration'
+    | 'hold'
+    | 'fadeInMs'
+    | 'opacity'
+    | 'color'
+    | 'riseVh'
+    | 'growthFrom'
+    | 'growthTo'
+    | 'layers'
+    | 'noiseScale'
+    | 'noiseSpeed'
+    | 'alphaBoost'
+    | 'elongX'
+    | 'elongY'
+    | 'widthFactor'
+    | 'heightFactor'
+    | 'onComplete'
+  >
+>) {
   const group = React.useRef<THREE.Group>(null);
   const [phase, setPhase] = React.useState<'enter' | 'hold' | 'exit'>('enter');
   const start = React.useRef<number>(0);
@@ -196,8 +221,15 @@ function Scene({
     start.current = now;
     const enterTimer = setTimeout(() => setPhase('hold'), duration);
     const holdTimer = setTimeout(() => setPhase('exit'), duration + hold);
-    const exitTimer = setTimeout(() => onComplete && onComplete(), duration + hold + duration * 0.6);
-    return () => { clearTimeout(enterTimer); clearTimeout(holdTimer); clearTimeout(exitTimer); };
+    const exitTimer = setTimeout(
+      () => onComplete && onComplete(),
+      duration + hold + duration * 0.6
+    );
+    return () => {
+      clearTimeout(enterTimer);
+      clearTimeout(holdTimer);
+      clearTimeout(exitTimer);
+    };
   }, [duration, hold, onComplete]);
 
   const { viewport } = useThree();
@@ -219,11 +251,12 @@ function Scene({
     g.position.y = totalP * rise;
 
     // Scale growth
-    const growthP = clamped < enterSec
-      ? clamped / enterSec
-      : clamped < enterSec + holdSec
-      ? 1
-      : 1 - (clamped - enterSec - holdSec) / exitSec;
+    const growthP =
+      clamped < enterSec
+        ? clamped / enterSec
+        : clamped < enterSec + holdSec
+          ? 1
+          : 1 - (clamped - enterSec - holdSec) / exitSec;
     const s = growthFrom + (growthTo - growthFrom) * Math.max(0, Math.min(growthP, 1));
     g.scale.setScalar(s);
   });
@@ -252,12 +285,15 @@ function Scene({
   });
 
   // Build seeds for each layer once
-  const seeds = React.useMemo(() => Array.from({ length: layers }, (_, i) => 0.37 + i * 0.21), [layers]);
+  const seeds = React.useMemo(
+    () => Array.from({ length: layers }, (_, i) => 0.37 + i * 0.21),
+    [layers]
+  );
 
   return (
     <group ref={group}>
       {seeds.map((s, i) => (
-        <group key={i} position={[ (i - (layers-1)/2) * 0.04 * viewport.width, 0, -i * 0.01 ]}>
+        <group key={i} position={[(i - (layers - 1) / 2) * 0.04 * viewport.width, 0, -i * 0.01]}>
           <SmokePlane
             baseOpacity={opacity * (layers > 1 ? 0.85 : 1)}
             color={new THREE.Color(color)}

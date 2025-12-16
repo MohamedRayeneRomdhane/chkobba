@@ -26,7 +26,7 @@ type SmokeGustProps = {
   fadeInMs?: number;
   // Scale growth range (multiplier applied across phases)
   growthFrom?: number; // start scale factor
-  growthTo?: number;   // end scale factor
+  growthTo?: number; // end scale factor
   // Add subtle smoke texture using SVG turbulence
   texture?: boolean;
   // Called when animation completes
@@ -75,7 +75,12 @@ export default function SmokeGust({
   const phaseOpacity = phase === 'enter' ? baseOpacity : phase === 'hold' ? baseOpacity : 0;
   const opacityTransitionMs = phase === 'enter' ? fadeInMs : Math.round(duration * 0.6);
   const phaseScaleBase = phase === 'enter' ? 1.0 : phase === 'hold' ? 1.05 : 1.12;
-  const growthScale = phase === 'enter' ? growthFrom : phase === 'hold' ? (growthFrom + (growthTo - growthFrom) * 0.6) : growthTo;
+  const growthScale =
+    phase === 'enter'
+      ? growthFrom
+      : phase === 'hold'
+        ? growthFrom + (growthTo - growthFrom) * 0.6
+        : growthTo;
   const phaseScale = phaseScaleBase * growthScale;
 
   const content = (
@@ -109,9 +114,20 @@ export default function SmokeGust({
           >
             <defs>
               <filter id="smokeNoise" x="-20%" y="-20%" width="140%" height="140%">
-                <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="noise" />
+                <feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="0.9"
+                  numOctaves="2"
+                  stitchTiles="stitch"
+                  result="noise"
+                />
                 <feColorMatrix in="noise" type="saturate" values="0" />
-                <feDisplacementMap in="SourceGraphic" in2="noise" xChannelSelector="R" yChannelSelector="G" />
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="noise"
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                />
               </filter>
               <radialGradient id="blobGrad" cx="45%" cy="60%" r="65%">
                 <stop offset="0%" stopColor={color} stopOpacity="1" />
@@ -171,7 +187,5 @@ export default function SmokeGust({
     if (target) return createPortal(content, target);
   }
   // Fallback to full-screen overlay if no target
-  return (
-    <div className="fixed inset-0 z-[60] pointer-events-none">{content}</div>
-  );
+  return <div className="fixed inset-0 z-[60] pointer-events-none">{content}</div>;
 }
