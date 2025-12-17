@@ -13,6 +13,9 @@ import { useGameSocket } from './game/useGameSocket';
 import EndOverlay from './components/EndOverlay';
 import Layout from './components/Layout';
 import { getCardImage } from './game/cardAssets';
+import PlayAnimationsLayer from './components/PlayAnimationsLayer';
+import usePlayAnimations from './hooks/usePlayAnimations';
+import useSound from './hooks/useSound';
 
 export default function App() {
   const {
@@ -36,6 +39,13 @@ export default function App() {
   const { profile: localProfile, setProfile: setLocalProfile } = useProfile();
   const [selectedHandId, setSelectedHandId] = React.useState<string | null>(null);
   const [selectedTableIds, setSelectedTableIds] = React.useState<string[]>([]);
+  const [handGhostIndex, setHandGhostIndex] = React.useState<number | null>(null);
+  // Deal tick sound per card animation start
+  const { play: playDealTick } = useSound('/assets/soundeffects/deal.mp3', {
+    volume: 0.7,
+    loop: false,
+    interrupt: true,
+  });
   const selectedHandCard = React.useMemo(() => {
     if (mySeat == null || !gameState?.hands) return null;
     return (gameState.hands[mySeat] || []).find((c) => c.id === selectedHandId) || null;
@@ -50,6 +60,12 @@ export default function App() {
     return selectedTableIds.length === 0 || selectedSum === selectedHandCard.value;
   }, [selectedHandCard, selectedTableIds, selectedSum]);
 
+  const { flights: pendingFlights, clearFlights } = usePlayAnimations(
+    gameState,
+    mySeat,
+    selectedHandCard
+  );
+
   // removed unused local `seats` label array
 
   return (
@@ -58,18 +74,21 @@ export default function App() {
         headerRight={
           <>
             <button
-              className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white shadow-sm"
+              className="btn btn--mint"
               onClick={() => createRoom().then((code) => join(code))}
             >
               Create & Join
             </button>
-            <input
-              id="roomCode"
-              placeholder="Room code"
-              className="px-3 py-1 rounded-md border border-gray-400 bg-white text-gray-900 placeholder:text-gray-500 shadow-inner"
-            />
+            <div className="room-input">
+              <div className="group">
+                <input id="roomCode" type="text" className="input" required />
+                <span className="highlight" />
+                <span className="bar" />
+                <label htmlFor="roomCode">Room code</label>
+              </div>
+            </div>
             <button
-              className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+              className="btn btn--azure"
               onClick={() => {
                 const code = (document.getElementById('roomCode') as HTMLInputElement).value.trim();
                 if (code) join(code);
@@ -77,13 +96,10 @@ export default function App() {
             >
               Join
             </button>
-            <button
-              className="px-3 py-1 rounded-md bg-gray-700 hover:bg-gray-800 text-white shadow-sm ml-2 flex items-center gap-2"
-              onClick={() => setProfileModalOpen(true)}
-            >
+            <button className="btn btn--desert ml-2" onClick={() => setProfileModalOpen(true)}>
               <span role="img" aria-label="profile">
                 👤
-              </span>{' '}
+              </span>
               Edit Profile
             </button>
             <span className="text-sm whitespace-nowrap flex items-center gap-2 text-white/90">
@@ -142,12 +158,16 @@ export default function App() {
           {/* Round banner */}
           {/* Inline banner removed in favor of end overlay */}
           {/* Table cards placeholder */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2 place-items-center max-w-[90%]">
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2 place-items-center max-w-[90%]"
+            id="table-grid"
+          >
             {(gameState?.tableCards || []).map((c) => {
               const selected = selectedTableIds.includes(c.id);
               return (
                 <div
                   key={c.id}
+                  data-card-id={c.id}
                   onClick={() => {
                     // toggle selection for building combinations
                     setSelectedTableIds((prev) =>
@@ -176,9 +196,24 @@ export default function App() {
             const countAt = (i: number) => gameState?.hands?.[i]?.length ?? 0;
             return (
               <>
-                <OpponentHand position="top" count={countAt(idxTop)} />
-                <OpponentHand position="left" count={countAt(idxLeft)} />
-                <OpponentHand position="right" count={countAt(idxRight)} />
+                <OpponentHand
+                  position="top"
+                  count={countAt(idxTop)}
+                  dealTick={dealTick}
+                  onDealAnimStart={playDealTick}
+                />
+                <OpponentHand
+                  position="left"
+                  count={countAt(idxLeft)}
+                  dealTick={dealTick}
+                  onDealAnimStart={playDealTick}
+                />
+                <OpponentHand
+                  position="right"
+                  count={countAt(idxRight)}
+                  dealTick={dealTick}
+                  onDealAnimStart={playDealTick}
+                />
               </>
             );
           })()}
@@ -259,6 +294,13 @@ export default function App() {
 
           {/* Scoreboard */}
           <ScoreBoard state={gameState || null} />
+          <PlayAnimationsLayer
+            flights={pendingFlights}
+            onDone={() => {
+              clearFlights();
+              setHandGhostIndex(null);
+            }}
+          />
         </TableMat>
 
         {/* Player hand outside (below) the table */}
@@ -266,6 +308,7 @@ export default function App() {
           <PlayerHand
             cards={mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : []}
             selectedId={selectedHandId}
+            ghostIndex={handGhostIndex}
             onSelect={(id) => {
               // re-clicking toggles: if same id selected, either discard (no table selected) or deselect
               if (selectedHandId === id) {
@@ -273,6 +316,19 @@ export default function App() {
                   // discard: place on table
                   if (!roomCode || mySeat == null) return;
                   if (gameState?.currentPlayerIndex !== mySeat) return;
+                  // fade out the actual card for a quick, smooth removal
+                  const el = document.querySelector(
+                    `[data-hand-card-id="${id}"]`
+                  ) as HTMLElement | null;
+                  if (el) {
+                    el.style.willChange = 'opacity';
+                    el.style.transition = 'opacity 220ms ease-out';
+                    el.style.opacity = '0';
+                  }
+                  const handNow =
+                    mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+                  const idx = handNow.findIndex((c) => c.id === id);
+                  if (idx >= 0) setHandGhostIndex(idx);
                   play(roomCode, id, undefined).then(() => {
                     setSelectedHandId(null);
                     setSelectedTableIds([]);
@@ -288,6 +344,19 @@ export default function App() {
               if (!roomCode) return;
               if (mySeat == null) return;
               if (gameState?.currentPlayerIndex !== mySeat) return;
+              // fade out the actual card for a quick, smooth removal
+              const el = document.querySelector(
+                `[data-hand-card-id="${id}"]`
+              ) as HTMLElement | null;
+              if (el) {
+                el.style.willChange = 'opacity';
+                el.style.transition = 'opacity 220ms ease-out';
+                el.style.opacity = '0';
+              }
+              const handNow =
+                mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+              const idx = handNow.findIndex((c) => c.id === id);
+              if (idx >= 0) setHandGhostIndex(idx);
               const combo =
                 selectedTableIds.length && selectedSum === (selectedHandCard?.value ?? -1)
                   ? selectedTableIds
@@ -298,6 +367,7 @@ export default function App() {
               });
             }}
             dealTick={dealTick}
+            onDealAnimStart={playDealTick}
           />
           {/* Action bar for selected play */}
           <div className="mt-1 flex items-center justify-center gap-3">
@@ -313,6 +383,19 @@ export default function App() {
                 if (!roomCode || !selectedHandCard) return;
                 if (mySeat == null) return;
                 if (gameState?.currentPlayerIndex !== mySeat) return;
+                // fade out the actual card for a quick, smooth removal
+                const el = document.querySelector(
+                  `[data-hand-card-id="${selectedHandCard.id}"]`
+                ) as HTMLElement | null;
+                if (el) {
+                  el.style.willChange = 'opacity';
+                  el.style.transition = 'opacity 220ms ease-out';
+                  el.style.opacity = '0';
+                }
+                const handNow =
+                  mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+                const idx = handNow.findIndex((c) => c.id === selectedHandCard.id);
+                if (idx >= 0) setHandGhostIndex(idx);
                 const combo =
                   selectedTableIds.length && selectedSum === selectedHandCard.value
                     ? selectedTableIds
