@@ -44,7 +44,7 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
     <div ref={rootRef} className="min-h-screen flex flex-col bg-tableWood bg-woodGrain">
       {/* Top bar */}
       <div className="cafe-header text-white">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
+        <div className="max-w-[min(1600px,95vw)] mx-auto px-4 py-3 flex items-center gap-4">
           <h1 className="text-xl font-bold tracking-wide drop-shadow">Chkobba</h1>
           <div className="ml-auto flex items-center gap-4">{headerRight}</div>
         </div>
@@ -60,7 +60,7 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
           className="flex-1 flex items-center justify-center p-3"
           style={{ paddingBottom: 'calc(var(--footer-h, 56px) + 8px)' }}
         >
-          <div className="w-full max-w-5xl mx-auto">{children}</div>
+          <div className="w-full max-w-[min(1600px,95vw)] mx-auto">{children}</div>
         </main>
 
         {/* Right margin (ads placeholder) on large screens */}
@@ -69,7 +69,7 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
 
       {/* Footer */}
       <footer ref={footerRef} className="cafe-header text-white">
-        <div className="max-w-6xl mx-auto px-4 py-2 flex flex-wrap items-center gap-2 sm:gap-4">
+        <div className="max-w-[min(1600px,95vw)] mx-auto px-4 py-2 flex flex-wrap items-center gap-2 sm:gap-4">
           <div className="flex items-center gap-2 text-sm">{footerLeft}</div>
           <div className="ml-auto flex items-center gap-2 sm:gap-3 text-xs sm:text-sm opacity-90">
             {footerRight ?? (
