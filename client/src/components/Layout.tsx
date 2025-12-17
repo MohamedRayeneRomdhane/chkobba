@@ -41,7 +41,7 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
   }, []);
 
   return (
-    <div ref={rootRef} className="min-h-screen flex flex-col bg-tableWood">
+    <div ref={rootRef} className="min-h-screen flex flex-col bg-tableWood bg-woodGrain">
       {/* Top bar */}
       <div className="cafe-header text-white">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
