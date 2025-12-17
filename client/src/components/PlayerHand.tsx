@@ -71,7 +71,9 @@ export default function PlayerHand({
       const dx = prev.left - cur.left;
       const dy = prev.top - cur.top;
       if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
-      const el = container.querySelector(`[data-slot-id="${CSS.escape(id)}"]`) as HTMLElement | null;
+      const el = container.querySelector(
+        `[data-slot-id="${CSS.escape(id)}"]`
+      ) as HTMLElement | null;
       if (!el) return;
       el.style.willChange = 'transform';
       el.style.transition = 'none';

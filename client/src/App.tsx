@@ -317,13 +317,16 @@ export default function App() {
                   if (!roomCode || mySeat == null) return;
                   if (gameState?.currentPlayerIndex !== mySeat) return;
                   // fade out the actual card for a quick, smooth removal
-                  const el = document.querySelector(`[data-hand-card-id="${id}"]`) as HTMLElement | null;
+                  const el = document.querySelector(
+                    `[data-hand-card-id="${id}"]`
+                  ) as HTMLElement | null;
                   if (el) {
                     el.style.willChange = 'opacity';
                     el.style.transition = 'opacity 220ms ease-out';
                     el.style.opacity = '0';
                   }
-                  const handNow = mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+                  const handNow =
+                    mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
                   const idx = handNow.findIndex((c) => c.id === id);
                   if (idx >= 0) setHandGhostIndex(idx);
                   play(roomCode, id, undefined).then(() => {
@@ -342,13 +345,16 @@ export default function App() {
               if (mySeat == null) return;
               if (gameState?.currentPlayerIndex !== mySeat) return;
               // fade out the actual card for a quick, smooth removal
-              const el = document.querySelector(`[data-hand-card-id="${id}"]`) as HTMLElement | null;
+              const el = document.querySelector(
+                `[data-hand-card-id="${id}"]`
+              ) as HTMLElement | null;
               if (el) {
                 el.style.willChange = 'opacity';
                 el.style.transition = 'opacity 220ms ease-out';
                 el.style.opacity = '0';
               }
-              const handNow = mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+              const handNow =
+                mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
               const idx = handNow.findIndex((c) => c.id === id);
               if (idx >= 0) setHandGhostIndex(idx);
               const combo =
@@ -378,13 +384,16 @@ export default function App() {
                 if (mySeat == null) return;
                 if (gameState?.currentPlayerIndex !== mySeat) return;
                 // fade out the actual card for a quick, smooth removal
-                const el = document.querySelector(`[data-hand-card-id="${selectedHandCard.id}"]`) as HTMLElement | null;
+                const el = document.querySelector(
+                  `[data-hand-card-id="${selectedHandCard.id}"]`
+                ) as HTMLElement | null;
                 if (el) {
                   el.style.willChange = 'opacity';
                   el.style.transition = 'opacity 220ms ease-out';
                   el.style.opacity = '0';
                 }
-                const handNow = mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+                const handNow =
+                  mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
                 const idx = handNow.findIndex((c) => c.id === selectedHandCard.id);
                 if (idx >= 0) setHandGhostIndex(idx);
                 const combo =

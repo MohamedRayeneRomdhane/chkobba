@@ -233,10 +233,22 @@ body {
   }
 }
 
-.deal-in-bottom { animation: dealInBottom 450ms cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
-.deal-in-top { animation: dealInTop 450ms cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
-.deal-in-left { animation: dealInLeft 450ms cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
-.deal-in-right { animation: dealInRight 450ms cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+.deal-in-bottom {
+  animation: dealInBottom 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+.deal-in-top {
+  animation: dealInTop 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+.deal-in-left {
+  animation: dealInLeft 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+.deal-in-right {
+  animation: dealInRight 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
 
 /* From Uiverse.io by nikk7007 — Header button baseline */
 .btn {

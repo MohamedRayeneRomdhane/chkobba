@@ -3,9 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GameState, PlayerIndex, RoomSnapshot } from '../types';
 
 // Resolve server URL: prefer env, fallback to localhost in dev, else Render
+const env = (import.meta as unknown as { env: { VITE_SERVER_URL?: string; DEV?: boolean } }).env;
 const SERVER_URL: string =
-  (import.meta as any)?.env?.VITE_SERVER_URL ||
-  ((import.meta as any)?.env?.DEV ? 'http://localhost:3001' : 'https://chkobba-5zq3.onrender.com');
+  env.VITE_SERVER_URL || (env.DEV ? 'http://localhost:3001' : 'https://chkobba-5zq3.onrender.com');
 
 export function useGameSocket() {
   const [connected, setConnected] = useState(false);

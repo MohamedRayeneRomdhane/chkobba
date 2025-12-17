@@ -9,7 +9,14 @@ function getSeatSelector(mySeat: number | null, seatIndex: number): string {
   const idxBottom = mySeat ?? 0;
   const idxTop = (idxBottom + 2) % 4;
   const idxLeft = (idxBottom + 3) % 4;
-  const pos = seatIndex === idxBottom ? 'bottom' : seatIndex === idxTop ? 'top' : seatIndex === idxLeft ? 'left' : 'right';
+  const pos =
+    seatIndex === idxBottom
+      ? 'bottom'
+      : seatIndex === idxTop
+        ? 'top'
+        : seatIndex === idxLeft
+          ? 'left'
+          : 'right';
   return `[data-seat-anchor="${pos}"]`;
 }
 
@@ -51,7 +58,7 @@ function getTableCardSize(): { w: number; h: number } {
 export function usePlayAnimations(
   gameState: GameState | null,
   mySeat: number | null,
-  selectedHandCard: Card | null,
+  selectedHandCard: Card | null
 ) {
   const tableRectsPrevRef = React.useRef<Map<string, DOMRect>>(new Map());
   const tableRectsCurrRef = React.useRef<Map<string, DOMRect>>(new Map());
@@ -119,12 +126,15 @@ export function usePlayAnimations(
     const flightsLocal: FlightSpec[] = [];
 
     // Source: prefer actual hand card element when it's me
-    const myPlayedRect = selectedHandCard && playedSeat === (mySeat ?? -1)
-      ? (measureHandCardRect(selectedHandCard.id) || measureRect(getSeatSelector(mySeat, playedSeat)))
-      : measureOpponentCardRect(mySeat, playedSeat);
+    const myPlayedRect =
+      selectedHandCard && playedSeat === (mySeat ?? -1)
+        ? measureHandCardRect(selectedHandCard.id) ||
+          measureRect(getSeatSelector(mySeat, playedSeat))
+        : measureOpponentCardRect(mySeat, playedSeat);
     if (!myPlayedRect) return;
 
-    const tableCenter = document.getElementById('table-grid')?.getBoundingClientRect() || myPlayedRect;
+    const tableCenter =
+      document.getElementById('table-grid')?.getBoundingClientRect() || myPlayedRect;
 
     if (capturedIds.length > 0) {
       // Cancel any pending throw flight if a capture is confirmed

@@ -10,10 +10,6 @@ export type FlightSpec = {
   durationMs?: number;
 };
 
-function centerOf(r: { x: number; y: number; w: number; h: number }) {
-  return { cx: r.x + r.w / 2, cy: r.y + r.h / 2 };
-}
-
 export default function PlayAnimationsLayer({
   flights,
   onDone,
@@ -64,20 +60,17 @@ export default function PlayAnimationsLayer({
 
   // Cleanup all watchdogs on unmount
   React.useEffect(() => {
+    const map = watchdogsRef.current;
     return () => {
-      for (const t of watchdogsRef.current.values()) window.clearTimeout(t);
-      watchdogsRef.current.clear();
+      for (const t of map.values()) window.clearTimeout(t);
+      map.clear();
     };
   }, []);
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[60]" data-flight-layer>
       {active.map((f) => (
-        <Flight
-          key={f.id}
-          spec={f}
-          onEnd={() => handleFlightEnd(f.id)}
-        />
+        <Flight key={f.id} spec={f} onEnd={() => handleFlightEnd(f.id)} />
       ))}
     </div>
   );
@@ -147,11 +140,20 @@ function Flight({ spec, onEnd }: { spec: FlightSpec; onEnd: () => void }) {
         onEndRef.current();
       }
     };
-  }, [spec.id]);
+  }, [spec.id, spec.from, spec.to, spec.durationMs]);
 
   return (
-    <div ref={nodeRef} className="absolute left-0 top-0 will-change-transform pointer-events-none" data-flight-id={spec.id}>
-      <img src={spec.image} alt="flying card" className="w-full h-full object-cover rounded shadow-lg shadow-black/20" draggable={false} />
+    <div
+      ref={nodeRef}
+      className="absolute left-0 top-0 will-change-transform pointer-events-none"
+      data-flight-id={spec.id}
+    >
+      <img
+        src={spec.image}
+        alt="flying card"
+        className="w-full h-full object-cover rounded shadow-lg shadow-black/20"
+        draggable={false}
+      />
     </div>
   );
 }
