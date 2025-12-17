@@ -8,16 +8,21 @@
     "shared"
   ],
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "@playwright/test": "^1.48.2"
   },
   "scripts": {
     "build": "npm run build -w client && npm run build -w server",
     "build:server": "npm run build -w server",
     "build:client": "npm run build -w client",
     "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:e2e": "VITE_SERVER_URL=http://localhost:3001 concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
     "start:server": "node server/dist/server/src/index.js",
-    "install-all": "npm install"
+    "install-all": "npm install",
+    "e2e:install": "npx playwright install --with-deps",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed --project=chromium"
   }
 }
