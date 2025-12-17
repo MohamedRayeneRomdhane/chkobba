@@ -39,6 +39,7 @@ export default function App() {
   const { profile: localProfile, setProfile: setLocalProfile } = useProfile();
   const [selectedHandId, setSelectedHandId] = React.useState<string | null>(null);
   const [selectedTableIds, setSelectedTableIds] = React.useState<string[]>([]);
+  const [handGhostIndex, setHandGhostIndex] = React.useState<number | null>(null);
   // Deal tick sound per card animation start
   const { play: playDealTick } = useSound('/assets/soundeffects/deal.mp3', {
     volume: 0.7,
@@ -293,7 +294,13 @@ export default function App() {
 
           {/* Scoreboard */}
           <ScoreBoard state={gameState || null} />
-          <PlayAnimationsLayer flights={pendingFlights} onDone={clearFlights} />
+          <PlayAnimationsLayer
+            flights={pendingFlights}
+            onDone={() => {
+              clearFlights();
+              setHandGhostIndex(null);
+            }}
+          />
         </TableMat>
 
         {/* Player hand outside (below) the table */}
@@ -301,6 +308,7 @@ export default function App() {
           <PlayerHand
             cards={mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : []}
             selectedId={selectedHandId}
+            ghostIndex={handGhostIndex}
             onSelect={(id) => {
               // re-clicking toggles: if same id selected, either discard (no table selected) or deselect
               if (selectedHandId === id) {
@@ -308,6 +316,16 @@ export default function App() {
                   // discard: place on table
                   if (!roomCode || mySeat == null) return;
                   if (gameState?.currentPlayerIndex !== mySeat) return;
+                  // fade out the actual card for a quick, smooth removal
+                  const el = document.querySelector(`[data-hand-card-id="${id}"]`) as HTMLElement | null;
+                  if (el) {
+                    el.style.willChange = 'opacity';
+                    el.style.transition = 'opacity 220ms ease-out';
+                    el.style.opacity = '0';
+                  }
+                  const handNow = mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+                  const idx = handNow.findIndex((c) => c.id === id);
+                  if (idx >= 0) setHandGhostIndex(idx);
                   play(roomCode, id, undefined).then(() => {
                     setSelectedHandId(null);
                     setSelectedTableIds([]);
@@ -323,6 +341,16 @@ export default function App() {
               if (!roomCode) return;
               if (mySeat == null) return;
               if (gameState?.currentPlayerIndex !== mySeat) return;
+              // fade out the actual card for a quick, smooth removal
+              const el = document.querySelector(`[data-hand-card-id="${id}"]`) as HTMLElement | null;
+              if (el) {
+                el.style.willChange = 'opacity';
+                el.style.transition = 'opacity 220ms ease-out';
+                el.style.opacity = '0';
+              }
+              const handNow = mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+              const idx = handNow.findIndex((c) => c.id === id);
+              if (idx >= 0) setHandGhostIndex(idx);
               const combo =
                 selectedTableIds.length && selectedSum === (selectedHandCard?.value ?? -1)
                   ? selectedTableIds
@@ -349,6 +377,16 @@ export default function App() {
                 if (!roomCode || !selectedHandCard) return;
                 if (mySeat == null) return;
                 if (gameState?.currentPlayerIndex !== mySeat) return;
+                // fade out the actual card for a quick, smooth removal
+                const el = document.querySelector(`[data-hand-card-id="${selectedHandCard.id}"]`) as HTMLElement | null;
+                if (el) {
+                  el.style.willChange = 'opacity';
+                  el.style.transition = 'opacity 220ms ease-out';
+                  el.style.opacity = '0';
+                }
+                const handNow = mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+                const idx = handNow.findIndex((c) => c.id === selectedHandCard.id);
+                if (idx >= 0) setHandGhostIndex(idx);
                 const combo =
                   selectedTableIds.length && selectedSum === selectedHandCard.value
                     ? selectedTableIds

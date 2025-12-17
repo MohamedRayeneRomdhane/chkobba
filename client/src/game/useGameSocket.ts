@@ -2,6 +2,11 @@ import { io, Socket } from 'socket.io-client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GameState, PlayerIndex, RoomSnapshot } from '../types';
 
+// Resolve server URL: prefer env, fallback to localhost in dev, else Render
+const SERVER_URL: string =
+  (import.meta as any)?.env?.VITE_SERVER_URL ||
+  ((import.meta as any)?.env?.DEV ? 'http://localhost:3001' : 'https://chkobba-5zq3.onrender.com');
+
 export function useGameSocket() {
   const [connected, setConnected] = useState(false);
   const [roomCode, setRoomCode] = useState<string | null>(null);
@@ -18,7 +23,7 @@ export function useGameSocket() {
 
   const socket = useMemo(() => {
     if (!socketRef.current) {
-      socketRef.current = io('https://chkobba-5zq3.onrender.com');
+      socketRef.current = io(SERVER_URL, { withCredentials: false });
     }
     return socketRef.current;
   }, []);
@@ -74,7 +79,7 @@ export function useGameSocket() {
   }, [socket]);
 
   function createRoom() {
-    return fetch('https://chkobba-5zq3.onrender.com/api/rooms', { method: 'POST' })
+    return fetch(`${SERVER_URL}/api/rooms`, { method: 'POST' })
       .then((r) => r.json())
       .then((j) => j.code as string)
       .then((code) => {

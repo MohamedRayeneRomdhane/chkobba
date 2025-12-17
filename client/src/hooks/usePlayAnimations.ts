@@ -192,7 +192,7 @@ export function usePlayAnimations(
         image: img,
         from: { x: myPlayedRect.left, y: myPlayedRect.top, w: tableSize.w, h: tableSize.h },
         to: { x: targetRect.left, y: targetRect.top, w: tableSize.w, h: tableSize.h },
-        durationMs: 600,
+        durationMs: 750,
       });
       // Prepare return flights (leg 2) for captured cards and the played card together
       const seatRect = measureOpponentCardRect(mySeat, playedSeat) || myPlayedRect;
@@ -206,8 +206,9 @@ export function usePlayAnimations(
           id: `captured-${id}-${Date.now()}`,
           image: capImg,
           from: { x: capRect.left, y: capRect.top, w: capRect.width, h: capRect.height },
-          to: { x: seatRect.left, y: seatRect.top, w: seatRect.width, h: seatRect.height },
-          durationMs: 600,
+          // keep size constant on return to avoid growth effect
+          to: { x: seatRect.left, y: seatRect.top, w: capRect.width, h: capRect.height },
+          durationMs: 750,
         });
       }
       // Include the played card returning with the others
@@ -215,15 +216,16 @@ export function usePlayAnimations(
         id: `played-return-${playedSeat}-${Date.now()}`,
         image: img,
         from: { x: targetRect.left, y: targetRect.top, w: tableSize.w, h: tableSize.h },
-        to: { x: seatRect.left, y: seatRect.top, w: seatRect.width, h: seatRect.height },
-        durationMs: 600,
+        // keep size constant on return to avoid growth effect
+        to: { x: seatRect.left, y: seatRect.top, w: tableSize.w, h: tableSize.h },
+        durationMs: 750,
       });
       // Schedule leg 2 to start right after leg 1 completes
       if (captureReturnTimerRef.current) window.clearTimeout(captureReturnTimerRef.current);
       captureReturnTimerRef.current = window.setTimeout(() => {
         setFlights((prev) => [...prev, ...returnFlights]);
         captureReturnTimerRef.current = null;
-      }, 600);
+      }, 750);
     } else if (addedIds.length > 0) {
       // Discard (thrown to table): schedule overlay slightly delayed
       const newId = addedIds[0];
@@ -243,7 +245,7 @@ export function usePlayAnimations(
         image: img,
         from: { x: sourceRect.left, y: sourceRect.top, w: tableSize.w, h: tableSize.h },
         to: { x: targetRect.left, y: targetRect.top, w: tableSize.w, h: tableSize.h },
-        durationMs: 600,
+        durationMs: 750,
       };
       scheduledThrowRef.current = spec;
       if (pendingThrowTimerRef.current) window.clearTimeout(pendingThrowTimerRef.current);
@@ -261,7 +263,7 @@ export function usePlayAnimations(
             hiddenTargetRef.current = null;
           }
           revealTimerRef.current = null;
-        }, spec.durationMs ?? 600);
+        }, spec.durationMs ?? 750);
       }, 250);
     }
 
