@@ -13,6 +13,9 @@ import { useGameSocket } from './game/useGameSocket';
 import EndOverlay from './components/EndOverlay';
 import Layout from './components/Layout';
 import { getCardImage } from './game/cardAssets';
+import PlayAnimationsLayer from './components/PlayAnimationsLayer';
+import usePlayAnimations from './hooks/usePlayAnimations';
+import useSound from './hooks/useSound';
 
 export default function App() {
   const {
@@ -36,6 +39,12 @@ export default function App() {
   const { profile: localProfile, setProfile: setLocalProfile } = useProfile();
   const [selectedHandId, setSelectedHandId] = React.useState<string | null>(null);
   const [selectedTableIds, setSelectedTableIds] = React.useState<string[]>([]);
+  // Deal tick sound per card animation start
+  const { play: playDealTick } = useSound('/assets/soundeffects/deal.mp3', {
+    volume: 0.7,
+    loop: false,
+    interrupt: true,
+  });
   const selectedHandCard = React.useMemo(() => {
     if (mySeat == null || !gameState?.hands) return null;
     return (gameState.hands[mySeat] || []).find((c) => c.id === selectedHandId) || null;
@@ -49,6 +58,12 @@ export default function App() {
     // allow play with no combo (place on table) or exact sum combo
     return selectedTableIds.length === 0 || selectedSum === selectedHandCard.value;
   }, [selectedHandCard, selectedTableIds, selectedSum]);
+
+  const { flights: pendingFlights, clearFlights } = usePlayAnimations(
+    gameState,
+    mySeat,
+    selectedHandCard
+  );
 
   // removed unused local `seats` label array
 
@@ -142,12 +157,16 @@ export default function App() {
           {/* Round banner */}
           {/* Inline banner removed in favor of end overlay */}
           {/* Table cards placeholder */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2 place-items-center max-w-[90%]">
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2 place-items-center max-w-[90%]"
+            id="table-grid"
+          >
             {(gameState?.tableCards || []).map((c) => {
               const selected = selectedTableIds.includes(c.id);
               return (
                 <div
                   key={c.id}
+                  data-card-id={c.id}
                   onClick={() => {
                     // toggle selection for building combinations
                     setSelectedTableIds((prev) =>
@@ -176,9 +195,24 @@ export default function App() {
             const countAt = (i: number) => gameState?.hands?.[i]?.length ?? 0;
             return (
               <>
-                <OpponentHand position="top" count={countAt(idxTop)} />
-                <OpponentHand position="left" count={countAt(idxLeft)} />
-                <OpponentHand position="right" count={countAt(idxRight)} />
+                <OpponentHand
+                  position="top"
+                  count={countAt(idxTop)}
+                  dealTick={dealTick}
+                  onDealAnimStart={playDealTick}
+                />
+                <OpponentHand
+                  position="left"
+                  count={countAt(idxLeft)}
+                  dealTick={dealTick}
+                  onDealAnimStart={playDealTick}
+                />
+                <OpponentHand
+                  position="right"
+                  count={countAt(idxRight)}
+                  dealTick={dealTick}
+                  onDealAnimStart={playDealTick}
+                />
               </>
             );
           })()}
@@ -259,6 +293,7 @@ export default function App() {
 
           {/* Scoreboard */}
           <ScoreBoard state={gameState || null} />
+          <PlayAnimationsLayer flights={pendingFlights} onDone={clearFlights} />
         </TableMat>
 
         {/* Player hand outside (below) the table */}
@@ -298,6 +333,7 @@ export default function App() {
               });
             }}
             dealTick={dealTick}
+            onDealAnimStart={playDealTick}
           />
           {/* Action bar for selected play */}
           <div className="mt-1 flex items-center justify-center gap-3">
