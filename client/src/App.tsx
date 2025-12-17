@@ -58,18 +58,21 @@ export default function App() {
         headerRight={
           <>
             <button
-              className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white shadow-sm"
+              className="btn btn--mint"
               onClick={() => createRoom().then((code) => join(code))}
             >
               Create & Join
             </button>
-            <input
-              id="roomCode"
-              placeholder="Room code"
-              className="px-3 py-1 rounded-md border border-gray-400 bg-white text-gray-900 placeholder:text-gray-500 shadow-inner"
-            />
+            <div className="room-input">
+              <div className="group">
+                <input id="roomCode" type="text" className="input" required />
+                <span className="highlight" />
+                <span className="bar" />
+                <label htmlFor="roomCode">Room code</label>
+              </div>
+            </div>
             <button
-              className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+              className="btn btn--azure"
               onClick={() => {
                 const code = (document.getElementById('roomCode') as HTMLInputElement).value.trim();
                 if (code) join(code);
@@ -77,13 +80,10 @@ export default function App() {
             >
               Join
             </button>
-            <button
-              className="px-3 py-1 rounded-md bg-gray-700 hover:bg-gray-800 text-white shadow-sm ml-2 flex items-center gap-2"
-              onClick={() => setProfileModalOpen(true)}
-            >
+            <button className="btn btn--desert ml-2" onClick={() => setProfileModalOpen(true)}>
               <span role="img" aria-label="profile">
                 👤
-              </span>{' '}
+              </span>
               Edit Profile
             </button>
             <span className="text-sm whitespace-nowrap flex items-center gap-2 text-white/90">
