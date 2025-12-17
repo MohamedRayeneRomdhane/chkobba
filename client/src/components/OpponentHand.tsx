@@ -44,7 +44,7 @@ export default function OpponentHand({ position, count = 3, dealTick, onDealAnim
           }}
         >
           <div
-            className="w-[clamp(46px,8vw,72px)] aspect-[2/3] rounded-lg border-2 border-gray-800 shadow-md overflow-hidden"
+            className="w-[clamp(54px,7vw,110px)] aspect-[2/3] rounded-lg border-2 border-gray-800 shadow-md overflow-hidden"
             data-op-card
           >
             <img
