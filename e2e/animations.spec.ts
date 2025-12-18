@@ -1,28 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Browser, type Page } from '@playwright/test';
+import { createAndJoinFour, waitPlayers } from './utils';
 
-async function getRoomCode(page) {
-  // Wait for the copy button which only appears after room creation
-  const copyBtn = page.getByRole('button', { name: 'Copy room code' });
-  await expect(copyBtn).toBeVisible({ timeout: 20_000 });
-  const badgeText = await copyBtn.evaluate((btn) => btn.previousElementSibling?.textContent || '');
-  const text = (badgeText || '').trim();
-  const m = text.match(/Room\s+([A-Z0-9]{4})/);
-  if (!m) throw new Error(`Could not parse room code from: ${text}`);
-  return m[1];
-}
-
-async function joinRoom(page, code: string) {
-  await page.fill('#roomCode', code);
-  await page.getByRole('button', { name: 'Join', exact: true }).click();
-}
-
-async function waitForPlayers(page, n: number) {
-  await expect(page.locator(`text=Players ${n}/4`)).toBeVisible({ timeout: 20_000 });
-}
-
-async function discardFirstPlayableCard(page) {
+async function discardFirstPlayableCard(page: Page) {
   const firstCard = page.locator('[data-hand-card-id]').first();
   await firstCard.waitFor({ state: 'visible' });
+  // Ensure it's our turn before attempting to play
+  await expect(page.getByText('Your turn')).toBeVisible({ timeout: 10_000 });
   // Prefer explicit Play Selected path to ensure it's our turn
   await firstCard.click();
   const playBtn = page.getByRole('button', { name: 'Play Selected' });
@@ -30,7 +13,7 @@ async function discardFirstPlayableCard(page) {
   await playBtn.click();
 }
 
-async function expectNoLingeringFlights(page) {
+async function expectNoLingeringFlights(page: Page) {
   const layer = page.locator('[data-flight-layer]');
   await expect(layer).toBeVisible();
   // It may take a moment for a flight to appear after click
@@ -46,22 +29,11 @@ async function expectNoLingeringFlights(page) {
 // and that the flight layer remains non-interactive.
 
 test('discard overlay cleans up - no lingering image', async ({ browser, page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Create & Join' }).click();
-  const code = await getRoomCode(page);
-
-  const context = await browser.newContext();
-  const p2 = await context.newPage();
-  const p3 = await context.newPage();
-  const p4 = await context.newPage();
-  await Promise.all([p2.goto('/'), p3.goto('/'), p4.goto('/')]);
-  await joinRoom(p2, code);
-  await joinRoom(p3, code);
-  await joinRoom(p4, code);
-
-  await waitForPlayers(page, 4);
+  const [p1] = await createAndJoinFour(browser);
+  // Ensure everyone sees 4/4 before proceeding
+  await waitPlayers(p1, 4);
 
   // Discard once from the creator tab (seat 0 starts)
-  await discardFirstPlayableCard(page);
-  await expectNoLingeringFlights(page);
+  await discardFirstPlayableCard(p1);
+  await expectNoLingeringFlights(p1);
 });
