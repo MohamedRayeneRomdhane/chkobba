@@ -73,7 +73,7 @@ export class GameRoomManager {
     return room;
   }
 
-  private dealInitial(): GameState {
+  private dealInitial(): { state: GameState; remainingDeck: Card[] } {
     const deck = shuffle(createDeck());
     const hands: [Card[], Card[], Card[], Card[]] = [[], [], [], []];
     const tableCards: Card[] = [];
@@ -94,7 +94,7 @@ export class GameRoomManager {
       tableCards.push(c);
     }
 
-    return {
+    const state: GameState = {
       tableCards,
       hands,
       capturesByTeam: [[], []],
@@ -103,17 +103,16 @@ export class GameRoomManager {
       roundNumber: 1,
       chkobbaByTeam: [0, 0],
     };
+    return { state, remainingDeck: deck };
   }
 
   private startGame(room: RoomInfo) {
     console.log(`[manager] startGame room=${room.code}`);
-    const gs = this.dealInitial();
-    room.gameState = gs;
-    // initialize deck and dealer state tracking
-    const deck = shuffle(createDeck());
-    // remove the cards already dealt (3*4 + 4 table = 16)
-    deck.splice(0, 16);
-    this.roomDecks.set(room.code, deck);
+    const initial = this.dealInitial();
+    room.gameState = initial.state;
+    // initialize deck and dealer state tracking using the remaining from initial shuffle
+    // after dealInitial, deck already has the remaining cards beyond the initial 16
+    this.roomDecks.set(room.code, initial.remainingDeck);
     // dealer is player 0 at initial deal
     this.roomDealerIndex.set(room.code, 0);
     // 3 cards per player in a deal => 12 total turns per deal

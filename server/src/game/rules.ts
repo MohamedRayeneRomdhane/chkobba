@@ -23,6 +23,31 @@ export function findCombinationsForValue(tableCards: Card[], target: number): Ca
   return results;
 }
 
+// Optimized single-result search: returns the first valid combination that sums to target.
+// Preserves traversal order used by findCombinationsForValue so logic remains consistent.
+function findFirstCombinationForValue(tableCards: Card[], target: number): Card[] | null {
+  const cards = tableCards;
+  const combo: Card[] = [];
+
+  // quick bound: if total sum is below target, early exit
+  const total = cards.reduce((s, c) => s + c.value, 0);
+  if (total < target) return null;
+
+  function dfs(start: number, sum: number): Card[] | null {
+    if (sum === target) return [...combo];
+    if (sum > target) return null;
+    for (let i = start; i < cards.length; i++) {
+      combo.push(cards[i]);
+      const res = dfs(i + 1, sum + cards[i].value);
+      if (res) return res; // early exit on first found
+      combo.pop();
+    }
+    return null;
+  }
+
+  return dfs(0, 0);
+}
+
 export interface MoveResult {
   captured: Card[];
   chkobba: boolean;
@@ -52,7 +77,6 @@ export function applyMove(
     captured = [single, played];
     newTable = newTable.filter((c) => c.id !== single.id);
   } else {
-    const combos = findCombinationsForValue(state.tableCards, played.value);
     let chosen: Card[] = [];
     if (chosenCombinationIds && chosenCombinationIds.length > 0) {
       const byId = new Map(state.tableCards.map((c) => [c.id, c]));
@@ -63,8 +87,9 @@ export function applyMove(
       });
       const sum = chosen.reduce((s, c) => s + c.value, 0);
       if (sum !== played.value) throw new Error('Combination must sum to played value');
-    } else if (combos.length > 0) {
-      chosen = combos[0];
+    } else {
+      const first = findFirstCombinationForValue(state.tableCards, played.value);
+      if (first) chosen = first;
     }
 
     if (chosen.length > 0) {

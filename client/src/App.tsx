@@ -16,6 +16,7 @@ import { getCardImage } from './game/cardAssets';
 import PlayAnimationsLayer from './components/PlayAnimationsLayer';
 import usePlayAnimations from './hooks/usePlayAnimations';
 import useSound from './hooks/useSound';
+import FooterNote from './components/FooterNote';
 
 export default function App() {
   const {
@@ -134,6 +135,7 @@ export default function App() {
             </span>
           </>
         }
+        footerLeft={<FooterNote />}
       >
         {/* End screen overlay: show after round end and until all replays */}
         {(() => {
