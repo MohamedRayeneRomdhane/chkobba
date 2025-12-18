@@ -1,0 +1,41 @@
+import { useEffect } from 'react';
+import type React from 'react';
+
+declare global {
+  interface Window {
+    adsbygoogle: unknown[];
+  }
+}
+
+type Props = {
+  slot: string; // Your AdSense ad slot id
+  style?: React.CSSProperties;
+  format?: string; // e.g., 'auto'
+  responsive?: 'true' | 'false';
+};
+
+export default function AdsenseUnit({
+  slot,
+  style,
+  format = 'auto',
+  responsive = 'true',
+}: Props) {
+  useEffect(() => {
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch {
+      // ignore
+    }
+  }, [slot]);
+
+  return (
+    <ins
+      className="adsbygoogle"
+      style={style ?? { display: 'block' }}
+      data-ad-client="ca-pub-9124857144736473"
+      data-ad-slot={slot}
+      data-ad-format={format}
+      data-full-width-responsive={responsive}
+    />
+  );
+}
