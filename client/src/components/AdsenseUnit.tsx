@@ -14,12 +14,7 @@ type Props = {
   responsive?: 'true' | 'false';
 };
 
-export default function AdsenseUnit({
-  slot,
-  style,
-  format = 'auto',
-  responsive = 'true',
-}: Props) {
+export default function AdsenseUnit({ slot, style, format = 'auto', responsive = 'true' }: Props) {
   useEffect(() => {
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
