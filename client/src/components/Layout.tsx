@@ -34,9 +34,9 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
 
       {/* Footer */}
       <footer className="cafe-header text-white">
-        <div className="max-w-[min(1600px,95vw)] mx-auto px-4 py-2 flex flex-wrap items-center gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 text-sm">{footerLeft}</div>
-          <div className="ml-auto flex items-center gap-2 sm:gap-3 text-xs sm:text-sm opacity-90">
+        <div className="max-w-[min(1600px,95vw)] mx-auto px-4 py-2 flex flex-nowrap items-center gap-2 sm:gap-4">
+          <div className="flex-1 min-w-0 flex items-center gap-2 text-sm">{footerLeft}</div>
+          <div className="shrink-0 ml-auto flex items-center gap-2 sm:gap-3 text-xs sm:text-sm opacity-90">
             {footerRight ?? (
               <>
                 <span>© Chkobba Café</span>

@@ -5,6 +5,7 @@ const SmokeGustR3F = React.lazy(() => import('./SmokeGustR3F'));
 
 export default function ChichaProp() {
   const [hover, setHover] = useState(false);
+  const [holding, setHolding] = useState(false);
   const isHoldingRef = useRef(false);
 
   const { play: playInhale, stop: stopInhale } = useSound('/assets/soundeffects/chicha.mp3', {
@@ -26,12 +27,14 @@ export default function ChichaProp() {
   const handlePressStart = () => {
     if (isHoldingRef.current) return;
     isHoldingRef.current = true;
+    setHolding(true);
     playInhale();
   };
 
   const handlePressEnd = () => {
     if (!isHoldingRef.current) return;
     isHoldingRef.current = false;
+    setHolding(false);
     stopInhale();
     // Play the exhale once after releasing
     playExhale();
@@ -55,7 +58,7 @@ export default function ChichaProp() {
       <img
         src="/assets/props/chicha.png"
         alt="Hookah"
-        className="w-[clamp(148px,22vmin,320px)] h-auto object-contain select-none"
+        className={`w-[clamp(148px,22vmin,320px)] h-auto object-contain select-none ${holding ? 'chicha-hold-shake' : ''}`}
         draggable={false}
       />
       {showGust && (

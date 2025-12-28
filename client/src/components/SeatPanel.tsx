@@ -8,6 +8,7 @@ type Props = {
   teamLabel?: string;
   teamIndex?: 0 | 1;
   compact?: boolean;
+  absolute?: boolean;
 };
 
 export default function SeatPanel({
@@ -18,6 +19,7 @@ export default function SeatPanel({
   teamLabel,
   teamIndex,
   compact,
+  absolute = true,
 }: Props) {
   const vertical = position === 'left' || position === 'right';
   const isLeft = position === 'left';
@@ -36,7 +38,7 @@ export default function SeatPanel({
   const sideOffset = compact ? 'clamp(10px, 3.5vw, 28px)' : 'clamp(16px, 4vw, 44px)';
 
   const baseStyle: React.CSSProperties = {
-    position: 'absolute',
+    position: absolute ? 'absolute' : 'relative',
     display: vertical ? 'flex' : compact ? 'grid' : 'flex',
     flexDirection: vertical ? 'column' : undefined,
     justifyContent: vertical ? 'center' : undefined,
@@ -54,8 +56,9 @@ export default function SeatPanel({
     backdropFilter: 'blur(2px)',
   };
 
-  const posStyle: React.CSSProperties =
-    position === 'bottom'
+  const posStyle: React.CSSProperties = !absolute
+    ? {}
+    : position === 'bottom'
       ? { bottom: bottomOffset, left: '50%', transform: 'translateX(-50%)' }
       : position === 'top'
         ? { top: topOffset, left: '50%', transform: 'translateX(-50%)' }

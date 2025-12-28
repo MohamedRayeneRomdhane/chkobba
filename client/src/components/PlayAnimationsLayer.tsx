@@ -8,6 +8,7 @@ export type FlightSpec = {
   from: { x: number; y: number; w: number; h: number };
   to: { x: number; y: number; w: number; h: number };
   durationMs?: number;
+  easing?: string;
 };
 
 export default function PlayAnimationsLayer({
@@ -104,7 +105,7 @@ function Flight({ spec, onEnd }: { spec: FlightSpec; onEnd: () => void }) {
     const scaleX = sw ? tw / sw : 1;
     const scaleY = sh ? th / sh : 1;
     // Slightly snappier ease-out curve for cards
-    n.style.transition = `transform ${dur}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+    n.style.transition = `transform ${dur}ms ${spec.easing ?? 'cubic-bezier(0.16, 1, 0.3, 1)'}`;
     n.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scaleX}, ${scaleY})`;
     const handle = (e: TransitionEvent) => {
       if (e.propertyName === 'transform' && !endedRef.current) {
