@@ -18,7 +18,7 @@ export default function CigarettesProp() {
       <img
         src="/assets/props/cigs.png"
         alt="Cigarette pack"
-        className="w-[clamp(68px,10vw,120px)] h-auto object-contain select-none"
+        className="w-[clamp(112px,18vmin,220px)] h-auto object-contain select-none"
         draggable={false}
       />
     </div>

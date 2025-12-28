@@ -156,38 +156,40 @@ export default function App() {
             }}
           />
         )}
-        <TableMat>
-          {/* Round banner */}
-          {/* Inline banner removed in favor of end overlay */}
-          {/* Table cards placeholder */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2 place-items-center max-w-[90%]"
-            id="table-grid"
-          >
-            {(gameState?.tableCards || []).map((c) => {
-              const selected = selectedTableIds.includes(c.id);
-              return (
-                <div
-                  key={c.id}
-                  data-card-id={c.id}
-                  onClick={() => {
-                    // toggle selection for building combinations
-                    setSelectedTableIds((prev) =>
-                      prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id]
-                    );
-                  }}
-                  className={`w-[clamp(52px,9vw,96px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out cursor-pointer ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 hover:-translate-y-0.5'}`}
-                >
-                  <img
-                    src={getCardImage(c)}
-                    alt={`${c.rank} of ${c.suit}`}
-                    className="w-full h-full object-cover"
-                    draggable={false}
-                  />
-                </div>
-              );
-            })}
-          </div>
+        <div className="h-full min-h-0 flex flex-col gap-1.5 sm:gap-2">
+          <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+            <TableMat>
+              {/* Round banner */}
+              {/* Inline banner removed in favor of end overlay */}
+              {/* Table cards placeholder */}
+              <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2 place-items-center max-w-[90%]"
+                id="table-grid"
+              >
+                {(gameState?.tableCards || []).map((c) => {
+                  const selected = selectedTableIds.includes(c.id);
+                  return (
+                    <div
+                      key={c.id}
+                      data-card-id={c.id}
+                      onClick={() => {
+                        // toggle selection for building combinations
+                        setSelectedTableIds((prev) =>
+                          prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id]
+                        );
+                      }}
+                      className={`w-[clamp(48px,8vmin,92px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out cursor-pointer ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 hover:-translate-y-0.5'}`}
+                    >
+                      <img
+                        src={getCardImage(c)}
+                        alt={`${c.rank} of ${c.suit}`}
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
 
           {/* Opponents (relative to local seat) */}
           {(() => {
@@ -296,22 +298,23 @@ export default function App() {
 
           {/* Scoreboard */}
           <ScoreBoard state={gameState || null} />
-          <PlayAnimationsLayer
-            flights={pendingFlights}
-            onDone={() => {
-              clearFlights();
-              setHandGhostIndex(null);
-            }}
-          />
-        </TableMat>
+              <PlayAnimationsLayer
+                flights={pendingFlights}
+                onDone={() => {
+                  clearFlights();
+                  setHandGhostIndex(null);
+                }}
+              />
+            </TableMat>
+          </div>
 
-        {/* Player hand outside (below) the table */}
-        <div className="w-full flex justify-center mt-2">
-          <PlayerHand
-            cards={mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : []}
-            selectedId={selectedHandId}
-            ghostIndex={handGhostIndex}
-            onSelect={(id) => {
+          {/* Player hand outside (below) the table */}
+          <div className="w-full shrink-0 flex flex-col items-center justify-center">
+            <PlayerHand
+              cards={mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : []}
+              selectedId={selectedHandId}
+              ghostIndex={handGhostIndex}
+              onSelect={(id) => {
               // re-clicking toggles: if same id selected, either discard (no table selected) or deselect
               if (selectedHandId === id) {
                 if (canPlaySelected && selectedTableIds.length === 0) {
@@ -341,8 +344,8 @@ export default function App() {
               } else {
                 setSelectedHandId(id);
               }
-            }}
-            onPlay={(id) => {
+              }}
+              onPlay={(id) => {
               if (!roomCode) return;
               if (mySeat == null) return;
               if (gameState?.currentPlayerIndex !== mySeat) return;
@@ -367,21 +370,21 @@ export default function App() {
                 setSelectedHandId(null);
                 setSelectedTableIds([]);
               });
-            }}
-            dealTick={dealTick}
-            onDealAnimStart={playDealTick}
-          />
-          {/* Action bar for selected play */}
-          <div className="mt-1 flex items-center justify-center gap-3">
-            <div className="text-sm px-2 py-1 rounded bg-white/70 shadow">
-              {selectedHandCard
-                ? `Selected: ${selectedHandCard.rank} • Sum: ${selectedSum}`
-                : 'Select a card'}
-            </div>
-            <button
-              disabled={!canPlaySelected || !selectedHandCard}
-              className={`px-3 py-1 rounded-md text-white shadow-sm ${canPlaySelected && selectedHandCard ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-500 opacity-60 cursor-not-allowed'}`}
-              onClick={() => {
+              }}
+              dealTick={dealTick}
+              onDealAnimStart={playDealTick}
+            />
+            {/* Action bar for selected play */}
+            <div className="mt-0.5 sm:mt-1 flex items-center justify-center gap-2 sm:gap-3">
+              <div className="text-xs sm:text-sm px-2 py-1 rounded bg-white/70 shadow">
+                {selectedHandCard
+                  ? `Selected: ${selectedHandCard.rank} • Sum: ${selectedSum}`
+                  : 'Select a card'}
+              </div>
+              <button
+                disabled={!canPlaySelected || !selectedHandCard}
+                className={`px-3 py-1 rounded-md text-white shadow-sm ${canPlaySelected && selectedHandCard ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-500 opacity-60 cursor-not-allowed'}`}
+                onClick={() => {
                 if (!roomCode || !selectedHandCard) return;
                 if (mySeat == null) return;
                 if (gameState?.currentPlayerIndex !== mySeat) return;
@@ -406,10 +409,11 @@ export default function App() {
                   setSelectedHandId(null);
                   setSelectedTableIds([]);
                 });
-              }}
-            >
-              Play Selected
-            </button>
+                }}
+              >
+                Play Selected
+              </button>
+            </div>
           </div>
         </div>
       </Layout>

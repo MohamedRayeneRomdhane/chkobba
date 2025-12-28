@@ -55,7 +55,7 @@ export default function ChichaProp() {
       <img
         src="/assets/props/chicha.png"
         alt="Hookah"
-        className="w-[clamp(90px,12vw,180px)] h-auto object-contain select-none"
+        className="w-[clamp(148px,22vmin,320px)] h-auto object-contain select-none"
         draggable={false}
       />
       {showGust && (

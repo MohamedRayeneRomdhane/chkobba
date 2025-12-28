@@ -6,7 +6,7 @@ interface TableMatProps {
 
 export default function TableMat({ children }: TableMatProps) {
   return (
-    <div className="relative w-full max-w-full mx-auto table-felt overflow-hidden aspect-[4/3] sm:aspect-[16/9] max-h-[min(85svh,1000px)]">
+    <div className="relative table-felt overflow-hidden mx-auto h-full max-h-full w-auto max-w-full aspect-[4/3] sm:aspect-[16/9]">
       {children}
       <div id="table-mat-overlay" className="pointer-events-none absolute inset-0 z-[50]" />
     </div>
