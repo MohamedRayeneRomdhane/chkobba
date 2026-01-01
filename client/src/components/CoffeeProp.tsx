@@ -9,9 +9,9 @@ interface CoffeePropProps {
 }
 
 export default function CoffeeProp({
-  scale = 0.75,
-  smokeSize = 48,
-  smokeOffsetY = -51,
+  scale = 0.7,
+  smokeSize = 80,
+  smokeOffsetY = -90,
   smokeIntensity = 2,
 }: CoffeePropProps) {
   const [hover, setHover] = useState(false);
@@ -167,7 +167,7 @@ export default function CoffeeProp({
       <img
         src="/assets/props/coffee.png"
         alt="Coffee cup"
-        className="w-[clamp(72px,12vw,150px)] h-auto object-contain select-none"
+        className="w-[clamp(120px,20vmin,260px)] h-auto object-contain select-none"
         draggable={false}
       />
     </div>

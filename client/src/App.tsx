@@ -67,8 +67,6 @@ export default function App() {
     selectedHandCard
   );
 
-  // removed unused local `seats` label array
-
   return (
     <>
       <Layout
@@ -156,171 +154,279 @@ export default function App() {
             }}
           />
         )}
-        <TableMat>
-          {/* Round banner */}
-          {/* Inline banner removed in favor of end overlay */}
-          {/* Table cards placeholder */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2 place-items-center max-w-[90%]"
-            id="table-grid"
-          >
-            {(gameState?.tableCards || []).map((c) => {
-              const selected = selectedTableIds.includes(c.id);
-              return (
-                <div
-                  key={c.id}
-                  data-card-id={c.id}
-                  onClick={() => {
-                    // toggle selection for building combinations
-                    setSelectedTableIds((prev) =>
-                      prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id]
+        <div className="h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
+          <div className="flex-1 min-h-0 flex items-center justify-center overflow-visible">
+            <TableMat>
+              {/* Round banner */}
+              {/* Inline banner removed in favor of end overlay */}
+              {/* Table cards placeholder */}
+              <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2 place-items-center max-w-[90%]"
+                id="table-grid"
+              >
+                {(gameState?.tableCards || []).map((c) => {
+                  const selected = selectedTableIds.includes(c.id);
+                  return (
+                    <div
+                      key={c.id}
+                      data-card-id={c.id}
+                      onClick={() => {
+                        // toggle selection for building combinations
+                        setSelectedTableIds((prev) =>
+                          prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id]
+                        );
+                      }}
+                      className={`w-[clamp(60px,9.5vmin,120px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out cursor-pointer ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 hover:-translate-y-0.5'}`}
+                    >
+                      <img
+                        src={getCardImage(c)}
+                        alt={`${c.rank} of ${c.suit}`}
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Opponents (relative to local seat) */}
+              {(() => {
+                const idxBottom = mySeat ?? 0;
+                const idxRight = (idxBottom + 1) % 4;
+                const idxTop = (idxBottom + 2) % 4;
+                const idxLeft = (idxBottom + 3) % 4;
+                const countAt = (i: number) => gameState?.hands?.[i]?.length ?? 0;
+                return (
+                  <>
+                    <OpponentHand
+                      position="top"
+                      count={countAt(idxTop)}
+                      dealTick={dealTick}
+                      onDealAnimStart={playDealTick}
+                    />
+                    <OpponentHand
+                      position="left"
+                      count={countAt(idxLeft)}
+                      dealTick={dealTick}
+                      onDealAnimStart={playDealTick}
+                    />
+                    <OpponentHand
+                      position="right"
+                      count={countAt(idxRight)}
+                      dealTick={dealTick}
+                      onDealAnimStart={playDealTick}
+                    />
+                  </>
+                );
+              })()}
+
+              {/* Avatar + nickname panels per seat (rotate so local seat is bottom) */}
+              {(() => {
+                const seats = snapshot?.seats || [null, null, null, null];
+                const profiles = snapshot?.profiles || {};
+                const current = gameState?.currentPlayerIndex ?? null;
+                const idxBottom = mySeat ?? 0;
+                const idxRight = (idxBottom + 1) % 4;
+                const idxTop = (idxBottom + 2) % 4;
+                const idxLeft = (idxBottom + 3) % 4;
+                const teamForSeat = (i: number) => (i % 2 === 0 ? 0 : 1); // [0,2] -> Team A, [1,3] -> Team B
+                const teamName = (i: number) => (teamForSeat(i) === 0 ? 'Team A' : 'Team B');
+                const getProfile = (seatIndex: number) => {
+                  const sid = seats[seatIndex];
+                  const fromSnapshot = sid ? profiles[sid] : null;
+                  if (seatIndex === idxBottom) {
+                    return (
+                      fromSnapshot ??
+                      (localProfile.nickname || localProfile.avatar
+                        ? { nickname: localProfile.nickname, avatar: localProfile.avatar }
+                        : null)
                     );
-                  }}
-                  className={`w-[clamp(52px,9vw,96px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out cursor-pointer ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 hover:-translate-y-0.5'}`}
-                >
-                  <img
-                    src={getCardImage(c)}
-                    alt={`${c.rank} of ${c.suit}`}
-                    className="w-full h-full object-cover"
-                    draggable={false}
+                  }
+                  return fromSnapshot;
+                };
+                return (
+                  <>
+                    {/* Top opponent */}
+                    <SeatPanel
+                      position="top"
+                      avatar={getProfile(idxTop)?.avatar}
+                      nickname={getProfile(idxTop)?.nickname}
+                      highlight={current === idxTop}
+                      teamLabel={teamName(idxTop)}
+                      teamIndex={teamForSeat(idxTop) as 0 | 1}
+                      compact
+                    />
+                    {/* Left opponent */}
+                    <SeatPanel
+                      position="left"
+                      avatar={getProfile(idxLeft)?.avatar}
+                      nickname={getProfile(idxLeft)?.nickname}
+                      highlight={current === idxLeft}
+                      teamLabel={teamName(idxLeft)}
+                      teamIndex={teamForSeat(idxLeft) as 0 | 1}
+                      compact
+                    />
+                    {/* Right opponent */}
+                    <SeatPanel
+                      position="right"
+                      avatar={getProfile(idxRight)?.avatar}
+                      nickname={getProfile(idxRight)?.nickname}
+                      highlight={current === idxRight}
+                      teamLabel={teamName(idxRight)}
+                      teamIndex={teamForSeat(idxRight) as 0 | 1}
+                      compact
+                    />
+                  </>
+                );
+              })()}
+
+              {/* Player hand overlays on top of the table */}
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-[clamp(4px,1.8vh,18px)] z-[45] w-[min(98%,1200px)] h-[clamp(160px,22vmin,260px)] px-1 flex items-end pointer-events-auto overflow-visible">
+                <div
+                  data-seat-capture="bottom"
+                  className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-px"
+                />
+                <div className="no-scrollbar w-full h-full min-h-[clamp(110px,16vmin,180px)] overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain">
+                  <div className="min-w-full h-full flex items-end justify-center">
+                    <PlayerHand
+                      cards={
+                        mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : []
+                      }
+                      selectedId={selectedHandId}
+                      ghostIndex={handGhostIndex}
+                      onSelect={(id) => {
+                        // re-clicking toggles: if same id selected, either discard (no table selected) or deselect
+                        if (selectedHandId === id) {
+                          if (canPlaySelected && selectedTableIds.length === 0) {
+                            // discard: place on table
+                            if (!roomCode || mySeat == null) return;
+                            if (gameState?.currentPlayerIndex !== mySeat) return;
+                            // fade out the actual card for a quick, smooth removal
+                            const el = document.querySelector(
+                              `[data-hand-card-id="${id}"]`
+                            ) as HTMLElement | null;
+                            if (el) {
+                              el.style.willChange = 'opacity';
+                              el.style.transition = 'opacity 220ms ease-out';
+                              el.style.opacity = '0';
+                            }
+                            const handNow =
+                              mySeat != null && gameState?.hands
+                                ? gameState.hands[mySeat] || []
+                                : [];
+                            const idx = handNow.findIndex((c) => c.id === id);
+                            if (idx >= 0) setHandGhostIndex(idx);
+                            play(roomCode, id, undefined).then(() => {
+                              setSelectedHandId(null);
+                              setSelectedTableIds([]);
+                            });
+                          } else {
+                            setSelectedHandId(null);
+                          }
+                        } else {
+                          setSelectedHandId(id);
+                        }
+                      }}
+                      onPlay={(id) => {
+                        if (!roomCode) return;
+                        if (mySeat == null) return;
+                        if (gameState?.currentPlayerIndex !== mySeat) return;
+                        // fade out the actual card for a quick, smooth removal
+                        const el = document.querySelector(
+                          `[data-hand-card-id="${id}"]`
+                        ) as HTMLElement | null;
+                        if (el) {
+                          el.style.willChange = 'opacity';
+                          el.style.transition = 'opacity 220ms ease-out';
+                          el.style.opacity = '0';
+                        }
+                        const handNow =
+                          mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+                        const idx = handNow.findIndex((c) => c.id === id);
+                        if (idx >= 0) setHandGhostIndex(idx);
+                        const combo =
+                          selectedTableIds.length && selectedSum === (selectedHandCard?.value ?? -1)
+                            ? selectedTableIds
+                            : undefined;
+                        play(roomCode, id, combo).then(() => {
+                          setSelectedHandId(null);
+                          setSelectedTableIds([]);
+                        });
+                      }}
+                      dealTick={dealTick}
+                      onDealAnimStart={playDealTick}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Props */}
+              <CoffeeProp />
+              <ChichaProp />
+              <CigarettesProp />
+
+              {/* Scoreboard */}
+              <ScoreBoard state={gameState || null} />
+              <PlayAnimationsLayer
+                flights={pendingFlights}
+                onDone={() => {
+                  clearFlights();
+                  setHandGhostIndex(null);
+                }}
+              />
+            </TableMat>
+          </div>
+
+          {/* Player banner + action bar outside (below) the table */}
+          <div className="w-full shrink-0 flex flex-col items-center justify-center">
+            {(() => {
+              const seats = snapshot?.seats || [null, null, null, null];
+              const profiles = snapshot?.profiles || {};
+              const current = gameState?.currentPlayerIndex ?? null;
+              const idxBottom = mySeat ?? 0;
+              const teamForSeat = (i: number) => (i % 2 === 0 ? 0 : 1);
+              const teamName = (i: number) => (teamForSeat(i) === 0 ? 'Team A' : 'Team B');
+
+              const sid = seats[idxBottom];
+              const fromSnapshot = sid ? profiles[sid] : null;
+              const prof =
+                fromSnapshot ??
+                (localProfile.nickname || localProfile.avatar
+                  ? { nickname: localProfile.nickname, avatar: localProfile.avatar }
+                  : null);
+
+              return (
+                <div className="w-full flex items-center justify-center py-0.5 sm:py-1">
+                  <SeatPanel
+                    position="bottom"
+                    avatar={prof?.avatar}
+                    nickname={prof?.nickname}
+                    highlight={current === idxBottom}
+                    teamLabel={teamName(idxBottom)}
+                    teamIndex={teamForSeat(idxBottom) as 0 | 1}
+                    compact
+                    absolute={false}
                   />
                 </div>
               );
-            })}
-          </div>
-
-          {/* Opponents (relative to local seat) */}
-          {(() => {
-            const idxBottom = mySeat ?? 0;
-            const idxRight = (idxBottom + 1) % 4;
-            const idxTop = (idxBottom + 2) % 4;
-            const idxLeft = (idxBottom + 3) % 4;
-            const countAt = (i: number) => gameState?.hands?.[i]?.length ?? 0;
-            return (
-              <>
-                <OpponentHand
-                  position="top"
-                  count={countAt(idxTop)}
-                  dealTick={dealTick}
-                  onDealAnimStart={playDealTick}
-                />
-                <OpponentHand
-                  position="left"
-                  count={countAt(idxLeft)}
-                  dealTick={dealTick}
-                  onDealAnimStart={playDealTick}
-                />
-                <OpponentHand
-                  position="right"
-                  count={countAt(idxRight)}
-                  dealTick={dealTick}
-                  onDealAnimStart={playDealTick}
-                />
-              </>
-            );
-          })()}
-
-          {/* Avatar + nickname panels per seat (rotate so local seat is bottom) */}
-          {(() => {
-            const seats = snapshot?.seats || [null, null, null, null];
-            const profiles = snapshot?.profiles || {};
-            const current = gameState?.currentPlayerIndex ?? null;
-            const idxBottom = mySeat ?? 0;
-            const idxRight = (idxBottom + 1) % 4;
-            const idxTop = (idxBottom + 2) % 4;
-            const idxLeft = (idxBottom + 3) % 4;
-            const teamForSeat = (i: number) => (i % 2 === 0 ? 0 : 1); // [0,2] -> Team A, [1,3] -> Team B
-            const teamName = (i: number) => (teamForSeat(i) === 0 ? 'Team A' : 'Team B');
-            const getProfile = (seatIndex: number) => {
-              const sid = seats[seatIndex];
-              const fromSnapshot = sid ? profiles[sid] : null;
-              if (seatIndex === idxBottom) {
-                return (
-                  fromSnapshot ??
-                  (localProfile.nickname || localProfile.avatar
-                    ? { nickname: localProfile.nickname, avatar: localProfile.avatar }
-                    : null)
-                );
-              }
-              return fromSnapshot;
-            };
-            return (
-              <>
-                {/* Top opponent */}
-                <SeatPanel
-                  position="top"
-                  avatar={getProfile(idxTop)?.avatar}
-                  nickname={getProfile(idxTop)?.nickname}
-                  highlight={current === idxTop}
-                  teamLabel={teamName(idxTop)}
-                  teamIndex={teamForSeat(idxTop) as 0 | 1}
-                  compact
-                />
-                {/* Left opponent */}
-                <SeatPanel
-                  position="left"
-                  avatar={getProfile(idxLeft)?.avatar}
-                  nickname={getProfile(idxLeft)?.nickname}
-                  highlight={current === idxLeft}
-                  teamLabel={teamName(idxLeft)}
-                  teamIndex={teamForSeat(idxLeft) as 0 | 1}
-                  compact
-                />
-                {/* Right opponent */}
-                <SeatPanel
-                  position="right"
-                  avatar={getProfile(idxRight)?.avatar}
-                  nickname={getProfile(idxRight)?.nickname}
-                  highlight={current === idxRight}
-                  teamLabel={teamName(idxRight)}
-                  teamIndex={teamForSeat(idxRight) as 0 | 1}
-                  compact
-                />
-                {/* Local player */}
-                <SeatPanel
-                  position="bottom"
-                  avatar={getProfile(idxBottom)?.avatar}
-                  nickname={getProfile(idxBottom)?.nickname}
-                  highlight={current === idxBottom}
-                  teamLabel={teamName(idxBottom)}
-                  teamIndex={teamForSeat(idxBottom) as 0 | 1}
-                />
-              </>
-            );
-          })()}
-
-          {/* Props */}
-          <CoffeeProp />
-          <ChichaProp />
-          <CigarettesProp />
-
-          {/* Scoreboard */}
-          <ScoreBoard state={gameState || null} />
-          <PlayAnimationsLayer
-            flights={pendingFlights}
-            onDone={() => {
-              clearFlights();
-              setHandGhostIndex(null);
-            }}
-          />
-        </TableMat>
-
-        {/* Player hand outside (below) the table */}
-        <div className="w-full flex justify-center mt-2">
-          <PlayerHand
-            cards={mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : []}
-            selectedId={selectedHandId}
-            ghostIndex={handGhostIndex}
-            onSelect={(id) => {
-              // re-clicking toggles: if same id selected, either discard (no table selected) or deselect
-              if (selectedHandId === id) {
-                if (canPlaySelected && selectedTableIds.length === 0) {
-                  // discard: place on table
-                  if (!roomCode || mySeat == null) return;
+            })()}
+            {/* Action bar for selected play */}
+            <div className="mt-0.5 sm:mt-1 flex items-center justify-center gap-2 sm:gap-3">
+              <div className="text-xs sm:text-sm px-2 py-1 rounded bg-white/70 shadow">
+                {selectedHandCard
+                  ? `Selected: ${selectedHandCard.rank} • Sum: ${selectedSum}`
+                  : 'Select a card'}
+              </div>
+              <button
+                disabled={!canPlaySelected || !selectedHandCard}
+                className={`px-3 py-1 rounded-md text-white shadow-sm ${canPlaySelected && selectedHandCard ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-500 opacity-60 cursor-not-allowed'}`}
+                onClick={() => {
+                  if (!roomCode || !selectedHandCard) return;
+                  if (mySeat == null) return;
                   if (gameState?.currentPlayerIndex !== mySeat) return;
                   // fade out the actual card for a quick, smooth removal
                   const el = document.querySelector(
-                    `[data-hand-card-id="${id}"]`
+                    `[data-hand-card-id="${selectedHandCard.id}"]`
                   ) as HTMLElement | null;
                   if (el) {
                     el.style.willChange = 'opacity';
@@ -329,87 +435,21 @@ export default function App() {
                   }
                   const handNow =
                     mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
-                  const idx = handNow.findIndex((c) => c.id === id);
+                  const idx = handNow.findIndex((c) => c.id === selectedHandCard.id);
                   if (idx >= 0) setHandGhostIndex(idx);
-                  play(roomCode, id, undefined).then(() => {
+                  const combo =
+                    selectedTableIds.length && selectedSum === selectedHandCard.value
+                      ? selectedTableIds
+                      : undefined;
+                  play(roomCode, selectedHandCard.id, combo).then(() => {
                     setSelectedHandId(null);
                     setSelectedTableIds([]);
                   });
-                } else {
-                  setSelectedHandId(null);
-                }
-              } else {
-                setSelectedHandId(id);
-              }
-            }}
-            onPlay={(id) => {
-              if (!roomCode) return;
-              if (mySeat == null) return;
-              if (gameState?.currentPlayerIndex !== mySeat) return;
-              // fade out the actual card for a quick, smooth removal
-              const el = document.querySelector(
-                `[data-hand-card-id="${id}"]`
-              ) as HTMLElement | null;
-              if (el) {
-                el.style.willChange = 'opacity';
-                el.style.transition = 'opacity 220ms ease-out';
-                el.style.opacity = '0';
-              }
-              const handNow =
-                mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
-              const idx = handNow.findIndex((c) => c.id === id);
-              if (idx >= 0) setHandGhostIndex(idx);
-              const combo =
-                selectedTableIds.length && selectedSum === (selectedHandCard?.value ?? -1)
-                  ? selectedTableIds
-                  : undefined;
-              play(roomCode, id, combo).then(() => {
-                setSelectedHandId(null);
-                setSelectedTableIds([]);
-              });
-            }}
-            dealTick={dealTick}
-            onDealAnimStart={playDealTick}
-          />
-          {/* Action bar for selected play */}
-          <div className="mt-1 flex items-center justify-center gap-3">
-            <div className="text-sm px-2 py-1 rounded bg-white/70 shadow">
-              {selectedHandCard
-                ? `Selected: ${selectedHandCard.rank} • Sum: ${selectedSum}`
-                : 'Select a card'}
+                }}
+              >
+                Play Selected
+              </button>
             </div>
-            <button
-              disabled={!canPlaySelected || !selectedHandCard}
-              className={`px-3 py-1 rounded-md text-white shadow-sm ${canPlaySelected && selectedHandCard ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-500 opacity-60 cursor-not-allowed'}`}
-              onClick={() => {
-                if (!roomCode || !selectedHandCard) return;
-                if (mySeat == null) return;
-                if (gameState?.currentPlayerIndex !== mySeat) return;
-                // fade out the actual card for a quick, smooth removal
-                const el = document.querySelector(
-                  `[data-hand-card-id="${selectedHandCard.id}"]`
-                ) as HTMLElement | null;
-                if (el) {
-                  el.style.willChange = 'opacity';
-                  el.style.transition = 'opacity 220ms ease-out';
-                  el.style.opacity = '0';
-                }
-                const handNow =
-                  mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
-                const idx = handNow.findIndex((c) => c.id === selectedHandCard.id);
-                if (idx >= 0) setHandGhostIndex(idx);
-                const combo =
-                  selectedTableIds.length && selectedSum === selectedHandCard.value
-                    ? selectedTableIds
-                    : undefined;
-                play(roomCode, selectedHandCard.id, combo).then(() => {
-                  setSelectedHandId(null);
-                  setSelectedTableIds([]);
-                });
-              }}
-            >
-              Play Selected
-            </button>
           </div>
         </div>
       </Layout>

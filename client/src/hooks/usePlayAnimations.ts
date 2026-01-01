@@ -5,19 +5,28 @@ import type { GameState, Card } from '../types';
 import { getCardImage, CARD_BACK_IMAGE } from '../game/cardAssets';
 import type { FlightSpec } from '../components/PlayAnimationsLayer';
 
-function getSeatSelector(mySeat: number | null, seatIndex: number): string {
+function getSeatPos(mySeat: number | null, seatIndex: number): 'bottom' | 'top' | 'left' | 'right' {
   const idxBottom = mySeat ?? 0;
   const idxTop = (idxBottom + 2) % 4;
   const idxLeft = (idxBottom + 3) % 4;
-  const pos =
-    seatIndex === idxBottom
-      ? 'bottom'
-      : seatIndex === idxTop
-        ? 'top'
-        : seatIndex === idxLeft
-          ? 'left'
-          : 'right';
+  return seatIndex === idxBottom
+    ? 'bottom'
+    : seatIndex === idxTop
+      ? 'top'
+      : seatIndex === idxLeft
+        ? 'left'
+        : 'right';
+}
+
+function getSeatSelector(mySeat: number | null, seatIndex: number): string {
+  const pos = getSeatPos(mySeat, seatIndex);
   return `[data-seat-anchor="${pos}"]`;
+}
+
+function getSeatCaptureSelector(mySeat: number | null, seatIndex: number): string {
+  const pos = getSeatPos(mySeat, seatIndex);
+  // Prefer an explicit capture anchor if present, else fall back to the general seat anchor.
+  return `[data-seat-capture="${pos}"], [data-seat-anchor="${pos}"]`;
 }
 
 function measureRect(selector: string): DOMRect | null {
@@ -47,6 +56,13 @@ function getTableCardSize(): { w: number; h: number } {
   const w = 72;
   const h = Math.round((72 * 3) / 2); // aspect 2/3
   return { w, h };
+}
+
+function centerAlign(rect: DOMRect, w: number, h: number): { x: number; y: number } {
+  return {
+    x: rect.left + rect.width / 2 - w / 2,
+    y: rect.top + rect.height / 2 - h / 2,
+  };
 }
 
 // Helper reserved for future use if needed
@@ -196,16 +212,23 @@ export function usePlayAnimations(
       }
       const img = playedCardObj ? getCardImage(playedCardObj) : CARD_BACK_IMAGE;
       const tableSize = getTableCardSize();
+      const leg1DurationMs = 820;
+      const leg1Ease = 'cubic-bezier(0.25, 0.9, 0.25, 1)';
+      const start = centerAlign(myPlayedRect, tableSize.w, tableSize.h);
       // Leg 1: Played card flies to the captured card position immediately
       flightsLocal.push({
         id: `played-${playedSeat}-${Date.now()}`,
         image: img,
-        from: { x: myPlayedRect.left, y: myPlayedRect.top, w: tableSize.w, h: tableSize.h },
+        from: { x: start.x, y: start.y, w: tableSize.w, h: tableSize.h },
         to: { x: targetRect.left, y: targetRect.top, w: tableSize.w, h: tableSize.h },
-        durationMs: 750,
+        durationMs: leg1DurationMs,
+        easing: leg1Ease,
       });
       // Prepare return flights (leg 2) for captured cards and the played card together
-      const seatRect = measureOpponentCardRect(mySeat, playedSeat) || myPlayedRect;
+      const seatRect =
+        playedSeat === (mySeat ?? -1)
+          ? measureRect(getSeatCaptureSelector(mySeat, playedSeat)) || myPlayedRect
+          : measureOpponentCardRect(mySeat, playedSeat) || myPlayedRect;
       const returnFlights: FlightSpec[] = [];
       for (const id of capturedIds) {
         const capRect = tableRectsPrevRef.current.get(id);
@@ -235,7 +258,7 @@ export function usePlayAnimations(
       captureReturnTimerRef.current = window.setTimeout(() => {
         setFlights((prev) => [...prev, ...returnFlights]);
         captureReturnTimerRef.current = null;
-      }, 750);
+      }, leg1DurationMs);
     } else if (addedIds.length > 0) {
       // Discard (thrown to table): schedule overlay slightly delayed
       const newId = addedIds[0];
@@ -244,6 +267,8 @@ export function usePlayAnimations(
       const sourceRect = myPlayedRect;
       const tableSize = getTableCardSize();
       const img = playedCardObj ? getCardImage(playedCardObj) : CARD_BACK_IMAGE;
+      const leg1Ease = 'cubic-bezier(0.25, 0.9, 0.25, 1)';
+      const start = centerAlign(sourceRect, tableSize.w, tableSize.h);
       // Hide the real table card until the overlay finishes to avoid early appearance
       if (targetEl) {
         targetEl.style.visibility = 'hidden';
@@ -253,9 +278,10 @@ export function usePlayAnimations(
       const spec: FlightSpec = {
         id: `played-${playedSeat}-${Date.now()}`,
         image: img,
-        from: { x: sourceRect.left, y: sourceRect.top, w: tableSize.w, h: tableSize.h },
+        from: { x: start.x, y: start.y, w: tableSize.w, h: tableSize.h },
         to: { x: targetRect.left, y: targetRect.top, w: tableSize.w, h: tableSize.h },
         durationMs: 750,
+        easing: leg1Ease,
       };
       scheduledThrowRef.current = spec;
       if (pendingThrowTimerRef.current) window.clearTimeout(pendingThrowTimerRef.current);

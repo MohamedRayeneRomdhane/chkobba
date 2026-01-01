@@ -12,13 +12,13 @@ export default function OpponentHand({ position, count = 3, dealTick, onDealAnim
   const boxes = Math.max(0, Math.min(12, count));
   const nodes = Array.from({ length: boxes });
 
-  const base = 'absolute flex gap-2 sm:gap-3';
+  const base = 'absolute flex gap-1.5 sm:gap-2';
   const posClass =
     position === 'top'
-      ? 'top-0 left-1/2 -translate-x-1/2 p-2 sm:p-3'
+      ? 'top-0 left-1/2 -translate-x-1/2 p-1.5 sm:p-2'
       : position === 'left'
-        ? 'left-0 top-1/2 -translate-y-1/2 flex-col p-2 sm:p-3'
-        : 'right-0 top-1/2 -translate-y-1/2 flex-col p-2 sm:p-3';
+        ? 'left-0 top-1/2 -translate-y-1/2 flex-col p-1.5 sm:p-2'
+        : 'right-0 top-1/2 -translate-y-1/2 flex-col p-1.5 sm:p-2';
 
   const animClass =
     position === 'top' ? 'deal-in-top' : position === 'left' ? 'deal-in-left' : 'deal-in-right';
@@ -44,7 +44,7 @@ export default function OpponentHand({ position, count = 3, dealTick, onDealAnim
           }}
         >
           <div
-            className="w-[clamp(54px,7vw,110px)] aspect-[2/3] rounded-lg border-2 border-gray-800 shadow-md overflow-hidden"
+            className="w-[clamp(48px,7vmin,104px)] aspect-[2/3] rounded-lg border-2 border-gray-800 shadow-md overflow-hidden"
             data-op-card
           >
             <img

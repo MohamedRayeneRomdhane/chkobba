@@ -104,7 +104,7 @@ export default function PlayerHand({
   }, [items, dealTick]);
   return (
     <div
-      className="flex justify-center gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 flex-wrap max-w-full"
+      className="flex justify-center gap-1.5 sm:gap-2 md:gap-3 px-1 pb-1 pt-0 sm:px-2 sm:pb-2 sm:pt-0 flex-nowrap max-w-full overflow-visible"
       data-seat-anchor="bottom"
       ref={containerRef}
     >
@@ -129,20 +129,21 @@ export default function PlayerHand({
           }}
           title={c === '__ghost__' ? '' : `${(c as Card).rank} of ${(c as Card).suit}`}
         >
-          <div
-            className={`w-[clamp(64px,8.5vw,128px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out ${isDisabled || c === '__ghost__' ? 'cursor-not-allowed' : 'cursor-pointer hover:-translate-y-1 hover:scale-[1.03]'} ${c !== '__ghost__' && selectedId === (c as Card).id ? 'ring-2 ring-amber-400 border-gray-800' : 'border-gray-800'} ${c === '__ghost__' ? 'opacity-0 pointer-events-none' : ''}`}
-            data-hand-card-id={c === '__ghost__' ? undefined : (c as Card).id}
-            data-hand-ghost={c === '__ghost__' ? 'true' : undefined}
-            style={{ transform: `rotate(${(i - 1) * 4}deg)` }}
-          >
-            {c !== '__ghost__' ? (
-              <img
-                src={getCardImage(c as Card)}
-                alt={`${(c as Card).rank} of ${(c as Card).suit}`}
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
-            ) : null}
+          <div style={{ transform: `rotate(${(i - 1) * 4}deg)` }} className="will-change-transform">
+            <div
+              className={`w-[clamp(66px,9.6vmin,140px)] aspect-[2/3] origin-bottom rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out ${isDisabled || c === '__ghost__' ? 'cursor-not-allowed' : 'cursor-pointer hover:-translate-y-0.5 sm:hover:-translate-y-1 hover:scale-[1.06]'} ${c !== '__ghost__' && selectedId === (c as Card).id ? 'ring-2 ring-amber-400 border-gray-800' : 'border-gray-800'} ${c === '__ghost__' ? 'opacity-0 pointer-events-none' : ''}`}
+              data-hand-card-id={c === '__ghost__' ? undefined : (c as Card).id}
+              data-hand-ghost={c === '__ghost__' ? 'true' : undefined}
+            >
+              {c !== '__ghost__' ? (
+                <img
+                  src={getCardImage(c as Card)}
+                  alt={`${(c as Card).rank} of ${(c as Card).suit}`}
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                />
+              ) : null}
+            </div>
           </div>
         </div>
       ))}

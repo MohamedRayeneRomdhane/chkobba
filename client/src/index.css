@@ -121,6 +121,15 @@ body,
   height: 100%;
 }
 
+/* Hide scrollbars (keep scroll functionality) */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
 /* Tunisian café vibe base */
 body {
   @apply bg-tableWood bg-woodGrain text-[#2b241f];
@@ -230,6 +239,31 @@ body {
   100% {
     transform: translateX(0) scale(1);
     opacity: 1;
+  }
+}
+
+/* Gentle shake while holding the chicha */
+@keyframes chichaHoldShake {
+  0% {
+    transform: translate3d(0px, 0px, 0) rotate(-0.6deg);
+  }
+  50% {
+    transform: translate3d(0.6px, -0.4px, 0) rotate(0.6deg);
+  }
+  100% {
+    transform: translate3d(-0.4px, 0.2px, 0) rotate(-0.2deg);
+  }
+}
+
+.chicha-hold-shake {
+  animation: chichaHoldShake 160ms ease-in-out infinite;
+  transform-origin: 50% 85%;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chicha-hold-shake {
+    animation: none !important;
   }
 }
 
