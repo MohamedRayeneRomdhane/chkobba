@@ -155,7 +155,7 @@ export default function App() {
           />
         )}
         <div className="h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
-          <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+          <div className="flex-1 min-h-0 flex items-center justify-center overflow-visible">
             <TableMat>
               {/* Round banner */}
               {/* Inline banner removed in favor of end overlay */}
@@ -281,76 +281,82 @@ export default function App() {
               })()}
 
               {/* Player hand overlays on top of the table */}
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-[clamp(4px,1.8vh,18px)] z-[45] w-[min(98%,1200px)] h-[clamp(120px,18vmin,220px)] px-1 flex items-end pointer-events-auto">
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-[clamp(4px,1.8vh,18px)] z-[45] w-[min(98%,1200px)] h-[clamp(160px,22vmin,260px)] px-1 flex items-end pointer-events-auto overflow-visible">
                 <div
                   data-seat-capture="bottom"
                   className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-px"
                 />
-                <div className="no-scrollbar w-full min-h-[clamp(110px,16vmin,180px)] overflow-x-auto overflow-y-visible touch-pan-x overscroll-x-contain">
-                  <PlayerHand
-                    cards={mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : []}
-                    selectedId={selectedHandId}
-                    ghostIndex={handGhostIndex}
-                    onSelect={(id) => {
-                      // re-clicking toggles: if same id selected, either discard (no table selected) or deselect
-                      if (selectedHandId === id) {
-                        if (canPlaySelected && selectedTableIds.length === 0) {
-                          // discard: place on table
-                          if (!roomCode || mySeat == null) return;
-                          if (gameState?.currentPlayerIndex !== mySeat) return;
-                          // fade out the actual card for a quick, smooth removal
-                          const el = document.querySelector(
-                            `[data-hand-card-id="${id}"]`
-                          ) as HTMLElement | null;
-                          if (el) {
-                            el.style.willChange = 'opacity';
-                            el.style.transition = 'opacity 220ms ease-out';
-                            el.style.opacity = '0';
-                          }
-                          const handNow =
-                            mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
-                          const idx = handNow.findIndex((c) => c.id === id);
-                          if (idx >= 0) setHandGhostIndex(idx);
-                          play(roomCode, id, undefined).then(() => {
+                <div className="no-scrollbar w-full h-full min-h-[clamp(110px,16vmin,180px)] overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain">
+                  <div className="min-w-full h-full flex items-end justify-center">
+                    <PlayerHand
+                      cards={
+                        mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : []
+                      }
+                      selectedId={selectedHandId}
+                      ghostIndex={handGhostIndex}
+                      onSelect={(id) => {
+                        // re-clicking toggles: if same id selected, either discard (no table selected) or deselect
+                        if (selectedHandId === id) {
+                          if (canPlaySelected && selectedTableIds.length === 0) {
+                            // discard: place on table
+                            if (!roomCode || mySeat == null) return;
+                            if (gameState?.currentPlayerIndex !== mySeat) return;
+                            // fade out the actual card for a quick, smooth removal
+                            const el = document.querySelector(
+                              `[data-hand-card-id="${id}"]`
+                            ) as HTMLElement | null;
+                            if (el) {
+                              el.style.willChange = 'opacity';
+                              el.style.transition = 'opacity 220ms ease-out';
+                              el.style.opacity = '0';
+                            }
+                            const handNow =
+                              mySeat != null && gameState?.hands
+                                ? gameState.hands[mySeat] || []
+                                : [];
+                            const idx = handNow.findIndex((c) => c.id === id);
+                            if (idx >= 0) setHandGhostIndex(idx);
+                            play(roomCode, id, undefined).then(() => {
+                              setSelectedHandId(null);
+                              setSelectedTableIds([]);
+                            });
+                          } else {
                             setSelectedHandId(null);
-                            setSelectedTableIds([]);
-                          });
+                          }
                         } else {
-                          setSelectedHandId(null);
+                          setSelectedHandId(id);
                         }
-                      } else {
-                        setSelectedHandId(id);
-                      }
-                    }}
-                    onPlay={(id) => {
-                      if (!roomCode) return;
-                      if (mySeat == null) return;
-                      if (gameState?.currentPlayerIndex !== mySeat) return;
-                      // fade out the actual card for a quick, smooth removal
-                      const el = document.querySelector(
-                        `[data-hand-card-id="${id}"]`
-                      ) as HTMLElement | null;
-                      if (el) {
-                        el.style.willChange = 'opacity';
-                        el.style.transition = 'opacity 220ms ease-out';
-                        el.style.opacity = '0';
-                      }
-                      const handNow =
-                        mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
-                      const idx = handNow.findIndex((c) => c.id === id);
-                      if (idx >= 0) setHandGhostIndex(idx);
-                      const combo =
-                        selectedTableIds.length && selectedSum === (selectedHandCard?.value ?? -1)
-                          ? selectedTableIds
-                          : undefined;
-                      play(roomCode, id, combo).then(() => {
-                        setSelectedHandId(null);
-                        setSelectedTableIds([]);
-                      });
-                    }}
-                    dealTick={dealTick}
-                    onDealAnimStart={playDealTick}
-                  />
+                      }}
+                      onPlay={(id) => {
+                        if (!roomCode) return;
+                        if (mySeat == null) return;
+                        if (gameState?.currentPlayerIndex !== mySeat) return;
+                        // fade out the actual card for a quick, smooth removal
+                        const el = document.querySelector(
+                          `[data-hand-card-id="${id}"]`
+                        ) as HTMLElement | null;
+                        if (el) {
+                          el.style.willChange = 'opacity';
+                          el.style.transition = 'opacity 220ms ease-out';
+                          el.style.opacity = '0';
+                        }
+                        const handNow =
+                          mySeat != null && gameState?.hands ? gameState.hands[mySeat] || [] : [];
+                        const idx = handNow.findIndex((c) => c.id === id);
+                        if (idx >= 0) setHandGhostIndex(idx);
+                        const combo =
+                          selectedTableIds.length && selectedSum === (selectedHandCard?.value ?? -1)
+                            ? selectedTableIds
+                            : undefined;
+                        play(roomCode, id, combo).then(() => {
+                          setSelectedHandId(null);
+                          setSelectedTableIds([]);
+                        });
+                      }}
+                      dealTick={dealTick}
+                      onDealAnimStart={playDealTick}
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -104,7 +104,7 @@ export default function PlayerHand({
   }, [items, dealTick]);
   return (
     <div
-      className="flex justify-center gap-1.5 sm:gap-2 md:gap-3 px-1 pb-1 pt-0 sm:px-2 sm:pb-2 sm:pt-0 flex-nowrap max-w-full"
+      className="flex justify-center gap-1.5 sm:gap-2 md:gap-3 px-1 pb-1 pt-0 sm:px-2 sm:pb-2 sm:pt-0 flex-nowrap max-w-full overflow-visible"
       data-seat-anchor="bottom"
       ref={containerRef}
     >
