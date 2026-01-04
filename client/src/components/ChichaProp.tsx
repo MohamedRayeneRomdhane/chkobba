@@ -49,7 +49,7 @@ export default function ChichaProp() {
       onPointerUp={handlePressEnd}
       onPointerCancel={handlePressEnd}
       onPointerLeave={handlePressEnd}
-      className={`absolute bottom-0 right-20 cursor-pointer transition-transform duration-150 ease-out ${hover ? 'scale-[1.03]' : ''}`}
+      className={`absolute bottom-0 right-20 z-[70] cursor-pointer transition-transform duration-150 ease-out ${hover ? 'scale-[1.03]' : ''}`}
       style={{
         transform: `${hover ? 'translateY(-1px)' : 'translateY(2px)'} rotate(1.5deg)`,
         filter: 'drop-shadow(0 12px 18px rgba(0,0,0,0.38))',

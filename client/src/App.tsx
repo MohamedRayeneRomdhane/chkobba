@@ -281,12 +281,12 @@ export default function App() {
               })()}
 
               {/* Player hand overlays on top of the table */}
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-[clamp(4px,1.8vh,18px)] z-[45] w-[min(98%,1200px)] h-[clamp(160px,22vmin,260px)] px-1 flex items-end pointer-events-auto overflow-visible">
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-[clamp(4px,1.8vh,18px)] z-[45] w-[min(98%,1200px)] h-[clamp(160px,22vmin,260px)] px-1 flex items-end pointer-events-none overflow-visible">
                 <div
                   data-seat-capture="bottom"
                   className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-px"
                 />
-                <div className="no-scrollbar w-full h-full min-h-[clamp(110px,16vmin,180px)] overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain">
+                <div className="no-scrollbar pointer-events-auto w-full h-full min-h-[clamp(110px,16vmin,180px)] overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain">
                   <div className="min-w-full h-full flex items-end justify-center">
                     <PlayerHand
                       cards={
