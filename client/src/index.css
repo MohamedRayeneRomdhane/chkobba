@@ -260,6 +260,44 @@ body,
 /* Tunisian café vibe base */
 body {
   @apply bg-tableWood bg-woodGrain text-[#2b241f];
+
+  /* Café scrollbar theme (shared vars) */
+  --sb-track-color: #6b4f2f; /* tableWood.dark */
+  --sb-thumb-color: #15652e; /* felt.dark */
+  --sb-thumb-hover-color: #1f8f40; /* felt.bright */
+  --sb-size: 11px;
+}
+
+/* Scrollbar styling (applies to scroll containers, not just body) */
+* {
+  scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--sb-track-color);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb-color);
+  border-radius: 999px;
+  border: 2px solid var(--sb-track-color);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover-color);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  body {
+    scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
+  }
 }
 
 .cafe-header {
