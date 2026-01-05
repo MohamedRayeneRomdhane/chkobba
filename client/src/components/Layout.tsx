@@ -33,9 +33,13 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
   return (
     <div className="h-[100svh] min-h-0 flex flex-col bg-tableWood bg-woodGrain overflow-hidden">
       {/* Top bar */}
-      <div className={`cafe-header text-white relative z-[220] ${phoneLandscape && headerCollapsed ? 'cafe-header--collapsed' : ''}`}>
+      <div
+        className={`cafe-header text-white relative z-[220] ${phoneLandscape && headerCollapsed ? 'cafe-header--collapsed' : ''}`}
+      >
         <div className="cafe-header-inner max-w-[min(1600px,95vw)] mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex flex-nowrap items-center gap-2 sm:gap-4">
-          <h1 className="cafe-title text-xl font-bold tracking-wide drop-shadow shrink-0">Chkobba</h1>
+          <h1 className="cafe-title text-xl font-bold tracking-wide drop-shadow shrink-0">
+            Chkobba
+          </h1>
 
           {phoneLandscape && headerCollapsed ? (
             <div className="ml-auto flex items-center justify-end">
