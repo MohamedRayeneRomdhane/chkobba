@@ -17,6 +17,7 @@ import PlayAnimationsLayer from './components/PlayAnimationsLayer';
 import usePlayAnimations from './hooks/usePlayAnimations';
 import useSound from './hooks/useSound';
 import FooterNote from './components/FooterNote';
+import TutorialSection from './components/TutorialSection';
 
 export default function App() {
   const {
@@ -154,7 +155,7 @@ export default function App() {
             }}
           />
         )}
-        <div className="h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
+        <section className="snap-start snap-always h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
           <div className="flex-1 min-h-0 flex items-center justify-center overflow-visible">
             <TableMat>
               {/* Round banner */}
@@ -451,7 +452,11 @@ export default function App() {
               </button>
             </div>
           </div>
-        </div>
+        </section>
+
+        <section className="snap-start snap-always min-h-full flex">
+          <TutorialSection />
+        </section>
       </Layout>
       {/* Profile modal for editing profile anytime */}
       <ProfileModal

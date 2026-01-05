@@ -24,8 +24,10 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
         <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-r border-tableWood-dark" />
 
         {/* Main game area: centered; bottom padding matches footer height */}
-        <main className="flex-1 min-h-0 flex items-center justify-center p-2 sm:p-3 overflow-hidden">
-          <div className="w-full h-full min-h-0 max-w-[min(1600px,95vw)] mx-auto">{children}</div>
+        <main className="flex-1 min-h-0 flex items-stretch justify-center p-2 sm:p-3 overflow-hidden">
+          <div className="w-full h-full min-h-0 max-w-[min(1600px,95vw)] mx-auto overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth motion-reduce:scroll-auto">
+            {children}
+          </div>
         </main>
 
         {/* Right margin (ads placeholder) on large screens */}
