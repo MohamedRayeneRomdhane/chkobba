@@ -51,6 +51,23 @@
   position: relative;
   font-weight: 600;
 }
+
+@media (max-width: 640px) {
+  .replay-btn {
+    height: 46px;
+    padding: 0 22px;
+  }
+
+  .chalkboard-frame {
+    width: min(96vw, 680px);
+    padding: 10px;
+    border-width: 12px;
+  }
+
+  .chalkboard-surface {
+    padding: 16px 14px;
+  }
+}
 /* Chalkboard end screen styles */
 .chalkboard-frame {
   width: min(90vw, 680px);
@@ -239,6 +256,262 @@
 @media (prefers-reduced-motion: reduce) {
   .cafe-animated-bg::before {
     animation: none;
+  }
+}
+
+/* Phone landscape: treat as mobile even if width >= sm */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Keep overlay clear of header/footer in landscape */
+  .end-overlay {
+    padding-top: calc(2.75rem + env(safe-area-inset-top)) !important;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)) !important;
+    padding-left: calc(0.6rem + env(safe-area-inset-left)) !important;
+    padding-right: calc(0.6rem + env(safe-area-inset-right)) !important;
+  }
+
+  .header-controls-mobile {
+    display: flex !important;
+  }
+
+  .header-controls-desktop {
+    display: none !important;
+  }
+
+  .scoreboard-mobile {
+    display: block !important;
+  }
+
+  .scoreboard-desktop {
+    display: none !important;
+  }
+
+  /* Tighten header/footer vertical space */
+  .cafe-header {
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+  }
+
+  .cafe-header-inner {
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+  }
+
+  .cafe-header--collapsed .cafe-header-inner {
+    padding-top: 0.15rem !important;
+    padding-bottom: 0.15rem !important;
+  }
+
+  .cafe-header--collapsed .cafe-title {
+    font-size: 0.95rem !important;
+  }
+
+  .cafe-title {
+    font-size: 1.05rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .burger-btn {
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.95rem !important;
+  }
+
+  /* Let the board use available height (avoid sm:aspect-[16/9] squashing) */
+  .table-mat-root {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .table-felt {
+    aspect-ratio: auto !important;
+    border-width: 10px !important;
+  }
+
+  /* Bottom area: place player card and controls on one line */
+  .action-area {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+  }
+
+  .player-seat-row {
+    width: auto !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .action-bar {
+    width: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-top: 0 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+  }
+
+  .action-bar .text-xs,
+  .action-bar .sm\:text-sm {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    font-size: 0.78rem;
+    line-height: 1.1;
+  }
+
+  /* Push opponent card stacks outwards and shrink padding */
+  [data-seat-anchor='top'] {
+    top: -8px !important;
+    padding: 4px !important;
+  }
+  [data-seat-anchor='left'] {
+    left: -8px !important;
+    padding: 4px !important;
+  }
+  [data-seat-anchor='right'] {
+    right: -8px !important;
+    padding: 4px !important;
+  }
+
+  /* Reduce bottom hand overlay height in landscape */
+  .player-hand-overlay {
+    height: clamp(96px, 18vmin, 160px) !important;
+    /* push slightly below the mat so it feels like it overflows */
+    bottom: -14px !important;
+  }
+
+  /* Smaller center cards + tighter gaps */
+  #table-grid {
+    gap: 0.35rem !important;
+  }
+
+  #table-grid > div {
+    width: clamp(44px, 6.6vmin, 78px) !important;
+  }
+
+  /* Smaller opponent cards */
+  [data-op-card] {
+    width: clamp(36px, 5.6vmin, 70px) !important;
+    border-width: 1px !important;
+  }
+
+  /* Smaller hand cards and show only top half */
+  [data-hand-card-id] {
+    width: clamp(52px, 7.2vmin, 96px) !important;
+    border-width: 1px !important;
+    /* show top half, but shift it down so it appears to emerge from the bottom */
+    clip-path: inset(0 0 50% 0 round 0.5rem);
+    translate: 0 50%;
+  }
+
+  /* Keep props smaller and out of the way */
+  .coffee-prop {
+    left: 0.5rem !important;
+    bottom: 0.25rem !important;
+  }
+  .coffee-prop-img {
+    width: clamp(56px, 10vmin, 96px) !important;
+  }
+
+  .chicha-prop {
+    right: 0.5rem !important;
+    bottom: 0rem !important;
+  }
+  .chicha-prop-img {
+    width: clamp(64px, 12vmin, 120px) !important;
+  }
+
+  .cigs-prop {
+    right: 0.5rem !important;
+    top: 0.25rem !important;
+  }
+  .cigs-prop-img {
+    width: clamp(52px, 9vmin, 92px) !important;
+  }
+
+  /* Profile boxes: slightly smaller badge font in landscape */
+  [data-seat-anchor] span,
+  .player-seat-row span {
+    font-size: 9px;
+  }
+
+  /* End overlay: keep it compact */
+  .end-overlay-frame {
+    width: min(92vw, 720px);
+    padding: 8px;
+    border-width: 10px;
+    max-height: 52svh;
+  }
+  .end-overlay-surface {
+    padding: 8px 8px;
+    max-height: 48svh;
+  }
+
+  /* Landscape phones: force a horizontal (2-column) summary */
+  .end-overlay-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+  }
+
+  .end-overlay-panel {
+    padding: 0.25rem !important;
+  }
+
+  .end-overlay-banner {
+    font-size: 0.78rem;
+    margin-bottom: 0.35rem !important;
+  }
+
+  .end-overlay-title {
+    font-size: 1.02rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .end-overlay-score {
+    font-size: 0.98rem;
+    line-height: 1.2;
+  }
+
+  .end-overlay-winner {
+    font-size: 0.92rem;
+  }
+
+  .end-overlay-surface .chalk-divider {
+    margin-top: 0.35rem !important;
+    margin-bottom: 0.35rem !important;
+  }
+
+  .end-overlay-section-title {
+    font-size: 0.92rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .end-overlay-list {
+    font-size: 0.76rem;
+    line-height: 1.15;
+    columns: 3;
+    column-gap: 1rem;
+  }
+
+  .end-overlay-list li {
+    break-inside: avoid;
+  }
+
+  .end-overlay-actions {
+    margin-top: 0.5rem !important;
+    gap: 0.5rem !important;
+  }
+
+  .replay-btn {
+    height: 32px;
+    padding: 0 12px;
+  }
+  .replay-btn > span {
+    font-size: 12px;
   }
 }
 
@@ -592,6 +865,26 @@ body {
   width: 200px;
 }
 
+/* Fluid variant (used in mobile header layout) */
+.room-input.room-input--fluid .input,
+.room-input.room-input--fluid .bar {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .room-input .input {
+    width: 140px;
+  }
+
+  .room-input .bar {
+    width: 140px;
+  }
+
+  .room-input label {
+    font-size: 14px;
+  }
+}
+
 .room-input .bar:before,
 .room-input .bar:after {
   content: '';
@@ -638,4 +931,34 @@ body {
     width: 0;
     background: transparent;
   }
+}
+
+/* Mobile burger menu button animation */
+.burger-btn {
+  transform-origin: center;
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 180ms ease,
+    border-color 180ms ease;
+  will-change: transform;
+}
+
+.burger-btn:active {
+  transform: scale(0.96);
+}
+
+@keyframes burgerPop {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  55% {
+    transform: rotate(8deg) scale(1.06);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.burger-btn--open {
+  animation: burgerPop 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }

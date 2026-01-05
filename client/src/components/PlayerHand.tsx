@@ -131,7 +131,7 @@ export default function PlayerHand({
         >
           <div style={{ transform: `rotate(${(i - 1) * 4}deg)` }} className="will-change-transform">
             <div
-              className={`w-[clamp(66px,9.6vmin,140px)] aspect-[2/3] origin-bottom rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out ${isDisabled || c === '__ghost__' ? 'cursor-not-allowed' : 'cursor-pointer hover:-translate-y-0.5 sm:hover:-translate-y-1 hover:scale-[1.06]'} ${c !== '__ghost__' && selectedId === (c as Card).id ? 'ring-2 ring-amber-400 border-gray-800' : 'border-gray-800'} ${c === '__ghost__' ? 'opacity-0 pointer-events-none' : ''}`}
+              className={`w-[clamp(66px,9.6vmin,140px)] aspect-[2/3] origin-bottom rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out touch-manipulation ${isDisabled || c === '__ghost__' ? 'cursor-not-allowed' : 'cursor-pointer sm:hover:-translate-y-0.5 lg:hover:-translate-y-1 sm:hover:scale-[1.06]'} ${c !== '__ghost__' && selectedId === (c as Card).id ? 'ring-2 ring-amber-400 border-gray-800' : 'border-gray-800'} ${c === '__ghost__' ? 'opacity-0 pointer-events-none' : ''}`}
               data-hand-card-id={c === '__ghost__' ? undefined : (c as Card).id}
               data-hand-ghost={c === '__ghost__' ? 'true' : undefined}
             >

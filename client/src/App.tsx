@@ -46,6 +46,11 @@ export default function App() {
   const [selectedHandId, setSelectedHandId] = React.useState<string | null>(null);
   const [selectedTableIds, setSelectedTableIds] = React.useState<string[]>([]);
   const [handGhostIndex, setHandGhostIndex] = React.useState<number | null>(null);
+  const [roomCodeInput, setRoomCodeInput] = React.useState('');
+  const roomCodeInputRefMobile = React.useRef<HTMLInputElement | null>(null);
+  const roomCodeInputRefDesktop = React.useRef<HTMLInputElement | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [phoneLandscape, setPhoneLandscape] = React.useState(false);
 
   const cookieConsent = useCookieConsent();
   const [legalOpen, setLegalOpen] = useState(false);
@@ -58,6 +63,21 @@ export default function App() {
       });
     }
   }, [cookieConsent.status]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-height: 500px) and (orientation: landscape)');
+    const update = () => setPhoneLandscape(mq.matches);
+    update();
+
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+
+    // Safari fallback
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
 
   const openLegal = (section: LegalSection) => {
     setLegalSection(section);
@@ -95,65 +115,206 @@ export default function App() {
       <Layout
         headerRight={
           <>
-            <button
-              className="btn btn--mint"
-              onClick={() => createRoom().then((code) => join(code))}
-            >
-              Create & Join
-            </button>
-            <div className="room-input">
-              <div className="group">
-                <input id="roomCode" type="text" className="input" required />
-                <span className="highlight" />
-                <span className="bar" />
-                <label htmlFor="roomCode">Room code</label>
+            {/* Mobile header */}
+            <div className="header-controls-mobile sm:hidden w-full flex items-center justify-end">
+              <div className="relative">
+                <button
+                  type="button"
+                  className={`burger-btn px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 text-white border border-white/15 shadow-sm ${
+                    mobileMenuOpen ? 'burger-btn--open' : ''
+                  }`}
+                  aria-label="Open menu"
+                  aria-expanded={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen((v) => !v)}
+                >
+                  ☰
+                </button>
+
+                {mobileMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-[300]"
+                      onClick={() => setMobileMenuOpen(false)}
+                      aria-hidden
+                    />
+                    <div className="absolute right-0 top-full mt-2 z-[310] w-[min(92vw,340px)] rounded-xl bg-tableWood-dark/95 backdrop-blur-sm shadow-caféGlow border border-white/10 p-2">
+                      <div className="px-2 py-1 text-xs text-white/80">Menu</div>
+
+                      <button
+                        type="button"
+                        className="w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          createRoom().then((code) => join(code));
+                        }}
+                      >
+                        Create & Join
+                      </button>
+
+                      <button
+                        type="button"
+                        className="mt-1 w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          setProfileModalOpen(true);
+                        }}
+                      >
+                        Edit Profile
+                      </button>
+
+                      <div className="mt-2 rounded-lg bg-black/15 border border-white/10 p-2">
+                        <div className="room-input room-input--fluid">
+                          <div className="group">
+                            <input
+                              ref={roomCodeInputRefMobile}
+                              id="roomCodeMobile"
+                              type="text"
+                              className="input"
+                              required
+                              value={roomCodeInput}
+                              onChange={(e) => setRoomCodeInput(e.currentTarget.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const code = roomCodeInput.trim();
+                                  if (code) {
+                                    setMobileMenuOpen(false);
+                                    join(code);
+                                  }
+                                }
+                              }}
+                              inputMode="text"
+                              autoCapitalize="characters"
+                              autoCorrect="off"
+                              spellCheck={false}
+                            />
+                            <span className="highlight" />
+                            <span className="bar" />
+                            <label htmlFor="roomCodeMobile">Room code</label>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn btn--azure w-full justify-center mt-2"
+                          onClick={() => {
+                            const code = roomCodeInput.trim();
+                            if (!code) return;
+                            setMobileMenuOpen(false);
+                            join(code);
+                          }}
+                        >
+                          Join
+                        </button>
+                      </div>
+
+                      {roomCode && (
+                        <div className="mt-2 flex items-center justify-between gap-2 px-1 text-white/90">
+                          <span className="px-2 py-0.5 rounded bg-white/20 text-white/90 border border-white/20 shadow-sm">
+                            Room {roomCode}
+                          </span>
+                          <button
+                            title="Copy room code"
+                            className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white shadow-sm"
+                            onClick={() => {
+                              navigator.clipboard?.writeText(roomCode).then(() => {
+                                const el = roomCodeInputRefMobile.current;
+                                if (el) {
+                                  el.classList.add('ring', 'ring-white/40');
+                                  setTimeout(
+                                    () => el.classList.remove('ring', 'ring-white/40'),
+                                    600
+                                  );
+                                }
+                              });
+                            }}
+                          >
+                            <span aria-hidden>📋</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-            <button
-              className="btn btn--azure"
-              onClick={() => {
-                const code = (document.getElementById('roomCode') as HTMLInputElement).value.trim();
-                if (code) join(code);
-              }}
-            >
-              Join
-            </button>
-            <button className="btn btn--desert ml-2" onClick={() => setProfileModalOpen(true)}>
-              <span role="img" aria-label="profile">
-                👤
-              </span>
-              Edit Profile
-            </button>
-            <span className="text-sm whitespace-nowrap flex items-center gap-2 text-white/90">
-              <span className="hidden sm:inline">
-                {connected ? 'Connected' : 'Disconnected'}
-                {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ''}
-                {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ''}
-              </span>
-              {roomCode && (
-                <span className="inline-flex items-center gap-1">
-                  <span className="px-2 py-0.5 rounded bg-white/20 text-white/90 border border-white/20 shadow-sm">
-                    Room {roomCode}
-                  </span>
-                  <button
-                    title="Copy room code"
-                    className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white shadow-sm"
-                    onClick={() => {
-                      navigator.clipboard?.writeText(roomCode).then(() => {
-                        // optional: quick visual feedback
-                        const el = document.getElementById('roomCode');
-                        if (el) {
-                          el.classList.add('ring', 'ring-white/40');
-                          setTimeout(() => el.classList.remove('ring', 'ring-white/40'), 600);
-                        }
-                      });
-                    }}
-                  >
-                    <span aria-hidden>📋</span>
-                  </button>
+
+            {/* Desktop header (unchanged layout/labels) */}
+            <div className="header-controls-desktop hidden sm:flex items-center gap-4">
+              <button
+                className="btn btn--mint"
+                onClick={() => createRoom().then((code) => join(code))}
+              >
+                Create & Join
+              </button>
+
+              <div className="room-input">
+                <div className="group">
+                  <input
+                    ref={roomCodeInputRefDesktop}
+                    id="roomCodeDesktop"
+                    type="text"
+                    className="input"
+                    required
+                    value={roomCodeInput}
+                    onChange={(e) => setRoomCodeInput(e.currentTarget.value)}
+                    inputMode="text"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                  <span className="highlight" />
+                  <span className="bar" />
+                  <label htmlFor="roomCodeDesktop">Room code</label>
+                </div>
+              </div>
+
+              <button
+                className="btn btn--azure"
+                onClick={() => {
+                  const code = roomCodeInput.trim();
+                  if (code) join(code);
+                }}
+              >
+                Join
+              </button>
+
+              <button className="btn btn--desert ml-2" onClick={() => setProfileModalOpen(true)}>
+                <span role="img" aria-label="profile">
+                  👤
                 </span>
-              )}
-            </span>
+                Edit Profile
+              </button>
+
+              <span className="text-sm whitespace-nowrap flex items-center gap-2 text-white/90">
+                <span>
+                  {connected ? 'Connected' : 'Disconnected'}
+                  {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ''}
+                  {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ''}
+                </span>
+                {roomCode && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="px-2 py-0.5 rounded bg-white/20 text-white/90 border border-white/20 shadow-sm">
+                      Room {roomCode}
+                    </span>
+                    <button
+                      title="Copy room code"
+                      className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-white shadow-sm"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(roomCode).then(() => {
+                          const el = roomCodeInputRefDesktop.current;
+                          if (el) {
+                            el.classList.add('ring', 'ring-white/40');
+                            setTimeout(() => el.classList.remove('ring', 'ring-white/40'), 600);
+                          }
+                        });
+                      }}
+                    >
+                      <span aria-hidden>📋</span>
+                    </button>
+                  </span>
+                )}
+              </span>
+            </div>
           </>
         }
         footerLeft={<FooterNote />}
@@ -216,8 +377,8 @@ export default function App() {
             }}
           />
         )}
-        <section className="snap-start snap-always h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
-          <div className="flex-1 min-h-0 flex items-center justify-center overflow-visible">
+        <section className="sm:snap-start sm:snap-always h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
+          <div className="flex-1 min-h-0 flex items-stretch justify-stretch overflow-visible">
             <TableMat>
               {/* Round banner */}
               {/* Inline banner removed in favor of end overlay */}
@@ -238,7 +399,7 @@ export default function App() {
                           prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id]
                         );
                       }}
-                      className={`w-[clamp(60px,9.5vmin,120px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out cursor-pointer ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 hover:-translate-y-0.5'}`}
+                      className={`w-[clamp(60px,9.5vmin,120px)] aspect-[2/3] rounded-lg bg-white border-2 shadow-md overflow-hidden transition-transform duration-200 ease-out cursor-pointer touch-manipulation ${selected ? 'ring-2 ring-amber-400 border-gray-800 -translate-y-1' : 'border-gray-800 sm:hover:-translate-y-0.5'}`}
                     >
                       <img
                         src={getCardImage(c)}
@@ -317,6 +478,7 @@ export default function App() {
                       teamLabel={teamName(idxTop)}
                       teamIndex={teamForSeat(idxTop) as 0 | 1}
                       compact
+                      dense={phoneLandscape}
                     />
                     {/* Left opponent */}
                     <SeatPanel
@@ -327,6 +489,7 @@ export default function App() {
                       teamLabel={teamName(idxLeft)}
                       teamIndex={teamForSeat(idxLeft) as 0 | 1}
                       compact
+                      dense={phoneLandscape}
                     />
                     {/* Right opponent */}
                     <SeatPanel
@@ -337,18 +500,19 @@ export default function App() {
                       teamLabel={teamName(idxRight)}
                       teamIndex={teamForSeat(idxRight) as 0 | 1}
                       compact
+                      dense={phoneLandscape}
                     />
                   </>
                 );
               })()}
 
               {/* Player hand overlays on top of the table */}
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-[clamp(4px,1.8vh,18px)] z-[45] w-[min(98%,1200px)] h-[clamp(160px,22vmin,260px)] px-1 flex items-end pointer-events-none overflow-visible">
+              <div className="player-hand-overlay absolute left-1/2 -translate-x-1/2 bottom-[clamp(4px,1.8vh,18px)] z-[45] w-[min(98%,1200px)] h-[clamp(120px,18vmin,200px)] sm:h-[clamp(160px,22vmin,260px)] px-1 flex items-end pointer-events-none overflow-visible">
                 <div
                   data-seat-capture="bottom"
                   className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-px"
                 />
-                <div className="no-scrollbar pointer-events-auto w-full h-full min-h-[clamp(110px,16vmin,180px)] overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain">
+                <div className="no-scrollbar pointer-events-auto w-full h-full min-h-[clamp(90px,14vmin,150px)] sm:min-h-[clamp(110px,16vmin,180px)] overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain">
                   <div className="min-w-full h-full flex items-end justify-center">
                     <PlayerHand
                       cards={
@@ -440,7 +604,7 @@ export default function App() {
           </div>
 
           {/* Player banner + action bar outside (below) the table */}
-          <div className="w-full shrink-0 flex flex-col items-center justify-center">
+          <div className="action-area w-full shrink-0 flex flex-col items-center justify-center">
             {(() => {
               const seats = snapshot?.seats || [null, null, null, null];
               const profiles = snapshot?.profiles || {};
@@ -458,7 +622,7 @@ export default function App() {
                   : null);
 
               return (
-                <div className="w-full flex items-center justify-center py-0.5 sm:py-1">
+                <div className="player-seat-row w-full flex items-center justify-center py-0.5 sm:py-1">
                   <SeatPanel
                     position="bottom"
                     avatar={prof?.avatar}
@@ -473,15 +637,15 @@ export default function App() {
               );
             })()}
             {/* Action bar for selected play */}
-            <div className="mt-0.5 sm:mt-1 flex items-center justify-center gap-2 sm:gap-3">
-              <div className="text-xs sm:text-sm px-2 py-1 rounded bg-white/70 shadow">
+            <div className="action-bar mt-0.5 sm:mt-1 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3 w-full px-2 sm:px-0">
+              <div className="text-xs sm:text-sm px-2 py-1.5 rounded bg-white/70 shadow text-center sm:text-left">
                 {selectedHandCard
                   ? `Selected: ${selectedHandCard.rank} • Sum: ${selectedSum}`
                   : 'Select a card'}
               </div>
               <button
                 disabled={!canPlaySelected || !selectedHandCard}
-                className={`px-3 py-1 rounded-md text-white shadow-sm ${canPlaySelected && selectedHandCard ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-500 opacity-60 cursor-not-allowed'}`}
+                className={`px-4 py-2 sm:px-3 sm:py-1 rounded-md text-white shadow-sm w-full sm:w-auto ${canPlaySelected && selectedHandCard ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-500 opacity-60 cursor-not-allowed'}`}
                 onClick={() => {
                   if (!roomCode || !selectedHandCard) return;
                   if (mySeat == null) return;
@@ -515,7 +679,7 @@ export default function App() {
           </div>
         </section>
 
-        <section className="snap-start snap-always min-h-full flex">
+        <section className="sm:snap-start sm:snap-always min-h-full flex">
           <TutorialSection />
         </section>
       </Layout>
