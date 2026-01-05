@@ -12,16 +12,27 @@ type Props = {
   style?: React.CSSProperties;
   format?: string; // e.g., 'auto'
   responsive?: 'true' | 'false';
+  enabled?: boolean;
 };
 
-export default function AdsenseUnit({ slot, style, format = 'auto', responsive = 'true' }: Props) {
+export default function AdsenseUnit({
+  slot,
+  style,
+  format = 'auto',
+  responsive = 'true',
+  enabled = true,
+}: Props) {
   useEffect(() => {
+    if (!enabled) return;
     try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
+      if (!window.adsbygoogle) return;
+      window.adsbygoogle.push({});
     } catch {
       // ignore
     }
-  }, [slot]);
+  }, [slot, enabled]);
+
+  if (!enabled) return null;
 
   return (
     <ins
@@ -31,6 +42,7 @@ export default function AdsenseUnit({ slot, style, format = 'auto', responsive =
       data-ad-slot={slot}
       data-ad-format={format}
       data-full-width-responsive={responsive}
+      aria-label="Advertisement"
     />
   );
 }
