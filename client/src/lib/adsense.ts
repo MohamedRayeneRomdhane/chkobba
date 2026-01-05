@@ -11,7 +11,12 @@ let loadPromise: Promise<void> | null = null;
 export function loadAdsenseScript(): Promise<void> {
   if (typeof document === 'undefined') return Promise.resolve();
 
-  if (document.querySelector('script[data-adsense="true"]')) {
+  if (
+    document.querySelector('script[data-adsense="true"]') ||
+    Array.from(document.getElementsByTagName('script')).some((s) =>
+      (s.getAttribute('src') || '').includes('pagead/js/adsbygoogle.js')
+    )
+  ) {
     return Promise.resolve();
   }
 
