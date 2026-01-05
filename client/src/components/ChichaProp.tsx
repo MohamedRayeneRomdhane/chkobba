@@ -49,7 +49,7 @@ export default function ChichaProp() {
       onPointerUp={handlePressEnd}
       onPointerCancel={handlePressEnd}
       onPointerLeave={handlePressEnd}
-      className={`absolute bottom-0 right-20 z-[70] cursor-pointer transition-transform duration-150 ease-out ${hover ? 'scale-[1.03]' : ''}`}
+      className={`chicha-prop absolute bottom-0 right-2 sm:right-20 z-[70] cursor-pointer transition-transform duration-150 ease-out ${hover ? 'scale-[1.03]' : ''}`}
       style={{
         transform: `${hover ? 'translateY(-1px)' : 'translateY(2px)'} rotate(1.5deg)`,
         filter: 'drop-shadow(0 12px 18px rgba(0,0,0,0.38))',
@@ -58,7 +58,7 @@ export default function ChichaProp() {
       <img
         src="/assets/props/chicha.png"
         alt="Hookah"
-        className={`w-[clamp(148px,22vmin,320px)] h-auto object-contain select-none ${holding ? 'chicha-hold-shake' : ''}`}
+        className={`chicha-prop-img w-[clamp(96px,16vmin,190px)] sm:w-[clamp(148px,22vmin,320px)] h-auto object-contain select-none ${holding ? 'chicha-hold-shake' : ''}`}
         draggable={false}
       />
       {showGust && (

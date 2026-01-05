@@ -8,6 +8,7 @@ type Props = {
   teamLabel?: string;
   teamIndex?: 0 | 1;
   compact?: boolean;
+  dense?: boolean;
   absolute?: boolean;
 };
 
@@ -19,23 +20,60 @@ export default function SeatPanel({
   teamLabel,
   teamIndex,
   compact,
+  dense,
   absolute = true,
 }: Props) {
   const vertical = position === 'left' || position === 'right';
   const isLeft = position === 'left';
   const isRight = position === 'right';
   // Responsive scales using CSS clamp to adapt across screen sizes
-  const avatarSize = compact ? 'clamp(14px, 2.4vw, 22px)' : 'clamp(20px, 3.2vw, 30px)';
-  const gap = compact ? 'clamp(2px, 0.8vw, 6px)' : 'clamp(4px, 1vw, 8px)';
-  const pad = compact ? 'clamp(3px, 0.8vw, 6px)' : 'clamp(4px, 1vw, 8px)';
-  const radius = compact ? 'clamp(4px, 0.8vw, 6px)' : 'clamp(6px, 1vw, 8px)';
-  const nameFontSize = compact ? 'clamp(10px, 1.4vw, 12px)' : 'clamp(11px, 1.4vw, 13px)';
-  const turnFontSize = compact ? 'clamp(9px, 1.3vw, 11px)' : 'clamp(10px, 1.3vw, 12px)';
+  const avatarSize = dense
+    ? 'clamp(12px, 2vw, 18px)'
+    : compact
+      ? 'clamp(14px, 2.4vw, 22px)'
+      : 'clamp(20px, 3.2vw, 30px)';
+  const gap = dense
+    ? 'clamp(1px, 0.6vw, 4px)'
+    : compact
+      ? 'clamp(2px, 0.8vw, 6px)'
+      : 'clamp(4px, 1vw, 8px)';
+  const pad = dense
+    ? 'clamp(2px, 0.6vw, 4px)'
+    : compact
+      ? 'clamp(3px, 0.8vw, 6px)'
+      : 'clamp(4px, 1vw, 8px)';
+  const radius = dense
+    ? 'clamp(4px, 0.7vw, 6px)'
+    : compact
+      ? 'clamp(4px, 0.8vw, 6px)'
+      : 'clamp(6px, 1vw, 8px)';
+  const nameFontSize = dense
+    ? 'clamp(9px, 1.2vw, 11px)'
+    : compact
+      ? 'clamp(10px, 1.4vw, 12px)'
+      : 'clamp(11px, 1.4vw, 13px)';
+  const turnFontSize = dense
+    ? 'clamp(8px, 1.1vw, 10px)'
+    : compact
+      ? 'clamp(9px, 1.3vw, 11px)'
+      : 'clamp(10px, 1.3vw, 12px)';
 
   // Anchor offsets responsive to viewport
-  const bottomOffset = compact ? 'clamp(6px, 1.6vh, 12px)' : 'clamp(10px, 2.2vh, 18px)';
-  const topOffset = compact ? 'clamp(12px, 4vh, 28px)' : 'clamp(18px, 5vh, 40px)';
-  const sideOffset = compact ? 'clamp(10px, 3.5vw, 28px)' : 'clamp(16px, 4vw, 44px)';
+  const bottomOffset = dense
+    ? 'clamp(4px, 1.2vh, 8px)'
+    : compact
+      ? 'clamp(6px, 1.6vh, 12px)'
+      : 'clamp(10px, 2.2vh, 18px)';
+  const topOffset = dense
+    ? 'clamp(6px, 2.4vh, 16px)'
+    : compact
+      ? 'clamp(12px, 4vh, 28px)'
+      : 'clamp(18px, 5vh, 40px)';
+  const sideOffset = dense
+    ? 'clamp(6px, 2vw, 16px)'
+    : compact
+      ? 'clamp(10px, 3.5vw, 28px)'
+      : 'clamp(16px, 4vw, 44px)';
 
   const baseStyle: React.CSSProperties = {
     position: absolute ? 'absolute' : 'relative',

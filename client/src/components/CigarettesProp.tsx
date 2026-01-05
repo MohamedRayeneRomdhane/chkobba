@@ -9,7 +9,7 @@ export default function CigarettesProp() {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={play}
-      className={`absolute top-0 right-20 cursor-pointer transition-transform duration-150 ease-out ${hover ? 'scale-[1.03]' : ''}`}
+      className={`cigs-prop absolute top-1 right-2 sm:top-0 sm:right-20 cursor-pointer transition-transform duration-150 ease-out ${hover ? 'scale-[1.03]' : ''}`}
       style={{
         transform: `${hover ? 'translateY(-1px)' : 'translateY(0)'} rotate(-0.5deg)`,
         filter: 'drop-shadow(0 8px 14px rgba(0,0,0,0.32))',
@@ -18,7 +18,7 @@ export default function CigarettesProp() {
       <img
         src="/assets/props/cigs.png"
         alt="Cigarette pack"
-        className="w-[clamp(112px,18vmin,220px)] h-auto object-contain select-none"
+        className="cigs-prop-img w-[clamp(78px,12vmin,140px)] sm:w-[clamp(112px,18vmin,220px)] h-auto object-contain select-none"
         draggable={false}
       />
     </div>

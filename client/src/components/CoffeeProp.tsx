@@ -23,7 +23,7 @@ export default function CoffeeProp({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={play}
-      className={`absolute bottom-2 left-24 z-[70] cursor-pointer transition-transform duration-150 ease-out`}
+      className="coffee-prop absolute bottom-1 left-2 sm:bottom-2 sm:left-24 z-[70] cursor-pointer transition-transform duration-150 ease-out"
       style={{
         transform: `${hover ? 'translateY(-1px)' : 'translateY(0)'} rotate(-2deg) scale(${hover ? scale * 1.03 : scale})`,
         transformOrigin: 'bottom left',
@@ -167,7 +167,7 @@ export default function CoffeeProp({
       <img
         src="/assets/props/coffee.png"
         alt="Coffee cup"
-        className="w-[clamp(120px,20vmin,260px)] h-auto object-contain select-none"
+        className="coffee-prop-img w-[clamp(90px,14vmin,170px)] sm:w-[clamp(120px,20vmin,260px)] h-auto object-contain select-none"
         draggable={false}
       />
     </div>
