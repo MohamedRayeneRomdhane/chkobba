@@ -20,7 +20,8 @@ export default function CookieConsentBanner({ open, onAccept, onDecline, onLearn
             <div className="min-w-0">
               <div className="text-sm sm:text-base font-semibold tracking-wide">Cookies & ads</div>
               <p className="text-xs sm:text-sm text-white/85 mt-0.5 leading-relaxed">
-                We use cookies to show ads and keep the lights on at the café. You can accept or decline.
+                We use cookies to show ads and keep the lights on at the café. You can accept or
+                decline.
               </p>
             </div>
 

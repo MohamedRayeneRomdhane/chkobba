@@ -200,7 +200,9 @@
     --c1: #15652e;
     /* wood light / saffron */
     --c2: #b08968;
-    background-position: 0 0, var(--s) var(--s);
+    background-position:
+      0 0,
+      var(--s) var(--s);
   }
   45%,
   50% {
@@ -208,7 +210,9 @@
     --p: 25%;
     --c1: #15652e;
     --c2: #c8a04b;
-    background-position: 0 0, var(--s) var(--s);
+    background-position:
+      0 0,
+      var(--s) var(--s);
   }
   50.01%,
   55% {
@@ -216,7 +220,9 @@
     --p: 25%;
     --c2: #15652e;
     --c1: #c8a04b;
-    background-position: var(--s) 0, 0 var(--s);
+    background-position:
+      var(--s) 0,
+      0 var(--s);
   }
   85%,
   100% {
@@ -224,7 +230,9 @@
     --p: 20%;
     --c2: #15652e;
     --c1: #b08968;
-    background-position: var(--s) 0, 0 var(--s);
+    background-position:
+      var(--s) 0,
+      0 var(--s);
   }
 }
 

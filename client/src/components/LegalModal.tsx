@@ -50,8 +50,8 @@ export default function LegalModal({ open, section, onClose }: Props) {
           {section === 'privacy' && (
             <div className="space-y-3">
               <p>
-                Chkobba Café is a casual multiplayer card game. This page explains what data we store and
-                what third parties may collect when ads are enabled.
+                Chkobba Café is a casual multiplayer card game. This page explains what data we
+                store and what third parties may collect when ads are enabled.
               </p>
 
               <div>
@@ -65,16 +65,17 @@ export default function LegalModal({ open, section, onClose }: Props) {
               <div>
                 <div className="font-semibold text-gray-900">Ads (Google AdSense)</div>
                 <p className="mt-1 text-gray-700">
-                  If you accept cookies, we may load Google AdSense which can set cookies and collect
-                  information to personalize or measure ads. If you decline, ads won’t be loaded.
+                  If you accept cookies, we may load Google AdSense which can set cookies and
+                  collect information to personalize or measure ads. If you decline, ads won’t be
+                  loaded.
                 </p>
               </div>
 
               <div>
                 <div className="font-semibold text-gray-900">Bug reports</div>
                 <p className="mt-1 text-gray-700">
-                  If you submit a bug report via the linked form, the information you provide is sent to
-                  that form provider.
+                  If you submit a bug report via the linked form, the information you provide is
+                  sent to that form provider.
                 </p>
               </div>
 
@@ -93,8 +94,8 @@ export default function LegalModal({ open, section, onClose }: Props) {
           {section === 'terms' && (
             <div className="space-y-3">
               <p>
-                Chkobba Café is provided for friendly games. By using the site, you agree to these basic
-                terms.
+                Chkobba Café is provided for friendly games. By using the site, you agree to these
+                basic terms.
               </p>
 
               <div>
@@ -115,8 +116,8 @@ export default function LegalModal({ open, section, onClose }: Props) {
               <div>
                 <div className="font-semibold text-gray-900">Availability</div>
                 <p className="mt-1 text-gray-700">
-                  The service is provided “as is”. We may change features or take the site offline for
-                  maintenance.
+                  The service is provided “as is”. We may change features or take the site offline
+                  for maintenance.
                 </p>
               </div>
 
@@ -126,7 +127,10 @@ export default function LegalModal({ open, section, onClose }: Props) {
 
           {section === 'contact' && (
             <div className="space-y-3">
-              <p>Need help or found a bug? Use the bug report form and include your room code if relevant.</p>
+              <p>
+                Need help or found a bug? Use the bug report form and include your room code if
+                relevant.
+              </p>
               <p>
                 <a
                   href="https://docs.google.com/forms/d/e/1FAIpQLSfLcCluvvArOvjqTdahD5npxS06vpVmkGn2MYSzKWGe7ud3QA/viewform?usp=dialog"
