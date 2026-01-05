@@ -115,6 +115,133 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes tutorialIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Café-themed animated background (scoped utility) */
+@property --a {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+@property --p {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+@property --c1 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #000;
+}
+@property --c2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #000;
+}
+
+.cafe-animated-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.cafe-animated-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  --s: 78px;
+  --_g: #0000, var(--c1) 2deg calc(var(--a) - 2deg), #0000 var(--a);
+  background:
+    conic-gradient(from calc(-45deg - var(--a) / 2) at top var(--p) left var(--p), var(--_g)),
+    conic-gradient(from calc(-45deg - var(--a) / 2) at top var(--p) left var(--p), var(--_g)),
+    conic-gradient(from calc(45deg - var(--a) / 2) at top var(--p) right var(--p), var(--_g)),
+    conic-gradient(from calc(45deg - var(--a) / 2) at top var(--p) right var(--p), var(--_g)),
+    conic-gradient(from calc(-135deg - var(--a) / 2) at bottom var(--p) left var(--p), var(--_g)),
+    conic-gradient(from calc(-135deg - var(--a) / 2) at bottom var(--p) left var(--p), var(--_g)),
+    conic-gradient(from calc(135deg - var(--a) / 2) at bottom var(--p) right var(--p), var(--_g)),
+    conic-gradient(from calc(135deg - var(--a) / 2) at bottom var(--p) right var(--p), var(--_g))
+      var(--c2);
+  background-size: calc(2 * var(--s)) calc(2 * var(--s));
+  animation: cafePattern 2.8s infinite alternate linear;
+  opacity: 0.22;
+  filter: saturate(1.05) contrast(1.02);
+}
+
+/* Subtle dark glaze for readability */
+.cafe-animated-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+}
+
+.cafe-animated-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes cafePattern {
+  0%,
+  15% {
+    --a: 135deg;
+    --p: 20%;
+    /* felt dark */
+    --c1: #15652e;
+    /* wood light / saffron */
+    --c2: #b08968;
+    background-position:
+      0 0,
+      var(--s) var(--s);
+  }
+  45%,
+  50% {
+    --a: 90deg;
+    --p: 25%;
+    --c1: #15652e;
+    --c2: #c8a04b;
+    background-position:
+      0 0,
+      var(--s) var(--s);
+  }
+  50.01%,
+  55% {
+    --a: 90deg;
+    --p: 25%;
+    --c2: #15652e;
+    --c1: #c8a04b;
+    background-position:
+      var(--s) 0,
+      0 var(--s);
+  }
+  85%,
+  100% {
+    --a: 135deg;
+    --p: 20%;
+    --c2: #15652e;
+    --c1: #b08968;
+    background-position:
+      var(--s) 0,
+      0 var(--s);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cafe-animated-bg::before {
+    animation: none;
+  }
+}
+
 html,
 body,
 #root {

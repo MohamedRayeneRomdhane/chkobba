@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ProfileModal from './components/ProfileModal';
 import { useProfile } from './hooks/useProfile';
 import TableMat from './components/TableMat';
@@ -17,6 +17,11 @@ import PlayAnimationsLayer from './components/PlayAnimationsLayer';
 import usePlayAnimations from './hooks/usePlayAnimations';
 import useSound from './hooks/useSound';
 import FooterNote from './components/FooterNote';
+import TutorialSection from './components/TutorialSection';
+import CookieConsentBanner from './components/CookieConsentBanner';
+import LegalModal, { type LegalSection } from './components/LegalModal';
+import { useCookieConsent } from './hooks/useCookieConsent';
+import { loadAdsenseScript } from './lib/adsense';
 
 export default function App() {
   const {
@@ -41,6 +46,24 @@ export default function App() {
   const [selectedHandId, setSelectedHandId] = React.useState<string | null>(null);
   const [selectedTableIds, setSelectedTableIds] = React.useState<string[]>([]);
   const [handGhostIndex, setHandGhostIndex] = React.useState<number | null>(null);
+
+  const cookieConsent = useCookieConsent();
+  const [legalOpen, setLegalOpen] = useState(false);
+  const [legalSection, setLegalSection] = useState<LegalSection>('privacy');
+
+  useEffect(() => {
+    if (cookieConsent.status === 'granted') {
+      loadAdsenseScript().catch(() => {
+        // ignore: ads are optional
+      });
+    }
+  }, [cookieConsent.status]);
+
+  const openLegal = (section: LegalSection) => {
+    setLegalSection(section);
+    setLegalOpen(true);
+  };
+
   // Deal tick sound per card animation start
   const { play: playDealTick } = useSound('/assets/soundeffects/deal.mp3', {
     volume: 0.7,
@@ -134,6 +157,45 @@ export default function App() {
           </>
         }
         footerLeft={<FooterNote />}
+        footerRight={
+          <div className="shrink-0 ml-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm opacity-90">
+            <span>© Chkobba Café</span>
+            <span className="hidden sm:inline">• Made for friendly games</span>
+            <span className="hidden sm:inline">•</span>
+            <button
+              type="button"
+              className="underline hover:no-underline"
+              onClick={() => openLegal('privacy')}
+            >
+              Privacy
+            </button>
+            <span>•</span>
+            <button
+              type="button"
+              className="underline hover:no-underline"
+              onClick={() => openLegal('terms')}
+            >
+              Terms
+            </button>
+            <span>•</span>
+            <button
+              type="button"
+              className="underline hover:no-underline"
+              onClick={() => openLegal('contact')}
+            >
+              Contact
+            </button>
+            <span>•</span>
+            <button
+              type="button"
+              className="underline hover:no-underline"
+              onClick={() => cookieConsent.reset()}
+              title="Change cookie preferences"
+            >
+              Cookies
+            </button>
+          </div>
+        }
       >
         {/* End screen overlay: show after round end and until all replays */}
         {(() => {
@@ -154,7 +216,7 @@ export default function App() {
             }}
           />
         )}
-        <div className="h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
+        <section className="snap-start snap-always h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
           <div className="flex-1 min-h-0 flex items-center justify-center overflow-visible">
             <TableMat>
               {/* Round banner */}
@@ -281,12 +343,12 @@ export default function App() {
               })()}
 
               {/* Player hand overlays on top of the table */}
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-[clamp(4px,1.8vh,18px)] z-[45] w-[min(98%,1200px)] h-[clamp(160px,22vmin,260px)] px-1 flex items-end pointer-events-auto overflow-visible">
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-[clamp(4px,1.8vh,18px)] z-[45] w-[min(98%,1200px)] h-[clamp(160px,22vmin,260px)] px-1 flex items-end pointer-events-none overflow-visible">
                 <div
                   data-seat-capture="bottom"
                   className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-px"
                 />
-                <div className="no-scrollbar w-full h-full min-h-[clamp(110px,16vmin,180px)] overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain">
+                <div className="no-scrollbar pointer-events-auto w-full h-full min-h-[clamp(110px,16vmin,180px)] overflow-x-auto overflow-y-hidden touch-pan-x overscroll-x-contain">
                   <div className="min-w-full h-full flex items-end justify-center">
                     <PlayerHand
                       cards={
@@ -451,7 +513,11 @@ export default function App() {
               </button>
             </div>
           </div>
-        </div>
+        </section>
+
+        <section className="snap-start snap-always min-h-full flex">
+          <TutorialSection />
+        </section>
       </Layout>
       {/* Profile modal for editing profile anytime */}
       <ProfileModal
@@ -464,6 +530,15 @@ export default function App() {
           setLocalProfile(nickname || undefined, avatar || undefined);
         }}
       />
+
+      <CookieConsentBanner
+        open={cookieConsent.status === null}
+        onAccept={cookieConsent.accept}
+        onDecline={cookieConsent.decline}
+        onLearnMore={() => openLegal('privacy')}
+      />
+
+      <LegalModal open={legalOpen} section={legalSection} onClose={() => setLegalOpen(false)} />
     </>
   );
 }

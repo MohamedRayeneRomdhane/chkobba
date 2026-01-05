@@ -23,7 +23,7 @@ export default function CoffeeProp({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={play}
-      className={`absolute bottom-2 left-24 cursor-pointer transition-transform duration-150 ease-out`}
+      className={`absolute bottom-2 left-24 z-[70] cursor-pointer transition-transform duration-150 ease-out`}
       style={{
         transform: `${hover ? 'translateY(-1px)' : 'translateY(0)'} rotate(-2deg) scale(${hover ? scale * 1.03 : scale})`,
         transformOrigin: 'bottom left',
