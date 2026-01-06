@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 export type CookieConsentStatus = 'granted' | 'denied' | null;
 
@@ -12,11 +12,7 @@ function readStoredConsent(): CookieConsentStatus {
 }
 
 export function useCookieConsent() {
-  const [status, setStatus] = useState<CookieConsentStatus>(null);
-
-  useEffect(() => {
-    setStatus(readStoredConsent());
-  }, []);
+  const [status, setStatus] = useState<CookieConsentStatus>(() => readStoredConsent());
 
   const accept = useCallback(() => {
     window.localStorage.setItem(STORAGE_KEY, 'granted');
