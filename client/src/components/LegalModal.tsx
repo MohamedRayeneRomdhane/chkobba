@@ -69,6 +69,18 @@ export default function LegalModal({ open, section, onClose }: Props) {
                   collect information to personalize or measure ads. If you decline, ads won’t be
                   loaded.
                 </p>
+                <p className="mt-2 text-gray-700">
+                  Learn more:
+                  <a
+                    href="https://policies.google.com/technologies/partner-sites"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline ml-1"
+                  >
+                    How Google uses data
+                  </a>
+                  .
+                </p>
               </div>
 
               <div>
