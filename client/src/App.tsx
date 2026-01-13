@@ -6,6 +6,8 @@ import PlayerHand from './components/PlayerHand';
 import OpponentHand from './components/OpponentHand';
 import SeatPanel from './components/SeatPanel';
 import CoffeeProp from './components/CoffeeProp';
+import ChichaProp from './components/ChichaProp';
+import CigarettesProp from './components/CigarettesProp';
 import ScoreBoard from './components/ScoreBoard';
 import { useGameSocket } from './game/useGameSocket';
 import EndOverlay from './components/EndOverlay';
@@ -888,6 +890,8 @@ export default function App() {
 
               {/* Props */}
               <CoffeeProp />
+              <ChichaProp />
+              <CigarettesProp />
 
               {/* Scoreboard */}
               <ScoreBoard
