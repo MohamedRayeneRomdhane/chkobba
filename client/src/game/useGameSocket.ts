@@ -151,6 +151,14 @@ export function useGameSocket() {
     });
   }
 
+  function renameTeam(code: string, teamIndex: 0 | 1, name: string) {
+    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
+      socket.emit('team:rename', { code, teamIndex, name }, (ok: boolean, msg?: string) =>
+        resolve({ ok, msg })
+      );
+    });
+  }
+
   function quit(code: string) {
     return new Promise<boolean>((resolve) => {
       socket.emit('room:quit', { code }, (ok: boolean) => resolve(ok));
@@ -176,6 +184,7 @@ export function useGameSocket() {
     setProfile,
     replay,
     playSoundboard,
+    renameTeam,
     quit,
   };
 }

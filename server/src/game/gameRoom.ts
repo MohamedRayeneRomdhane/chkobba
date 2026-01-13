@@ -55,6 +55,7 @@ export class GameRoomManager {
         [0, 2],
         [1, 3],
       ],
+      teamNames: ['Team A', 'Team B'],
     };
     this.rooms.set(code, room);
     return room;
@@ -550,6 +551,29 @@ export class GameRoomManager {
     const seatIndex = room.seats.findIndex((s) => s === socketId);
     if (seatIndex < 0) throw new Error('Not seated');
     this.io.to(code).emit('game:soundboard', { seatIndex, soundFile });
+  }
+
+  renameTeam(code: string, socketId: string, teamIndex: 0 | 1, name: string) {
+    const room = this.rooms.get(code);
+    if (!room) throw new Error('Room not found');
+
+    const seatIndex = room.seats.findIndex((s) => s === socketId) as PlayerIndex;
+    if (seatIndex < 0) throw new Error('Not seated');
+
+    const callerTeam = TEAM_FOR_SEAT[seatIndex];
+    if (callerTeam !== teamIndex) throw new Error('Not allowed');
+
+    const trimmed = (name ?? '').trim();
+    const length = [...trimmed].length;
+    if (length < 1) throw new Error('Invalid team name');
+    if (length > 5) throw new Error('Team name too long (max 5)');
+
+    const current = room.teamNames ?? ['Team A', 'Team B'];
+    const next: [string, string] = [current[0], current[1]];
+    next[teamIndex] = trimmed;
+    room.teamNames = next;
+
+    this.emitRoomSnapshot(code);
   }
 
 

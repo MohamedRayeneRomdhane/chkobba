@@ -32,6 +32,7 @@ export interface RoomInfo {
   players: string[]; // socket ids
   seats: (string | null)[]; // length 4, socket ids mapped to seats
   teams: [[PlayerIndex, PlayerIndex], [PlayerIndex, PlayerIndex]];
+  teamNames?: [string, string];
   gameState?: GameState;
   turn?: TurnInfo;
 }

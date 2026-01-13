@@ -55,6 +55,7 @@ export default function App() {
     setProfile,
     replay,
     playSoundboard,
+    renameTeam,
     quit,
   } = useGameSocket();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -687,7 +688,8 @@ export default function App() {
                   left: idxLeft,
                 } = getSeatIndices(mySeat);
                 const teamForSeat = (i: number) => (i % 2 === 0 ? 0 : 1); // [0,2] -> Team A, [1,3] -> Team B
-                const teamName = (i: number) => (teamForSeat(i) === 0 ? 'Team A' : 'Team B');
+                const names = snapshot?.teamNames ?? (['Team A', 'Team B'] as const);
+                const teamName = (i: number) => names[teamForSeat(i)];
                 const getProfile = (seatIndex: number) => {
                   const sid = seats[seatIndex];
                   const fromSnapshot = sid ? profiles[sid] : null;
@@ -904,7 +906,15 @@ export default function App() {
               <CigarettesProp />
 
               {/* Scoreboard */}
-              <ScoreBoard state={gameState || null} />
+              <ScoreBoard
+                state={gameState || null}
+                teamNames={snapshot?.teamNames}
+                mySeat={mySeat}
+                onRenameTeam={async (teamIndex, name) => {
+                  if (!roomCode) return { ok: false, msg: 'Not in a room' };
+                  return renameTeam(roomCode, teamIndex, name);
+                }}
+              />
               <PlayAnimationsLayer
                 flights={pendingFlights}
                 onDone={() => {
@@ -925,7 +935,8 @@ export default function App() {
               const current = gameState?.currentPlayerIndex ?? null;
               const { bottom: idxBottom } = getSeatIndices(mySeat);
               const teamForSeat = (i: number) => (i % 2 === 0 ? 0 : 1);
-              const teamName = (i: number) => (teamForSeat(i) === 0 ? 'Team A' : 'Team B');
+              const names = snapshot?.teamNames ?? (['Team A', 'Team B'] as const);
+              const teamName = (i: number) => names[teamForSeat(i)];
 
               const sid = seats[idxBottom];
               const fromSnapshot = sid ? profiles[sid] : null;

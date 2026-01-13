@@ -1,10 +1,74 @@
 import React from 'react';
 import type { GameState } from '../types';
 
-export default function ScoreBoard({ state }: { state: GameState | null }) {
+type Props = {
+  state: GameState | null;
+  teamNames?: [string, string];
+  mySeat?: number | null;
+  onRenameTeam?: (teamIndex: 0 | 1, name: string) => Promise<{ ok: boolean; msg?: string }>;
+};
+
+export default function ScoreBoard({ state, teamNames, mySeat, onRenameTeam }: Props) {
   const s = state?.scoresByTeam || [0, 0];
   const chk = state?.chkobbaByTeam || [0, 0];
   const [open, setOpen] = React.useState(false);
+
+  const [editingTeam, setEditingTeam] = React.useState<0 | 1 | null>(null);
+  const [draftName, setDraftName] = React.useState('');
+  const [renameError, setRenameError] = React.useState<string | null>(null);
+  const [renaming, setRenaming] = React.useState(false);
+
+  const canEditTeam = React.useCallback(
+    (teamIndex: 0 | 1) => {
+      if (mySeat == null) return false;
+      const myTeam = mySeat % 2 === 0 ? 0 : 1;
+      return myTeam === teamIndex;
+    },
+    [mySeat]
+  );
+
+  const resolvedNames: [string, string] = teamNames ?? ['Team A', 'Team B'];
+
+  const startEditing = (teamIndex: 0 | 1) => {
+    setRenameError(null);
+    setEditingTeam(teamIndex);
+    setDraftName((resolvedNames[teamIndex] || '').slice(0, 5));
+  };
+
+  const cancelEditing = () => {
+    setRenaming(false);
+    setRenameError(null);
+    setEditingTeam(null);
+    setDraftName('');
+  };
+
+  const submitRename = async () => {
+    if (editingTeam == null) return;
+    if (!onRenameTeam) return;
+
+    const trimmed = draftName.trim();
+    if ([...trimmed].length < 1) {
+      setRenameError('Enter a name (max 5 chars).');
+      return;
+    }
+    if ([...trimmed].length > 5) {
+      setRenameError('Max 5 characters.');
+      return;
+    }
+
+    try {
+      setRenaming(true);
+      setRenameError(null);
+      const res = await onRenameTeam(editingTeam, trimmed);
+      if (!res.ok) {
+        setRenameError(res.msg || 'Rename failed');
+        return;
+      }
+      cancelEditing();
+    } finally {
+      setRenaming(false);
+    }
+  };
 
   const teamRow = (
     name: string,
@@ -93,9 +157,121 @@ export default function ScoreBoard({ state }: { state: GameState | null }) {
               </button>
             </div>
             <div className="mt-2 space-y-2">
-              {teamRow('Team A', 'Seats 1 + 3', s[0], chk[0], 'amber')}
+              <div>
+                {teamRow(resolvedNames[0], 'Seats 1 + 3', s[0], chk[0], 'amber')}
+                {canEditTeam(0) && (
+                  <div className="mt-1 flex items-center gap-2">
+                    {editingTeam === 0 ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <input
+                          type="text"
+                          value={draftName}
+                          maxLength={5}
+                          className="w-full rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                          onChange={(e) => {
+                            setDraftName(e.currentTarget.value.slice(0, 5));
+                            if (renameError) setRenameError(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void submitRename();
+                            if (e.key === 'Escape') cancelEditing();
+                          }}
+                          placeholder="Name"
+                          aria-label="Rename Team A"
+                          disabled={renaming}
+                        />
+                        <button
+                          type="button"
+                          className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2 py-1 text-[11px] disabled:opacity-50"
+                          onClick={() => void submitRename()}
+                          disabled={renaming}
+                          title="Save"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2 py-1 text-[11px] disabled:opacity-50"
+                          onClick={cancelEditing}
+                          disabled={renaming}
+                          title="Cancel"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-[11px] text-white/75 hover:text-white underline decoration-white/30 hover:decoration-white/60"
+                        onClick={() => startEditing(0)}
+                      >
+                        Rename your team
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="h-px bg-white/10" />
-              {teamRow('Team B', 'Seats 2 + 4', s[1], chk[1], 'sky')}
+              <div>
+                {teamRow(resolvedNames[1], 'Seats 2 + 4', s[1], chk[1], 'sky')}
+                {canEditTeam(1) && (
+                  <div className="mt-1 flex items-center gap-2">
+                    {editingTeam === 1 ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <input
+                          type="text"
+                          value={draftName}
+                          maxLength={5}
+                          className="w-full rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                          onChange={(e) => {
+                            setDraftName(e.currentTarget.value.slice(0, 5));
+                            if (renameError) setRenameError(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void submitRename();
+                            if (e.key === 'Escape') cancelEditing();
+                          }}
+                          placeholder="Name"
+                          aria-label="Rename Team B"
+                          disabled={renaming}
+                        />
+                        <button
+                          type="button"
+                          className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2 py-1 text-[11px] disabled:opacity-50"
+                          onClick={() => void submitRename()}
+                          disabled={renaming}
+                          title="Save"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2 py-1 text-[11px] disabled:opacity-50"
+                          onClick={cancelEditing}
+                          disabled={renaming}
+                          title="Cancel"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-[11px] text-white/75 hover:text-white underline decoration-white/30 hover:decoration-white/60"
+                        onClick={() => startEditing(1)}
+                      >
+                        Rename your team
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {renameError && (
+                <div className="rounded-lg border border-red-400/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-100">
+                  {renameError}
+                </div>
+              )}
             </div>
           </div>
         )}

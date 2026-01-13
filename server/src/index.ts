@@ -81,6 +81,21 @@ io.on('connection', (socket) => {
     }
   );
 
+  socket.on(
+    'team:rename',
+    (
+      payload: { code: string; teamIndex: 0 | 1; name: string },
+      ack?: (_ok: boolean, _msg?: string) => void
+    ) => {
+      try {
+        manager.renameTeam(payload.code, socket.id, payload.teamIndex, payload.name);
+        ack?.(true);
+      } catch (e: unknown) {
+        ack?.(false, (e as Error)?.message || 'rename failed');
+      }
+    }
+  );
+
     socket.on(
       'game:soundboard',
       (
