@@ -73,8 +73,16 @@ export default function App() {
     loop: false,
     interrupt: true,
   });
+
+  const { play: playTurnStart } = useSound('/assets/soundeffects/turn.mp3', {
+    volume: 0.4,
+    loop: false,
+    interrupt: true,
+  });
   const timerWarnTimeoutRef = React.useRef<number | null>(null);
   const timerWarnPlayedForTurnRef = React.useRef<number | null>(null);
+
+  const turnStartPlayedForTurnRef = React.useRef<number | null>(null);
 
   const currentPlayerIndex = gameState?.currentPlayerIndex ?? null;
 
@@ -116,6 +124,17 @@ export default function App() {
       stopTimerWarn();
     };
   }, [turn, mySeat, currentPlayerIndex, clockSkewMs, playTimerWarn, stopTimerWarn]);
+
+  React.useEffect(() => {
+    // One-shot: when the active turn becomes the local player's turn.
+    if (!turn) return;
+    if (mySeat == null) return;
+    if (currentPlayerIndex !== mySeat) return;
+
+    if (turnStartPlayedForTurnRef.current === turn.endsAt) return;
+    turnStartPlayedForTurnRef.current = turn.endsAt;
+    void playTurnStart();
+  }, [turn, mySeat, currentPlayerIndex, playTurnStart]);
 
   const cookieConsent = useCookieConsent();
   const [legalOpen, setLegalOpen] = useState(false);
