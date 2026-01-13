@@ -2,6 +2,18 @@
 /* Chalk-like font import for end screen */
 @import url('https://fonts.googleapis.com/css2?family=Schoolbell&display=swap');
 
+@property --seat-progress {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 100%;
+}
+
+@property --seat-hue {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 120;
+}
+
 @keyframes soundboardPulse {
   0% {
     transform: translateX(-50%) scale(1);
@@ -16,6 +28,21 @@
     opacity: 0.85;
   }
 }
+
+/* Turn timer ring around the active seat (SVG stroke; avoids mask-composite repaint issues) */
+.seat-timer-ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  border-radius: inherit;
+  overflow: hidden;
+  opacity: 0.98;
+  filter:
+    drop-shadow(0 2px 8px rgba(0, 0, 0, 0.22))
+    drop-shadow(0 0 10px rgba(255, 255, 255, 0.06));
+}
+
 .replay-btn {
   position: relative;
   height: 50px;

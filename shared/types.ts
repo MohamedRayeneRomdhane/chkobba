@@ -22,12 +22,18 @@ export interface GameState {
   lastCaptureTeam?: TeamIndex;
 }
 
+export interface TurnInfo {
+  endsAt: number; // epoch ms
+  durationMs: number;
+}
+
 export interface RoomInfo {
   code: string;
   players: string[]; // socket ids
   seats: (string | null)[]; // length 4, socket ids mapped to seats
   teams: [[PlayerIndex, PlayerIndex], [PlayerIndex, PlayerIndex]];
   gameState?: GameState;
+  turn?: TurnInfo;
 }
 
 export interface PlayerProfile {

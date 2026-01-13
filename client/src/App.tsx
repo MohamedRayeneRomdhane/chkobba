@@ -47,6 +47,8 @@ export default function App() {
     snapshot,
     mySeat,
     dealTick,
+    turn,
+    clockSkewMs,
     createRoom,
     join,
     play,
@@ -65,6 +67,55 @@ export default function App() {
   const roomCodeInputRefDesktop = React.useRef<HTMLInputElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const phoneLandscape = usePhoneLandscape();
+
+  const { play: playTimerWarn, stop: stopTimerWarn } = useSound('/assets/soundeffects/Timer.mp3', {
+    volume: 0.45,
+    loop: false,
+    interrupt: true,
+  });
+  const timerWarnTimeoutRef = React.useRef<number | null>(null);
+  const timerWarnPlayedForTurnRef = React.useRef<number | null>(null);
+
+  const currentPlayerIndex = gameState?.currentPlayerIndex ?? null;
+
+  React.useEffect(() => {
+    if (timerWarnTimeoutRef.current != null) {
+      window.clearTimeout(timerWarnTimeoutRef.current);
+      timerWarnTimeoutRef.current = null;
+    }
+    stopTimerWarn();
+
+    if (!turn || mySeat == null) return;
+    if (currentPlayerIndex == null) return;
+    if (currentPlayerIndex !== mySeat) return;
+
+    const now = Date.now() + clockSkewMs;
+    const remainingMs = Math.max(0, turn.endsAt - now);
+    if (remainingMs <= 0) return;
+
+    // Play once when 5s are left.
+    const playAt = remainingMs - 5_000;
+    if (timerWarnPlayedForTurnRef.current !== turn.endsAt && playAt <= 0) {
+      timerWarnPlayedForTurnRef.current = turn.endsAt;
+      void playTimerWarn();
+      return;
+    }
+
+    if (timerWarnPlayedForTurnRef.current === turn.endsAt) return;
+
+    timerWarnTimeoutRef.current = window.setTimeout(() => {
+      timerWarnPlayedForTurnRef.current = turn.endsAt;
+      void playTimerWarn();
+    }, playAt);
+
+    return () => {
+      if (timerWarnTimeoutRef.current != null) {
+        window.clearTimeout(timerWarnTimeoutRef.current);
+        timerWarnTimeoutRef.current = null;
+      }
+      stopTimerWarn();
+    };
+  }, [turn, mySeat, currentPlayerIndex, clockSkewMs, playTimerWarn, stopTimerWarn]);
 
   const cookieConsent = useCookieConsent();
   const [legalOpen, setLegalOpen] = useState(false);
@@ -589,14 +640,23 @@ export default function App() {
                   }
                   return fromSnapshot;
                 };
+
+                const getDisplay = (seatIndex: number) => {
+                  const p = getProfile(seatIndex);
+                  if (!seats[seatIndex]) return { nickname: 'Empty seat', avatar: undefined };
+                  return { nickname: p?.nickname, avatar: p?.avatar };
+                };
                 return (
                   <>
                     {/* Top opponent */}
                     <SeatPanel
                       position="top"
-                      avatar={getProfile(idxTop)?.avatar}
-                      nickname={getProfile(idxTop)?.nickname}
+                      avatar={getDisplay(idxTop).avatar}
+                      nickname={getDisplay(idxTop).nickname}
                       highlight={current === idxTop}
+                      turnEndsAt={current === idxTop ? turn?.endsAt : undefined}
+                      turnDurationMs={current === idxTop ? turn?.durationMs : undefined}
+                      clockSkewMs={current === idxTop ? clockSkewMs : undefined}
                       teamLabel={teamName(idxTop)}
                       teamIndex={teamForSeat(idxTop) as 0 | 1}
                       compact
@@ -626,9 +686,12 @@ export default function App() {
                     {/* Left opponent */}
                     <SeatPanel
                       position="left"
-                      avatar={getProfile(idxLeft)?.avatar}
-                      nickname={getProfile(idxLeft)?.nickname}
+                      avatar={getDisplay(idxLeft).avatar}
+                      nickname={getDisplay(idxLeft).nickname}
                       highlight={current === idxLeft}
+                      turnEndsAt={current === idxLeft ? turn?.endsAt : undefined}
+                      turnDurationMs={current === idxLeft ? turn?.durationMs : undefined}
+                      clockSkewMs={current === idxLeft ? clockSkewMs : undefined}
                       teamLabel={teamName(idxLeft)}
                       teamIndex={teamForSeat(idxLeft) as 0 | 1}
                       compact
@@ -658,9 +721,12 @@ export default function App() {
                     {/* Right opponent */}
                     <SeatPanel
                       position="right"
-                      avatar={getProfile(idxRight)?.avatar}
-                      nickname={getProfile(idxRight)?.nickname}
+                      avatar={getDisplay(idxRight).avatar}
+                      nickname={getDisplay(idxRight).nickname}
                       highlight={current === idxRight}
+                      turnEndsAt={current === idxRight ? turn?.endsAt : undefined}
+                      turnDurationMs={current === idxRight ? turn?.durationMs : undefined}
+                      clockSkewMs={current === idxRight ? clockSkewMs : undefined}
                       teamLabel={teamName(idxRight)}
                       teamIndex={teamForSeat(idxRight) as 0 | 1}
                       compact
@@ -817,6 +883,9 @@ export default function App() {
                         avatar={prof?.avatar}
                         nickname={prof?.nickname}
                         highlight={current === idxBottom}
+                        turnEndsAt={current === idxBottom ? turn?.endsAt : undefined}
+                        turnDurationMs={current === idxBottom ? turn?.durationMs : undefined}
+                        clockSkewMs={current === idxBottom ? clockSkewMs : undefined}
                         teamLabel={teamName(idxBottom)}
                         teamIndex={teamForSeat(idxBottom) as 0 | 1}
                         compact

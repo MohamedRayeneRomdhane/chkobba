@@ -25,6 +25,8 @@ export function useGameSocket() {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [mySeat, setMySeat] = useState<PlayerIndex | null>(null);
   const [dealTick, setDealTick] = useState<number>(0);
+  const [turn, setTurn] = useState<{ endsAt: number; durationMs: number } | null>(null);
+  const [clockSkewMs, setClockSkewMs] = useState<number>(0);
   const socketRef = useRef<Socket | null>(null);
 
   const socket = useMemo(() => {
@@ -39,11 +41,13 @@ export function useGameSocket() {
     socket.on('disconnect', () => setConnected(false));
     socket.on('room:update', (room: RoomSnapshot) => {
       setSnapshot(room);
+      setTurn(room.turn ?? null);
       const idx = room.seats?.findIndex((s: string | null) => s === socket.id);
       if (idx !== undefined && idx >= 0) setMySeat(idx as PlayerIndex);
     });
     socket.on('room:snapshot', (snap: RoomSnapshot) => {
       setSnapshot(snap);
+      setTurn(snap.turn ?? null);
       const idx = snap.seats?.findIndex((s: string | null) => s === socket.id);
       if (idx !== undefined && idx >= 0) setMySeat(idx as PlayerIndex);
     });
@@ -53,6 +57,15 @@ export function useGameSocket() {
       // Do not clear replayWaiting/banner here; overlay logic will check count vs total
     });
     socket.on('game:update', (state: GameState) => setGameState(state));
+    socket.on(
+      'game:turnTimer',
+      (payload: { currentPlayerIndex: number; endsAt: number; durationMs: number; serverNow?: number }) => {
+        setTurn({ endsAt: payload.endsAt, durationMs: payload.durationMs });
+        if (typeof payload.serverNow === 'number') {
+          setClockSkewMs(payload.serverNow - Date.now());
+        }
+      }
+    );
     socket.on('game:roundEnd', (payload: { scores: [number, number]; details: unknown }) => {
       setLastRound(payload);
       setRoundBanner(`Round ended • Team A: ${payload.scores[0]} • Team B: ${payload.scores[1]}`);
@@ -77,6 +90,8 @@ export function useGameSocket() {
       setSnapshot(null);
       setRoomCode(null);
       setMySeat(null);
+      setTurn(null);
+      setClockSkewMs(0);
     });
     return () => {
       socket.off('connect');
@@ -85,6 +100,7 @@ export function useGameSocket() {
       socket.off('room:snapshot');
       socket.off('game:start');
       socket.off('game:update');
+      socket.off('game:turnTimer');
       socket.off('game:roundEnd');
       socket.off('game:replayStatus');
       socket.off('game:soundboard');
@@ -152,6 +168,8 @@ export function useGameSocket() {
     snapshot,
     mySeat,
     dealTick,
+    turn,
+    clockSkewMs,
     createRoom,
     join,
     play,

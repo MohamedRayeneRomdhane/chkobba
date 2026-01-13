@@ -112,6 +112,11 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', (reason) => {
     console.log(`[socket] disconnected ${socket.id} reason=${reason}`);
+    try {
+      manager.handleDisconnect(socket.id);
+    } catch (e: unknown) {
+      console.error(`[disconnect:manager:error] ${socket.id}`, e);
+    }
   });
 });
 

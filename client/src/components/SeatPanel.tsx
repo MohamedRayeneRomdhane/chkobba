@@ -5,6 +5,9 @@ type Props = {
   avatar?: string;
   nickname?: string;
   highlight?: boolean;
+  turnEndsAt?: number; // epoch ms (server time)
+  turnDurationMs?: number;
+  clockSkewMs?: number; // serverNow - clientNow
   teamLabel?: string;
   teamIndex?: 0 | 1;
   compact?: boolean;
@@ -22,6 +25,9 @@ export default function SeatPanel({
   avatar,
   nickname,
   highlight,
+  turnEndsAt,
+  turnDurationMs,
+  clockSkewMs,
   teamLabel,
   teamIndex,
   compact,
@@ -33,6 +39,7 @@ export default function SeatPanel({
   onActionClick,
   speaking,
 }: Props) {
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
   const vertical = position === 'left' || position === 'right';
   const isLeft = position === 'left';
   const isRight = position === 'right';
@@ -107,6 +114,7 @@ export default function SeatPanel({
     border: highlight ? '2px solid #e0c200' : '1px solid #b08968',
     WebkitBackdropFilter: 'blur(2px)',
     backdropFilter: 'blur(2px)',
+    overflow: 'visible',
   };
 
   const posStyle: React.CSSProperties = !absolute
@@ -119,8 +127,172 @@ export default function SeatPanel({
           ? { left: sideOffset, top: '50%', transform: 'translateY(-50%)' }
           : { right: sideOffset, top: '50%', transform: 'translateY(-50%)' };
 
+  const ringPathRef = React.useRef<SVGPathElement | null>(null);
+  const rafRef = React.useRef<number | null>(null);
+
+  const [ringGeom, setRingGeom] = React.useState<{
+    w: number;
+    h: number;
+    r: number;
+    inset: number;
+    clipR: number;
+    stroke: number;
+  } | null>(null);
+
+  React.useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const compute = () => {
+      const rect = el.getBoundingClientRect();
+      const w = Math.max(0, rect.width);
+      const h = Math.max(0, rect.height);
+      if (w === 0 || h === 0) return;
+
+      const cs = window.getComputedStyle(el);
+      // SeatPanel uses a single borderRadius value; read computed px.
+      const rPx = Number.parseFloat(cs.borderTopLeftRadius || '0') || 0;
+      const borderW = Number.parseFloat(cs.borderTopWidth || '0') || 0;
+
+      const minDim = Math.max(1, Math.min(w, h));
+      // Stroke adapts to seat size (keeps the ring visually consistent).
+      const stroke = Math.max(3, Math.min(6, Math.round(minDim * 0.06)));
+      // We want the ring to visually hug the seat border. Using borderW/2 allows
+      // a tiny overrun (since stroke is thicker than the border) which we clip.
+      const inset = Math.max(0, borderW / 2);
+      const maxR = Math.max(0, Math.min((w - inset * 2) / 2, (h - inset * 2) / 2));
+      const r = Math.max(0, Math.min(rPx, maxR));
+      const clipR = Math.max(0, Math.min(rPx, w / 2, h / 2));
+
+      setRingGeom((prev) => {
+        if (
+          prev &&
+          Math.abs(prev.w - w) < 0.5 &&
+          Math.abs(prev.h - h) < 0.5 &&
+          Math.abs(prev.r - r) < 0.5 &&
+          Math.abs(prev.inset - inset) < 0.5 &&
+          Math.abs(prev.clipR - clipR) < 0.5 &&
+          Math.abs(prev.stroke - stroke) < 0.5
+        ) {
+          return prev;
+        }
+        return { w, h, r, inset, clipR, stroke };
+      });
+    };
+
+    compute();
+    const ro = new ResizeObserver(() => compute());
+    ro.observe(el);
+
+    return () => ro.disconnect();
+  }, [highlight]);
+
+  const ringPathD = React.useMemo(() => {
+    if (!ringGeom) return null;
+    const { w, h, r, inset } = ringGeom;
+
+    const left = inset;
+    const top = inset;
+    const right = w - inset;
+    const bottom = h - inset;
+
+    const rr = Math.max(0, Math.min(r, (right - left) / 2, (bottom - top) / 2));
+    const startX = w / 2;
+
+    // Start at top-center so the countdown feels consistent.
+    return [
+      `M ${startX} ${top}`,
+      `H ${right - rr}`,
+      `A ${rr} ${rr} 0 0 1 ${right} ${top + rr}`,
+      `V ${bottom - rr}`,
+      `A ${rr} ${rr} 0 0 1 ${right - rr} ${bottom}`,
+      `H ${left + rr}`,
+      `A ${rr} ${rr} 0 0 1 ${left} ${bottom - rr}`,
+      `V ${top + rr}`,
+      `A ${rr} ${rr} 0 0 1 ${left + rr} ${top}`,
+      `H ${startX}`,
+    ].join(' ');
+  }, [ringGeom]);
+
+  React.useEffect(() => {
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    if (!highlight) return;
+    if (typeof turnEndsAt !== 'number' || typeof turnDurationMs !== 'number') return;
+    if (!ringPathD) return;
+
+    const skew = typeof clockSkewMs === 'number' ? clockSkewMs : 0;
+
+    const tick = () => {
+      const path = ringPathRef.current;
+      if (!path) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const now = Date.now() + skew;
+      const remaining = turnEndsAt - now;
+      const progress = Math.max(0, Math.min(1, remaining / Math.max(1, turnDurationMs)));
+
+      path.setAttribute('stroke-dashoffset', `${(1 - progress) * 100}`);
+      path.setAttribute('stroke', `hsl(${Math.round(progress * 120)}, 92%, 54%)`);
+
+      if (remaining > 0) rafRef.current = requestAnimationFrame(tick);
+      else rafRef.current = null;
+    };
+
+    tick();
+    return () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [highlight, turnEndsAt, turnDurationMs, clockSkewMs, ringPathD]);
+
   return (
-    <div style={{ ...baseStyle, ...posStyle }}>
+    <div ref={containerRef} style={{ ...baseStyle, ...posStyle }}>
+      {highlight &&
+        typeof turnEndsAt === 'number' &&
+        typeof turnDurationMs === 'number' &&
+        ringGeom &&
+        ringPathD && (
+          <svg
+            className="seat-timer-ring"
+            viewBox={`0 0 ${ringGeom.w} ${ringGeom.h}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+            style={{
+              overflow: 'visible',
+              clipPath: `inset(0 round ${ringGeom.clipR}px)`,
+              WebkitClipPath: `inset(0 round ${ringGeom.clipR}px)`,
+            }}
+          >
+            {/* Rounded-rect perimeter path starting at top-center (no rotation => no distortion) */}
+            <path
+              d={ringPathD}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.14)"
+              strokeWidth={ringGeom.stroke}
+              strokeLinejoin="round"
+            />
+            <path
+              ref={ringPathRef}
+              d={ringPathD}
+              fill="none"
+              stroke="hsl(120, 92%, 54%)"
+              strokeWidth={ringGeom.stroke}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              pathLength="100"
+              strokeDasharray="100"
+              strokeDashoffset="0"
+            />
+          </svg>
+        )}
       {speaking && (
         <div
           className="soundboard-speaking"

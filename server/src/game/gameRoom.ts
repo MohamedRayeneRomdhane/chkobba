@@ -7,6 +7,7 @@ import {
   TEAM_FOR_SEAT,
   PlayerProfile,
   RoomSnapshot,
+  TurnInfo,
 } from '../../../shared/types';
 import { createDeck, shuffle } from './deck';
 import { applyMove } from './rules';
@@ -20,6 +21,9 @@ export class GameRoomManager {
   private cardsLeftInCurrentDeal: Map<string, number> = new Map(); // counts down per player turns in a 3-card deal
   private profiles: Map<string, PlayerProfile> = new Map(); // key: socketId
   private replayVotes: Map<string, Set<string>> = new Map(); // roomCode -> socketIds who clicked replay
+  private roomTurn: Map<string, TurnInfo> = new Map();
+  private roomTurnTimeout: Map<string, NodeJS.Timeout> = new Map();
+  private static readonly TURN_DURATION_MS = 60_000;
   private avatarPool: string[] = [
     '/assets/avatars/avatar1.png',
     '/assets/avatars/avatar2.png',
@@ -55,9 +59,19 @@ export class GameRoomManager {
     const room = this.rooms.get(code);
     if (!room) throw new Error('Room not found');
     if (room.players.includes(socket.id)) return room;
-    if (room.players.length >= 4) throw new Error('Room full');
+
+    const existingSeat = room.seats.findIndex((s) => s === socket.id);
+    if (existingSeat >= 0) return room;
+
+    const openSeat = room.seats.findIndex((s) => s == null);
+    // If no seats are open, disallow joining.
+    if (openSeat < 0) throw new Error('Room full');
+
     room.players.push(socket.id);
-    console.log(`[manager] joinRoom ${code} player=${socket.id} count=${room.players.length}`);
+    room.seats[openSeat] = socket.id;
+    console.log(
+      `[manager] joinRoom ${code} player=${socket.id} seat=${openSeat} count=${room.players.length}`
+    );
     // The socket joins the room in the HTTP/Socket handler; avoid joining all sockets globally here.
 
     // ensure profile exists with defaults
@@ -69,11 +83,24 @@ export class GameRoomManager {
       this.profiles.set(socket.id, { socketId: socket.id, nickname, avatar });
     }
 
-    // assign seat when 4 joined
-    if (room.players.length === 4) {
-      room.seats = [...room.players];
+    // start a new game once all seats are filled (first time)
+    if (!room.gameState && room.seats.every((s) => s != null)) {
       console.log(`[manager] seats filled for ${code} -> starting game`);
       this.startGame(room);
+    }
+
+    // If game already running, send the current state to the joining socket.
+    if (room.gameState) {
+      socket.emit('game:start', room.gameState);
+      const turn = this.roomTurn.get(code);
+      if (turn) {
+        socket.emit('game:turnTimer', {
+          currentPlayerIndex: room.gameState.currentPlayerIndex,
+          endsAt: turn.endsAt,
+          durationMs: turn.durationMs,
+          serverNow: Date.now(),
+        });
+      }
     }
     this.emitRoomSnapshot(code);
     return room;
@@ -124,22 +151,161 @@ export class GameRoomManager {
     // 3 cards per player in a deal => 12 total turns per deal
     this.cardsLeftInCurrentDeal.set(room.code, 12);
     this.io.to(room.code).emit('game:start', room.gameState);
+    this.startTurnTimer(room.code, room);
     this.emitRoomSnapshot(room.code);
   }
 
-  handlePlay(code: string, socketId: string, playedCardId: string, combo?: string[]) {
-    const room = this.rooms.get(code);
-    if (!room || !room.gameState) throw new Error('Room not ready');
-    const seatIndex = room.seats.findIndex((s) => s === socketId) as PlayerIndex;
-    if (seatIndex !== room.gameState.currentPlayerIndex) {
-      console.warn(
-        `[manager] Not your turn socket=${socketId} seat=${seatIndex} current=${room.gameState.currentPlayerIndex}`
-      );
-      throw new Error('Not your turn');
+  handleDisconnect(socketId: string) {
+    for (const [code, room] of this.rooms) {
+      if (!room.players.includes(socketId) && !room.seats.includes(socketId)) continue;
+
+      room.players = room.players.filter((p) => p !== socketId);
+      let vacatedSeat: PlayerIndex | null = null;
+      for (let i = 0; i < room.seats.length; i++) {
+        if (room.seats[i] === socketId) {
+          room.seats[i] = null;
+          vacatedSeat = i as PlayerIndex;
+        }
+      }
+
+      // If we were waiting for replay, update total.
+      const votes = this.replayVotes.get(code);
+      if (votes) {
+        this.io.to(code).emit('game:replayStatus', { count: votes.size, total: room.players.length });
+      }
+
+      this.emitRoomSnapshot(code);
+
+      // If it's now a vacant seat's turn, auto-play immediately.
+      if (room.gameState) {
+        const cur = room.gameState.currentPlayerIndex;
+        if (room.seats[cur] == null) {
+          this.maybeAutoPlayVacantTurns(code, room);
+        } else if (vacatedSeat != null && cur === vacatedSeat) {
+          // Turn owner disconnected but seat is now empty
+          this.maybeAutoPlayVacantTurns(code, room);
+        }
+      }
     }
-    console.log(
-      `[manager] handlePlay code=${code} seat=${seatIndex} card=${playedCardId} combo=${combo?.join(',') ?? '-'}`
-    );
+  }
+
+  private startTurnTimer(code: string, room: RoomInfo) {
+    if (!room.gameState) return;
+
+    const existing = this.roomTurnTimeout.get(code);
+    if (existing) {
+      clearTimeout(existing);
+      this.roomTurnTimeout.delete(code);
+    }
+
+    const endsAt = Date.now() + GameRoomManager.TURN_DURATION_MS;
+    const turn: TurnInfo = { endsAt, durationMs: GameRoomManager.TURN_DURATION_MS };
+    this.roomTurn.set(code, turn);
+    room.turn = turn;
+
+    this.io.to(code).emit('game:turnTimer', {
+      currentPlayerIndex: room.gameState.currentPlayerIndex,
+      endsAt,
+      durationMs: GameRoomManager.TURN_DURATION_MS,
+      serverNow: Date.now(),
+    });
+
+    const expectedPlayer = room.gameState.currentPlayerIndex;
+    const timeout = setTimeout(() => {
+      this.handleTurnTimeout(code, expectedPlayer, endsAt);
+    }, GameRoomManager.TURN_DURATION_MS + 50);
+    this.roomTurnTimeout.set(code, timeout);
+  }
+
+  private handleTurnTimeout(code: string, expectedPlayer: PlayerIndex, expectedEndsAt: number) {
+    const room = this.rooms.get(code);
+    if (!room?.gameState) return;
+
+    const cur = room.gameState.currentPlayerIndex;
+    const turn = this.roomTurn.get(code);
+    if (!turn || turn.endsAt !== expectedEndsAt) return; // stale
+    if (cur !== expectedPlayer) return; // already advanced
+
+    const played = this.autoPlayRandom(code, room, cur, 'timeout');
+    if (played) return;
+
+    // Fallback: if we couldn't play (e.g., empty hand), force progress to avoid deadlock.
+    const allEmpty = room.gameState.hands.every((h) => h.length === 0);
+    if (allEmpty) {
+      this.cardsLeftInCurrentDeal.set(code, 0);
+      this.nextDealOrEndRound(code, room);
+      this.io.to(code).emit('game:update', room.gameState);
+    } else {
+      room.gameState.currentPlayerIndex = (((cur + 1) % 4) as PlayerIndex);
+      this.io.to(code).emit('game:update', room.gameState);
+    }
+
+    if (room.seats[room.gameState.currentPlayerIndex] == null) {
+      this.maybeAutoPlayVacantTurns(code, room);
+      return;
+    }
+
+    this.startTurnTimer(code, room);
+    this.emitRoomSnapshot(code);
+  }
+
+  private maybeAutoPlayVacantTurns(code: string, room: RoomInfo) {
+    if (!room.gameState) return;
+    // Guard against runaway loops in corrupted states.
+    for (let i = 0; i < 8; i++) {
+      const cur = room.gameState.currentPlayerIndex;
+      if (room.seats[cur] != null) {
+        this.startTurnTimer(code, room);
+        this.emitRoomSnapshot(code);
+        return;
+      }
+      // Seat is empty; play a random card immediately.
+      const hand = room.gameState.hands[cur];
+      if (!hand || hand.length === 0) {
+        // Can't play; just advance to avoid deadlock.
+        room.gameState.currentPlayerIndex = (((cur + 1) % 4) as PlayerIndex);
+        continue;
+      }
+      const played = this.autoPlayRandom(code, room, cur, 'vacant');
+      if (!played) {
+        room.gameState.currentPlayerIndex = (((cur + 1) % 4) as PlayerIndex);
+        continue;
+      }
+      // autoPlayRandom emits update and advances turn; continue if next is also vacant.
+    }
+  }
+
+  private autoPlayRandom(
+    code: string,
+    room: RoomInfo,
+    seatIndex: PlayerIndex,
+    reason: 'timeout' | 'vacant'
+  ): boolean {
+    if (!room.gameState) return false;
+    const hand = room.gameState.hands[seatIndex];
+    if (!hand || hand.length === 0) return false;
+
+    const card = hand[Math.floor(Math.random() * hand.length)];
+    if (!card) return false;
+
+    console.log(`[manager] autoPlay (${reason}) code=${code} seat=${seatIndex} card=${card.id}`);
+    try {
+      this.applyPlayInternal(code, room, seatIndex, card.id, undefined);
+      return true;
+    } catch (e) {
+      console.error(`[manager] autoPlay (${reason}) failed code=${code} seat=${seatIndex}`, e);
+      return false;
+    }
+  }
+
+  private applyPlayInternal(
+    code: string,
+    room: RoomInfo,
+    seatIndex: PlayerIndex,
+    playedCardId: string,
+    combo?: string[]
+  ) {
+    if (!room.gameState) throw new Error('Room not ready');
 
     const res = applyMove(room.gameState, seatIndex, playedCardId, combo);
 
@@ -177,7 +343,31 @@ export class GameRoomManager {
     }
 
     this.io.to(code).emit('game:update', room.gameState);
+
+    // If next player seat is vacant, immediately auto-play (don't wait 120s).
+    if (room.seats[room.gameState.currentPlayerIndex] == null) {
+      this.maybeAutoPlayVacantTurns(code, room);
+      return;
+    }
+
+    this.startTurnTimer(code, room);
     this.emitRoomSnapshot(code);
+  }
+
+  handlePlay(code: string, socketId: string, playedCardId: string, combo?: string[]) {
+    const room = this.rooms.get(code);
+    if (!room || !room.gameState) throw new Error('Room not ready');
+    const seatIndex = room.seats.findIndex((s) => s === socketId) as PlayerIndex;
+    if (seatIndex !== room.gameState.currentPlayerIndex) {
+      console.warn(
+        `[manager] Not your turn socket=${socketId} seat=${seatIndex} current=${room.gameState.currentPlayerIndex}`
+      );
+      throw new Error('Not your turn');
+    }
+    console.log(
+      `[manager] handlePlay code=${code} seat=${seatIndex} card=${playedCardId} combo=${combo?.join(',') ?? '-'}`
+    );
+    this.applyPlayInternal(code, room, seatIndex, playedCardId, combo);
   }
 
   private nextDealOrEndRound(code: string, room: RoomInfo) {
@@ -256,6 +446,7 @@ export class GameRoomManager {
       this.roomDealerIndex.set(code, 0);
       this.cardsLeftInCurrentDeal.set(code, 12);
       this.io.to(code).emit('game:start', room.gameState);
+      this.startTurnTimer(code, room);
       this.emitRoomSnapshot(code);
     }
   }
@@ -300,6 +491,10 @@ export class GameRoomManager {
     this.roomDealerIndex.delete(code);
     this.cardsLeftInCurrentDeal.delete(code);
     this.replayVotes.delete(code);
+    this.roomTurn.delete(code);
+    const t = this.roomTurnTimeout.get(code);
+    if (t) clearTimeout(t);
+    this.roomTurnTimeout.delete(code);
   }
 
   setProfile(socketId: string, payload: Partial<PlayerProfile>) {
@@ -332,7 +527,8 @@ export class GameRoomManager {
       const p = this.profiles.get(sid);
       if (p) profiles[sid] = p;
     }
-    const snapshot: RoomSnapshot = { ...room, profiles };
+    const turn = this.roomTurn.get(code);
+    const snapshot: RoomSnapshot = { ...room, turn: turn ?? room.turn, profiles };
     // Emit snapshot for all clients; also emit a legacy 'room:update' for compatibility
     this.io.to(code).emit('room:snapshot', snapshot);
     this.io.to(code).emit('room:update', snapshot);
