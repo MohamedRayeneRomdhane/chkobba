@@ -63,10 +63,33 @@ export default function App() {
   const [selectedTableIds, setSelectedTableIds] = React.useState<string[]>([]);
   const [handGhostIndex, setHandGhostIndex] = React.useState<number | null>(null);
   const [roomCodeInput, setRoomCodeInput] = React.useState('');
+  const [joinWarning, setJoinWarning] = React.useState<string | null>(null);
   const roomCodeInputRefMobile = React.useRef<HTMLInputElement | null>(null);
   const roomCodeInputRefDesktop = React.useRef<HTMLInputElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const phoneLandscape = usePhoneLandscape();
+
+  const normalizeRoomCode = React.useCallback((raw: string) => raw.trim().toUpperCase(), []);
+
+  const joinWithWarning = React.useCallback(
+    async (rawCode: string, opts?: { closeMobileMenuOnSuccess?: boolean }) => {
+      const code = normalizeRoomCode(rawCode);
+      if (!code) return;
+
+      setJoinWarning(null);
+      const res = await join(code);
+      if (res.ok) {
+        if (opts?.closeMobileMenuOnSuccess) setMobileMenuOpen(false);
+        return;
+      }
+
+      const msg = (res.msg || '').toLowerCase();
+      if (msg.includes('room full')) setJoinWarning('This room is full (4/4).');
+      else if (msg.includes('room not found')) setJoinWarning('No room found for that code.');
+      else setJoinWarning(res.msg || 'Could not join that room.');
+    },
+    [join, normalizeRoomCode]
+  );
 
   const { play: playTimerWarn, stop: stopTimerWarn } = useSound('/assets/soundeffects/Timer.mp3', {
     volume: 0.45,
@@ -337,8 +360,10 @@ export default function App() {
                         type="button"
                         className="w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white"
                         onClick={() => {
-                          setMobileMenuOpen(false);
-                          createRoom().then((code) => join(code));
+                          setJoinWarning(null);
+                          createRoom().then((code) =>
+                            joinWithWarning(code, { closeMobileMenuOnSuccess: true })
+                          );
                         }}
                       >
                         Create & Join
@@ -365,14 +390,15 @@ export default function App() {
                               className="input"
                               required
                               value={roomCodeInput}
-                              onChange={(e) => setRoomCodeInput(e.currentTarget.value)}
+                              onChange={(e) => {
+                                setRoomCodeInput(e.currentTarget.value);
+                                if (joinWarning) setJoinWarning(null);
+                              }}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                  const code = roomCodeInput.trim();
-                                  if (code) {
-                                    setMobileMenuOpen(false);
-                                    join(code);
-                                  }
+                                  void joinWithWarning(roomCodeInput, {
+                                    closeMobileMenuOnSuccess: true,
+                                  });
                                 }
                               }}
                               inputMode="text"
@@ -386,14 +412,19 @@ export default function App() {
                           </div>
                         </div>
 
+                        {joinWarning && (
+                          <div className="mt-2 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+                            {joinWarning}
+                          </div>
+                        )}
+
                         <button
                           type="button"
                           className="btn btn--azure w-full justify-center mt-2"
                           onClick={() => {
-                            const code = roomCodeInput.trim();
-                            if (!code) return;
-                            setMobileMenuOpen(false);
-                            join(code);
+                            void joinWithWarning(roomCodeInput, {
+                              closeMobileMenuOnSuccess: true,
+                            });
                           }}
                         >
                           Join
@@ -435,7 +466,10 @@ export default function App() {
             <div className="header-controls-desktop hidden sm:flex items-center gap-4">
               <button
                 className="btn btn--mint"
-                onClick={() => createRoom().then((code) => join(code))}
+                onClick={() => {
+                  setJoinWarning(null);
+                  createRoom().then((code) => joinWithWarning(code));
+                }}
               >
                 Create & Join
               </button>
@@ -449,7 +483,10 @@ export default function App() {
                     className="input"
                     required
                     value={roomCodeInput}
-                    onChange={(e) => setRoomCodeInput(e.currentTarget.value)}
+                    onChange={(e) => {
+                      setRoomCodeInput(e.currentTarget.value);
+                      if (joinWarning) setJoinWarning(null);
+                    }}
                     inputMode="text"
                     autoCapitalize="characters"
                     autoCorrect="off"
@@ -464,12 +501,17 @@ export default function App() {
               <button
                 className="btn btn--azure"
                 onClick={() => {
-                  const code = roomCodeInput.trim();
-                  if (code) join(code);
+                  void joinWithWarning(roomCodeInput);
                 }}
               >
                 Join
               </button>
+
+              {joinWarning && (
+                <div className="-mt-1 text-xs text-red-100/90 bg-red-500/10 border border-red-400/30 rounded-lg px-3 py-2">
+                  {joinWarning}
+                </div>
+              )}
 
               <button className="btn btn--desert ml-2" onClick={() => setProfileModalOpen(true)}>
                 <span role="img" aria-label="profile">

@@ -118,12 +118,12 @@ export function useGameSocket() {
       });
   }
   function join(code: string) {
-    return new Promise<boolean>((resolve) => {
-      socket.emit('room:join', code, (ok: boolean) => {
+    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
+      socket.emit('room:join', code, (ok: boolean, msg?: string) => {
         if (ok) {
           setRoomCode(code);
         }
-        resolve(ok);
+        resolve({ ok, msg });
       });
     });
   }
