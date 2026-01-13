@@ -921,38 +921,132 @@ export default function App() {
                     </div>
 
                     {soundboardOpen && roomCode && soundboardOverlayPos && (
-                      <div
-                        className="fixed -translate-x-1/2 w-[min(92vw,260px)] max-h-[40vh] overflow-auto rounded-xl border border-gray-200 bg-white/95 shadow-lg p-2 z-[260]"
-                        style={{
-                          left: soundboardOverlayPos.left,
-                          bottom: soundboardOverlayPos.bottom,
-                        }}
-                      >
-                        <div className="text-xs font-semibold text-gray-700 px-2 py-1">
-                          Soundboard
-                        </div>
-                        {SOUNDBOARD_SOUNDS.length === 0 ? (
-                          <div className="px-2 py-2 text-xs text-gray-600">
-                            Add audio files to{' '}
-                            <span className="font-mono">client/public/assets/soundboard</span>
+                      <>
+                        {/* Backdrop (helps focus + consistent close) */}
+                        <div
+                          className="fixed inset-0 z-[255] bg-transparent"
+                          onClick={() => setSoundboardOpen(false)}
+                          aria-hidden
+                        />
+
+                        {/* Mobile: bottom sheet */}
+                        <div className="sm:hidden fixed inset-x-0 bottom-0 z-[260]">
+                          <div className="mx-auto max-w-[640px]">
+                            <div className="rounded-t-3xl border-t border-x border-white/15 bg-tableWood-dark/95 backdrop-blur-sm shadow-caféGlow text-white">
+                              <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                                <div>
+                                  <div className="text-sm font-semibold tracking-wide">
+                                    Soundboard
+                                  </div>
+                                  <div className="text-[11px] text-white/70">
+                                    Tap a sound to send it
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-1.5 text-xs"
+                                  onClick={() => setSoundboardOpen(false)}
+                                  aria-label="Close soundboard"
+                                >
+                                  Close
+                                </button>
+                              </div>
+                              <div className="px-4 pb-4 max-h-[55svh] overflow-auto">
+                                {SOUNDBOARD_SOUNDS.length === 0 ? (
+                                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/85">
+                                    Add audio files to{' '}
+                                    <span className="font-mono">
+                                      client/public/assets/soundboard
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {SOUNDBOARD_SOUNDS.map((s) => (
+                                      <button
+                                        key={s.file}
+                                        type="button"
+                                        className="group rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 px-3 py-2 text-left"
+                                        onClick={() => {
+                                          void playSoundboard(roomCode, s.file);
+                                          setSoundboardOpen(false);
+                                        }}
+                                      >
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className="text-[13px] font-semibold truncate">
+                                            {s.label}
+                                          </span>
+                                          <img
+                                            src="/assets/icons/play.ico"
+                                            alt="Play"
+                                            className="w-4 h-4 opacity-90 group-hover:opacity-100"
+                                          />
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        ) : (
-                          SOUNDBOARD_SOUNDS.map((s) => (
+                        </div>
+
+                        {/* Desktop: anchored popover near the seat */}
+                        <div
+                          className="hidden sm:block fixed -translate-x-1/2 z-[260] w-[min(360px,34vw)] max-h-[48vh] overflow-hidden rounded-2xl border border-white/15 bg-tableWood-dark/95 backdrop-blur-sm shadow-caféGlow text-white"
+                          style={{
+                            left: soundboardOverlayPos.left,
+                            bottom: soundboardOverlayPos.bottom,
+                          }}
+                        >
+                          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                            <div>
+                              <div className="text-sm font-semibold tracking-wide">Soundboard</div>
+                              <div className="text-[11px] text-white/70">Pick a sound</div>
+                            </div>
                             <button
-                              key={s.file}
                               type="button"
-                              className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-gray-100 text-gray-800"
-                              onClick={() => {
-                                void playSoundboard(roomCode, s.file);
-                                setSoundboardOpen(false);
-                              }}
+                              className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-1.5 text-xs"
+                              onClick={() => setSoundboardOpen(false)}
+                              aria-label="Close soundboard"
                             >
-                              <span className="text-sm font-medium truncate">{s.label}</span>
-                              <img src="/assets/icons/play.ico" alt="Play" className="w-4 h-4" />
+                              ✕
                             </button>
-                          ))
-                        )}
-                      </div>
+                          </div>
+                          <div className="p-3 max-h-[42vh] overflow-auto">
+                            {SOUNDBOARD_SOUNDS.length === 0 ? (
+                              <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/85">
+                                Add audio files to{' '}
+                                <span className="font-mono">client/public/assets/soundboard</span>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {SOUNDBOARD_SOUNDS.map((s) => (
+                                  <button
+                                    key={s.file}
+                                    type="button"
+                                    className="group rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 px-3 py-2 text-left"
+                                    onClick={() => {
+                                      void playSoundboard(roomCode, s.file);
+                                      setSoundboardOpen(false);
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-[13px] font-semibold truncate">
+                                        {s.label}
+                                      </span>
+                                      <img
+                                        src="/assets/icons/play.ico"
+                                        alt="Play"
+                                        className="w-4 h-4 opacity-90 group-hover:opacity-100"
+                                      />
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>

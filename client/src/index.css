@@ -43,6 +43,28 @@
     drop-shadow(0 0 10px rgba(255, 255, 255, 0.06));
 }
 
+/* Scoreboard: make the left-corner pill vertical on portrait phones */
+@media (max-width: 640px) and (orientation: portrait) {
+  .scoreboard-pill {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 6px 8px;
+    border-radius: 14px;
+  }
+
+  .scoreboard-pill__scores {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .scoreboard-pill__sep,
+  .scoreboard-pill__chev {
+    display: none;
+  }
+}
+
 .replay-btn {
   position: relative;
   height: 50px;
