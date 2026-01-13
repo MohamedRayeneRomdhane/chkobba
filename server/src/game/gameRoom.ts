@@ -23,7 +23,12 @@ export class GameRoomManager {
   private replayVotes: Map<string, Set<string>> = new Map(); // roomCode -> socketIds who clicked replay
   private pendingNextRound: Map<
     string,
-    { gameState: GameState; remainingDeck: Card[]; dealerIndex: PlayerIndex; cardsLeftInDeal: number }
+    {
+      gameState: GameState;
+      remainingDeck: Card[];
+      dealerIndex: PlayerIndex;
+      cardsLeftInDeal: number;
+    }
   > = new Map();
   private roomTurn: Map<string, TurnInfo> = new Map();
   private roomTurnTimeout: Map<string, NodeJS.Timeout> = new Map();
@@ -189,7 +194,10 @@ export class GameRoomManager {
         votes.delete(socketId);
         this.io
           .to(code)
-          .emit('game:replayStatus', { count: votes.size, total: GameRoomManager.REPLAY_VOTES_REQUIRED });
+          .emit('game:replayStatus', {
+            count: votes.size,
+            total: GameRoomManager.REPLAY_VOTES_REQUIRED,
+          });
       }
 
       this.emitRoomSnapshot(code);
@@ -267,7 +275,7 @@ export class GameRoomManager {
       this.nextDealOrEndRound(code, room);
       this.io.to(code).emit('game:update', room.gameState);
     } else {
-      room.gameState.currentPlayerIndex = (((cur + 1) % 4) as PlayerIndex);
+      room.gameState.currentPlayerIndex = ((cur + 1) % 4) as PlayerIndex;
       this.io.to(code).emit('game:update', room.gameState);
     }
 
@@ -294,12 +302,12 @@ export class GameRoomManager {
       const hand = room.gameState.hands[cur];
       if (!hand || hand.length === 0) {
         // Can't play; just advance to avoid deadlock.
-        room.gameState.currentPlayerIndex = (((cur + 1) % 4) as PlayerIndex);
+        room.gameState.currentPlayerIndex = ((cur + 1) % 4) as PlayerIndex;
         continue;
       }
       const played = this.autoPlayRandom(code, room, cur, 'vacant');
       if (!played) {
-        room.gameState.currentPlayerIndex = (((cur + 1) % 4) as PlayerIndex);
+        room.gameState.currentPlayerIndex = ((cur + 1) % 4) as PlayerIndex;
         continue;
       }
       // autoPlayRandom emits update and advances turn; continue if next is also vacant.
@@ -575,7 +583,6 @@ export class GameRoomManager {
 
     this.emitRoomSnapshot(code);
   }
-
 
   quitRoom(code: string, socketId: string) {
     const room = this.rooms.get(code);

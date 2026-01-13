@@ -6,8 +6,6 @@ import PlayerHand from './components/PlayerHand';
 import OpponentHand from './components/OpponentHand';
 import SeatPanel from './components/SeatPanel';
 import CoffeeProp from './components/CoffeeProp';
-import ChichaProp from './components/ChichaProp';
-import CigarettesProp from './components/CigarettesProp';
 import ScoreBoard from './components/ScoreBoard';
 import { useGameSocket } from './game/useGameSocket';
 import EndOverlay from './components/EndOverlay';
@@ -559,29 +557,17 @@ export default function App() {
             <span>© Chkobba Café</span>
             <span className="hidden sm:inline">• Made for friendly games</span>
             <span className="hidden sm:inline">•</span>
-            <button
-              type="button"
-              className="underline hover:no-underline"
-              onClick={() => openLegal('privacy')}
-            >
+            <a className="underline hover:no-underline" href="/privacy.html">
               Privacy
-            </button>
+            </a>
             <span>•</span>
-            <button
-              type="button"
-              className="underline hover:no-underline"
-              onClick={() => openLegal('terms')}
-            >
+            <a className="underline hover:no-underline" href="/terms.html">
               Terms
-            </button>
+            </a>
             <span>•</span>
-            <button
-              type="button"
-              className="underline hover:no-underline"
-              onClick={() => openLegal('contact')}
-            >
+            <a className="underline hover:no-underline" href="/contact.html">
               Contact
-            </button>
+            </a>
             <span>•</span>
             <button
               type="button"
@@ -902,8 +888,6 @@ export default function App() {
 
               {/* Props */}
               <CoffeeProp />
-              <ChichaProp />
-              <CigarettesProp />
 
               {/* Scoreboard */}
               <ScoreBoard
