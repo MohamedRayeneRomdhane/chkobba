@@ -149,7 +149,7 @@ function Flight({ spec, onEnd }: { spec: FlightSpec; onEnd: () => void }) {
         onEndRef.current();
       }
     };
-  }, [spec.id, spec.from, spec.to, spec.durationMs]);
+  }, [spec.id, spec.from, spec.to, spec.durationMs, spec.easing]);
 
   return (
     <div
