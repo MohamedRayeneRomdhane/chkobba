@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePhoneLandscape } from '../hooks/usePhoneLandscape';
 
 type Props = {
   headerRight?: React.ReactNode;
@@ -8,26 +9,78 @@ type Props = {
 };
 
 export default function Layout({ headerRight, children, footerLeft, footerRight }: Props) {
-  const [phoneLandscape, setPhoneLandscape] = React.useState(false);
+  const phoneLandscape = usePhoneLandscape();
   const [headerCollapsed, setHeaderCollapsed] = React.useState(false);
-
-  React.useEffect(() => {
-    const mq = window.matchMedia('(max-height: 500px) and (orientation: landscape)');
-    const update = () => setPhoneLandscape(mq.matches);
-    update();
-
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', update);
-      return () => mq.removeEventListener('change', update);
-    }
-
-    mq.addListener(update);
-    return () => mq.removeListener(update);
-  }, []);
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     if (phoneLandscape) setHeaderCollapsed(true);
     else setHeaderCollapsed(false);
+  }, [phoneLandscape]);
+
+  // Phone-landscape: ensure we don't stop between sections (game/tutorial).
+  // Some mobile browsers are inconsistent with CSS scroll snapping, so we enforce it on scroll end.
+  React.useEffect(() => {
+    if (!phoneLandscape) return;
+    const root = scrollRef.current;
+    if (!root) return;
+
+    let raf: number | null = null;
+    let lastPos = root.scrollTop;
+    let stableFrames = 0;
+    let lastSnappedTop: number | null = null;
+
+    const snapToNearest = (cur: number) => {
+      const sections = Array.from(root.querySelectorAll<HTMLElement>('.app-section'));
+      if (sections.length === 0) return;
+      let best = sections[0];
+      let bestDist = Math.abs(sections[0].offsetTop - cur);
+
+      for (const s of sections) {
+        const d = Math.abs(s.offsetTop - cur);
+        if (d < bestDist) {
+          bestDist = d;
+          best = s;
+        }
+      }
+
+      const targetTop = best.offsetTop;
+      if (lastSnappedTop != null && Math.abs(lastSnappedTop - targetTop) < 2) return;
+      lastSnappedTop = targetTop;
+
+      // If we're already close, don't fight the user.
+      if (Math.abs(cur - targetTop) < 8) return;
+
+      root.scrollTo({ top: targetTop, behavior: 'smooth' });
+    };
+
+    const tick = () => {
+      const cur = root.scrollTop;
+      if (Math.abs(cur - lastPos) < 0.5) stableFrames += 1;
+      else stableFrames = 0;
+      lastPos = cur;
+
+      // Wait until scrolling inertia settles (a few stable frames).
+      if (stableFrames >= 8) {
+        raf = null;
+        stableFrames = 0;
+        snapToNearest(cur);
+        return;
+      }
+
+      raf = window.requestAnimationFrame(tick);
+    };
+
+    const onScroll = () => {
+      stableFrames = 0;
+      if (raf == null) raf = window.requestAnimationFrame(tick);
+    };
+
+    root.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      if (raf != null) window.cancelAnimationFrame(raf);
+      root.removeEventListener('scroll', onScroll);
+    };
   }, [phoneLandscape]);
 
   return (
@@ -78,7 +131,10 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
 
         {/* Main game area: centered; bottom padding matches footer height */}
         <main className="flex-1 min-h-0 flex items-stretch justify-center p-0 sm:p-3 overflow-hidden">
-          <div className="w-full h-full min-h-0 max-w-full sm:max-w-[min(1600px,95vw)] mx-auto overflow-y-auto overflow-x-hidden sm:snap-y sm:snap-mandatory scroll-smooth motion-reduce:scroll-auto">
+          <div
+            ref={scrollRef}
+            className="app-scroll w-full h-full min-h-0 max-w-full sm:max-w-[min(1600px,95vw)] mx-auto overflow-y-auto overflow-x-hidden sm:snap-y sm:snap-mandatory scroll-smooth motion-reduce:scroll-auto"
+          >
             {children}
           </div>
         </main>

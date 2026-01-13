@@ -82,6 +82,33 @@ io.on('connection', (socket) => {
   );
 
   socket.on(
+    'team:rename',
+    (
+      payload: { code: string; teamIndex: 0 | 1; name: string },
+      ack?: (_ok: boolean, _msg?: string) => void
+    ) => {
+      try {
+        manager.renameTeam(payload.code, socket.id, payload.teamIndex, payload.name);
+        ack?.(true);
+      } catch (e: unknown) {
+        ack?.(false, (e as Error)?.message || 'rename failed');
+      }
+    }
+  );
+
+  socket.on(
+    'game:soundboard',
+    (payload: { code: string; soundFile: string }, ack?: (_ok: boolean, _msg?: string) => void) => {
+      try {
+        manager.playSoundboard(payload.code, socket.id, payload.soundFile);
+        ack?.(true);
+      } catch (e: unknown) {
+        ack?.(false, (e as Error)?.message || 'soundboard failed');
+      }
+    }
+  );
+
+  socket.on(
     'room:quit',
     (payload: { code: string }, ack?: (_ok: boolean, _msg?: string) => void) => {
       try {
@@ -97,6 +124,11 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', (reason) => {
     console.log(`[socket] disconnected ${socket.id} reason=${reason}`);
+    try {
+      manager.handleDisconnect(socket.id);
+    } catch (e: unknown) {
+      console.error(`[disconnect:manager:error] ${socket.id}`, e);
+    }
   });
 });
 

@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GameState, PlayerIndex, RoomSnapshot } from '../types';
+import type { SoundboardSoundFile } from '../lib/soundboard';
 
 // Resolve server URL: prefer env, fallback to localhost in dev, else Render
 const env = (import.meta as unknown as { env: { VITE_SERVER_URL?: string; DEV?: boolean } }).env;
@@ -16,9 +17,16 @@ export function useGameSocket() {
     null
   );
   const [replayWaiting, setReplayWaiting] = useState<{ count: number; total: number } | null>(null);
+  const [soundboardEvent, setSoundboardEvent] = useState<{
+    seatIndex: PlayerIndex;
+    soundFile: SoundboardSoundFile;
+    t: number;
+  } | null>(null);
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [mySeat, setMySeat] = useState<PlayerIndex | null>(null);
   const [dealTick, setDealTick] = useState<number>(0);
+  const [turn, setTurn] = useState<{ endsAt: number; durationMs: number } | null>(null);
+  const [clockSkewMs, setClockSkewMs] = useState<number>(0);
   const socketRef = useRef<Socket | null>(null);
 
   const socket = useMemo(() => {
@@ -33,11 +41,13 @@ export function useGameSocket() {
     socket.on('disconnect', () => setConnected(false));
     socket.on('room:update', (room: RoomSnapshot) => {
       setSnapshot(room);
+      setTurn(room.turn ?? null);
       const idx = room.seats?.findIndex((s: string | null) => s === socket.id);
       if (idx !== undefined && idx >= 0) setMySeat(idx as PlayerIndex);
     });
     socket.on('room:snapshot', (snap: RoomSnapshot) => {
       setSnapshot(snap);
+      setTurn(snap.turn ?? null);
       const idx = snap.seats?.findIndex((s: string | null) => s === socket.id);
       if (idx !== undefined && idx >= 0) setMySeat(idx as PlayerIndex);
     });
@@ -47,6 +57,20 @@ export function useGameSocket() {
       // Do not clear replayWaiting/banner here; overlay logic will check count vs total
     });
     socket.on('game:update', (state: GameState) => setGameState(state));
+    socket.on(
+      'game:turnTimer',
+      (payload: {
+        currentPlayerIndex: number;
+        endsAt: number;
+        durationMs: number;
+        serverNow?: number;
+      }) => {
+        setTurn({ endsAt: payload.endsAt, durationMs: payload.durationMs });
+        if (typeof payload.serverNow === 'number') {
+          setClockSkewMs(payload.serverNow - Date.now());
+        }
+      }
+    );
     socket.on('game:roundEnd', (payload: { scores: [number, number]; details: unknown }) => {
       setLastRound(payload);
       setRoundBanner(`Round ended • Team A: ${payload.scores[0]} • Team B: ${payload.scores[1]}`);
@@ -56,6 +80,13 @@ export function useGameSocket() {
       setReplayWaiting(payload);
       setRoundBanner(`Waiting for players: ${payload.count}/${payload.total}`);
     });
+    socket.on(
+      'game:soundboard',
+      (payload: { seatIndex: number; soundFile: SoundboardSoundFile }) => {
+        const seatIndex = payload.seatIndex as PlayerIndex;
+        setSoundboardEvent({ seatIndex, soundFile: payload.soundFile, t: Date.now() });
+      }
+    );
     socket.on('room:closed', () => {
       setRoundBanner(null);
       setReplayWaiting(null);
@@ -64,6 +95,8 @@ export function useGameSocket() {
       setSnapshot(null);
       setRoomCode(null);
       setMySeat(null);
+      setTurn(null);
+      setClockSkewMs(0);
     });
     return () => {
       socket.off('connect');
@@ -72,8 +105,10 @@ export function useGameSocket() {
       socket.off('room:snapshot');
       socket.off('game:start');
       socket.off('game:update');
+      socket.off('game:turnTimer');
       socket.off('game:roundEnd');
       socket.off('game:replayStatus');
+      socket.off('game:soundboard');
       socket.off('room:closed');
     };
   }, [socket]);
@@ -88,12 +123,12 @@ export function useGameSocket() {
       });
   }
   function join(code: string) {
-    return new Promise<boolean>((resolve) => {
-      socket.emit('room:join', code, (ok: boolean) => {
+    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
+      socket.emit('room:join', code, (ok: boolean, msg?: string) => {
         if (ok) {
           setRoomCode(code);
         }
-        resolve(ok);
+        resolve({ ok, msg });
       });
     });
   }
@@ -115,6 +150,20 @@ export function useGameSocket() {
     });
   }
 
+  function playSoundboard(code: string, soundFile: SoundboardSoundFile) {
+    return new Promise<boolean>((resolve) => {
+      socket.emit('game:soundboard', { code, soundFile }, (ok: boolean) => resolve(ok));
+    });
+  }
+
+  function renameTeam(code: string, teamIndex: 0 | 1, name: string) {
+    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
+      socket.emit('team:rename', { code, teamIndex, name }, (ok: boolean, msg?: string) =>
+        resolve({ ok, msg })
+      );
+    });
+  }
+
   function quit(code: string) {
     return new Promise<boolean>((resolve) => {
       socket.emit('room:quit', { code }, (ok: boolean) => resolve(ok));
@@ -128,14 +177,19 @@ export function useGameSocket() {
     roundBanner,
     lastRound,
     replayWaiting,
+    soundboardEvent,
     snapshot,
     mySeat,
     dealTick,
+    turn,
+    clockSkewMs,
     createRoom,
     join,
     play,
     setProfile,
     replay,
+    playSoundboard,
+    renameTeam,
     quit,
   };
 }
