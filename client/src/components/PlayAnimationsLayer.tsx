@@ -69,7 +69,7 @@ export default function PlayAnimationsLayer({
   }, []);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[60]" data-flight-layer>
+    <div className="pointer-events-none absolute inset-0 z-[60]" data-flight-layer>
       {active.map((f) => (
         <Flight key={f.id} spec={f} onEnd={() => handleFlightEnd(f.id)} />
       ))}
@@ -88,6 +88,14 @@ function Flight({ spec, onEnd }: { spec: FlightSpec; onEnd: () => void }) {
   React.useEffect(() => {
     const n = nodeRef.current;
     if (!n) return;
+
+    // The flight specs are based on viewport coordinates (getBoundingClientRect).
+    // When the layer is not `fixed`, we convert them into local coordinates.
+    const layer = n.parentElement;
+    const layerRect = layer ? layer.getBoundingClientRect() : null;
+    const ox = layerRect?.left ?? 0;
+    const oy = layerRect?.top ?? 0;
+
     endedRef.current = false;
     const { x: sx, y: sy, w: sw, h: sh } = spec.from;
     const { x: tx, y: ty, w: tw, h: th } = spec.to;
@@ -95,7 +103,7 @@ function Flight({ spec, onEnd }: { spec: FlightSpec; onEnd: () => void }) {
     n.style.transformOrigin = 'top left';
     n.style.backfaceVisibility = 'hidden';
     n.style.transformStyle = 'preserve-3d';
-    n.style.transform = `translate3d(${sx}px, ${sy}px, 0) scale(1)`;
+    n.style.transform = `translate3d(${sx - ox}px, ${sy - oy}px, 0) scale(1)`;
     n.style.width = `${sw}px`;
     n.style.height = `${sh}px`;
     // force reflow
@@ -106,7 +114,7 @@ function Flight({ spec, onEnd }: { spec: FlightSpec; onEnd: () => void }) {
     const scaleY = sh ? th / sh : 1;
     // Slightly snappier ease-out curve for cards
     n.style.transition = `transform ${dur}ms ${spec.easing ?? 'cubic-bezier(0.16, 1, 0.3, 1)'}`;
-    n.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scaleX}, ${scaleY})`;
+    n.style.transform = `translate3d(${tx - ox}px, ${ty - oy}px, 0) scale(${scaleX}, ${scaleY})`;
     const handle = (e: TransitionEvent) => {
       if (e.propertyName === 'transform' && !endedRef.current) {
         endedRef.current = true;

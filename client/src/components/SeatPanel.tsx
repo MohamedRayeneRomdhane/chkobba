@@ -10,6 +10,11 @@ type Props = {
   compact?: boolean;
   dense?: boolean;
   absolute?: boolean;
+  actionIconSrc?: string;
+  actionIconAlt?: string;
+  actionIconTitle?: string;
+  onActionClick?: () => void;
+  speaking?: boolean;
 };
 
 export default function SeatPanel({
@@ -22,10 +27,19 @@ export default function SeatPanel({
   compact,
   dense,
   absolute = true,
+  actionIconSrc,
+  actionIconAlt,
+  actionIconTitle,
+  onActionClick,
+  speaking,
 }: Props) {
   const vertical = position === 'left' || position === 'right';
   const isLeft = position === 'left';
   const isRight = position === 'right';
+  const showAction = !!actionIconSrc && typeof onActionClick === 'function';
+  // Only reserve header space for vertical panels where the action badge/button is overlaid.
+  // Horizontal panels render the action inline (same row), so they don't need extra top padding.
+  const headerPadPx = vertical && (showAction || speaking) ? 30 : 0;
   // Responsive scales using CSS clamp to adapt across screen sizes
   const avatarSize = dense
     ? 'clamp(12px, 2vw, 18px)'
@@ -77,15 +91,16 @@ export default function SeatPanel({
 
   const baseStyle: React.CSSProperties = {
     position: absolute ? 'absolute' : 'relative',
-    display: vertical ? 'flex' : compact ? 'grid' : 'flex',
+    display: vertical ? 'flex' : compact ? (showAction || speaking ? 'flex' : 'grid') : 'flex',
     flexDirection: vertical ? 'column' : undefined,
-    justifyContent: vertical ? 'center' : undefined,
+    justifyContent: vertical ? (headerPadPx ? 'flex-start' : 'center') : undefined,
     gridTemplateColumns: !vertical && compact ? `${avatarSize} auto` : undefined,
     gridAutoFlow: !vertical && compact ? 'column' : undefined,
     alignItems: 'center',
     textAlign: vertical ? 'center' : undefined,
     gap,
     padding: pad,
+    paddingTop: headerPadPx ? `calc(${pad} + ${headerPadPx}px)` : pad,
     borderRadius: radius as unknown as number, // TS accepts string but keep cast for safety
     background: highlight ? 'rgba(255,240,180,0.95)' : 'rgba(255,255,255,0.9)',
     boxShadow: highlight ? '0 4px 12px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.2)',
@@ -106,6 +121,67 @@ export default function SeatPanel({
 
   return (
     <div style={{ ...baseStyle, ...posStyle }}>
+      {speaking && (
+        <div
+          className="soundboard-speaking"
+          style={{
+            position: vertical ? 'absolute' : 'relative',
+            left: vertical ? '50%' : undefined,
+            top: vertical ? '6px' : undefined,
+            transform: vertical ? 'translateX(-50%)' : undefined,
+            pointerEvents: 'none',
+            background: 'rgba(255,255,255,0.92)',
+            border: '1px solid rgba(176,137,104,0.7)',
+            borderRadius: 999,
+            padding: '2px 6px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            animation: 'soundboardPulse 900ms ease-in-out infinite',
+            zIndex: 4,
+            marginRight: vertical ? undefined : '6px',
+          }}
+        >
+          <img
+            src="/assets/icons/play.ico"
+            alt="Sound"
+            style={{ width: 14, height: 14, display: 'block' }}
+          />
+        </div>
+      )}
+
+      {showAction && (
+        <button
+          type="button"
+          onClick={onActionClick}
+          aria-label={actionIconAlt || actionIconTitle || 'Action'}
+          title={actionIconTitle}
+          style={{
+            position: vertical ? 'absolute' : 'relative',
+            right: vertical ? (isRight ? '6px' : undefined) : undefined,
+            left: vertical ? (isLeft ? '6px' : undefined) : undefined,
+            top: vertical ? '6px' : undefined,
+            transform: vertical ? undefined : undefined,
+            width: 24,
+            height: 24,
+            borderRadius: 6,
+            border: '1px solid rgba(176,137,104,0.85)',
+            background: 'rgba(255,255,255,0.92)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 6px rgba(0,0,0,0.18)',
+            zIndex: 5,
+            cursor: 'pointer',
+            marginRight: vertical ? undefined : '6px',
+          }}
+        >
+          <img
+            src={actionIconSrc}
+            alt={actionIconAlt || ''}
+            style={{ width: 14, height: 14, display: 'block' }}
+          />
+        </button>
+      )}
+
       <img
         src={avatar || '/assets/avatars/default.png'}
         alt={nickname || 'player'}

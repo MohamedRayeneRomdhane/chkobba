@@ -185,7 +185,10 @@ export default function SmokeGust({
   if (targetSelector) {
     const target = typeof document !== 'undefined' ? document.querySelector(targetSelector) : null;
     if (target) return createPortal(content, target);
+    // If a target was requested but isn't available, don't fall back to a full-screen fixed
+    // overlay (it can bleed across sections). The effect is decorative.
+    return null;
   }
-  // Fallback to full-screen overlay if no target
+  // Fallback to full-screen overlay if no target was requested.
   return <div className="fixed inset-0 z-[60] pointer-events-none">{content}</div>;
 }

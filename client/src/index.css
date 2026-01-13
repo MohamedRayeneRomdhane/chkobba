@@ -1,6 +1,21 @@
 /* Replay button style from Uiverse.io by Cevorob */
 /* Chalk-like font import for end screen */
 @import url('https://fonts.googleapis.com/css2?family=Schoolbell&display=swap');
+
+@keyframes soundboardPulse {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.85;
+  }
+}
 .replay-btn {
   position: relative;
   height: 50px;
@@ -261,6 +276,18 @@
 
 /* Phone landscape: treat as mobile even if width >= sm */
 @media (max-height: 500px) and (orientation: landscape) {
+  /* Phone landscape: allow free scrolling and avoid snap forcing fixed-height sections */
+  .app-scroll {
+    scroll-snap-type: y mandatory !important;
+    scroll-behavior: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-section {
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always;
+  }
+
   /* Keep overlay clear of header/footer in landscape */
   .end-overlay {
     padding-top: calc(2.75rem + env(safe-area-inset-top)) !important;
@@ -318,14 +345,40 @@
   /* Let the board use available height (avoid sm:aspect-[16/9] squashing) */
   .table-mat-root {
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
     max-height: none !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+    aspect-ratio: 16 / 9 !important;
+    /* In scroll mode, don't let the board paint over the next section (tutorial) */
+    overflow: hidden !important;
+  }
+
+  /* Don't stretch the table to the viewport height; let it take its intrinsic/aspect height */
+  .game-table-area {
+    flex: none !important;
+    align-items: flex-start !important;
+  }
+
+  /* Add a clear gap between the game board and tutorial sections in phone landscape */
+  .app-section--game {
+    padding-bottom: clamp(24px, 30svh, 260px) !important;
+  }
+
+  .app-section--tutorial {
+    /* Lower the tutorial section start to make room for the board */
+    padding-top: clamp(56px, 24svh, 240px) !important;
+  }
+
+  /* Lower tutorial content start in phone landscape */
+  .app-section--tutorial #tutorial {
+    padding-top: clamp(96px, 36svh, 360px) !important;
+    background-color: transparent !important;
   }
 
   .table-felt {
-    aspect-ratio: auto !important;
+    /* The table element has both .table-mat-root and .table-felt; keep the aspect ratio here too */
+    aspect-ratio: 16 / 9 !important;
     border-width: 10px !important;
   }
 
@@ -337,6 +390,17 @@
     gap: 0.5rem !important;
     padding-top: 0.15rem;
     padding-bottom: 0.15rem;
+  }
+
+  /* When soundboard is open, stack to avoid overlap/cramping */
+  .action-area.soundboard-open {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .action-area.soundboard-open .player-seat-row,
+  .action-area.soundboard-open .action-bar {
+    width: 100% !important;
   }
 
   .player-seat-row {

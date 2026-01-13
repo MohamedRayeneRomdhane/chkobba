@@ -29,6 +29,12 @@ export class GameRoomManager {
 
   constructor(private readonly io: Server) {}
 
+  private static isAllowedSoundboardFile(soundFile: string) {
+    // Prevent path traversal and limit to common audio extensions.
+    // The server doesn't have a reliable list of client static assets in production.
+    return /^[A-Za-z0-9][A-Za-z0-9 _.-]*\.(mp3|wav|ogg)$/i.test(soundFile);
+  }
+
   createRoom(): RoomInfo {
     const code = Math.random().toString(36).slice(2, 6).toUpperCase();
     console.log(`[manager] createRoom ${code}`);
@@ -257,20 +263,32 @@ export class GameRoomManager {
   requestReplay(code: string, socketId: string) {
     const room = this.rooms.get(code);
     if (!room) throw new Error('Room not found');
-    const votes = this.replayVotes.get(code) || new Set<string>();
+
+    // Only accept replay votes after a round has ended.
+    // A replay vote here is meant to dismiss the end-of-round overlay and continue
+    // into the next round (scores should remain accumulated).
+    const existing = this.replayVotes.get(code);
+    if (!existing) return;
+
+    const votes = existing;
     votes.add(socketId);
     this.replayVotes.set(code, votes);
     const count = votes.size;
     this.io.to(code).emit('game:replayStatus', { count, total: room.players.length });
     if (count >= room.players.length) {
-      room.gameState = undefined;
-      this.roomDecks.delete(code);
-      this.roomDealerIndex.delete(code);
-      this.cardsLeftInCurrentDeal.delete(code);
       this.replayVotes.delete(code);
-      this.startGame(room);
     }
   }
+
+  playSoundboard(code: string, socketId: string, soundFile: string) {
+    const room = this.rooms.get(code);
+    if (!room) throw new Error('Room not found');
+    if (!GameRoomManager.isAllowedSoundboardFile(soundFile)) throw new Error('Invalid sound');
+    const seatIndex = room.seats.findIndex((s) => s === socketId);
+    if (seatIndex < 0) throw new Error('Not seated');
+    this.io.to(code).emit('game:soundboard', { seatIndex, soundFile });
+  }
+
 
   quitRoom(code: string, socketId: string) {
     const room = this.rooms.get(code);

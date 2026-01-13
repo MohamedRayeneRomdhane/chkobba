@@ -81,6 +81,21 @@ io.on('connection', (socket) => {
     }
   );
 
+    socket.on(
+      'game:soundboard',
+      (
+        payload: { code: string; soundFile: string },
+        ack?: (_ok: boolean, _msg?: string) => void
+      ) => {
+        try {
+          manager.playSoundboard(payload.code, socket.id, payload.soundFile);
+          ack?.(true);
+        } catch (e: unknown) {
+          ack?.(false, (e as Error)?.message || 'soundboard failed');
+        }
+      }
+    );
+
   socket.on(
     'room:quit',
     (payload: { code: string }, ack?: (_ok: boolean, _msg?: string) => void) => {

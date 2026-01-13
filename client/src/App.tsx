@@ -22,6 +22,18 @@ import CookieConsentBanner from './components/CookieConsentBanner';
 import LegalModal, { type LegalSection } from './components/LegalModal';
 import { useCookieConsent } from './hooks/useCookieConsent';
 import { loadAdsenseScript } from './lib/adsense';
+import { SOUNDBOARD_SOUNDS, type SoundboardSoundFile } from './lib/soundboard';
+import { usePhoneLandscape } from './hooks/usePhoneLandscape';
+
+function getSeatIndices(mySeat: number | null | undefined) {
+  const bottom = mySeat ?? 0;
+  return {
+    bottom,
+    right: (bottom + 1) % 4,
+    top: (bottom + 2) % 4,
+    left: (bottom + 3) % 4,
+  } as const;
+}
 
 export default function App() {
   const {
@@ -31,6 +43,7 @@ export default function App() {
     roundBanner,
     lastRound,
     replayWaiting,
+    soundboardEvent,
     snapshot,
     mySeat,
     dealTick,
@@ -39,6 +52,7 @@ export default function App() {
     play,
     setProfile,
     replay,
+    playSoundboard,
     quit,
   } = useGameSocket();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -50,7 +64,7 @@ export default function App() {
   const roomCodeInputRefMobile = React.useRef<HTMLInputElement | null>(null);
   const roomCodeInputRefDesktop = React.useRef<HTMLInputElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const [phoneLandscape, setPhoneLandscape] = React.useState(false);
+  const phoneLandscape = usePhoneLandscape();
 
   const cookieConsent = useCookieConsent();
   const [legalOpen, setLegalOpen] = useState(false);
@@ -64,21 +78,6 @@ export default function App() {
     }
   }, [cookieConsent.status]);
 
-  useEffect(() => {
-    const mq = window.matchMedia('(max-height: 500px) and (orientation: landscape)');
-    const update = () => setPhoneLandscape(mq.matches);
-    update();
-
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', update);
-      return () => mq.removeEventListener('change', update);
-    }
-
-    // Safari fallback
-    mq.addListener(update);
-    return () => mq.removeListener(update);
-  }, []);
-
   const openLegal = (section: LegalSection) => {
     setLegalSection(section);
     setLegalOpen(true);
@@ -90,6 +89,130 @@ export default function App() {
     loop: false,
     interrupt: true,
   });
+
+  const [soundboardOpen, setSoundboardOpen] = React.useState(false);
+  const soundboardRef = React.useRef<HTMLDivElement | null>(null);
+  const soundboardAnchorRef = React.useRef<HTMLDivElement | null>(null);
+  type SoundboardOverlayPos = {
+    left: number;
+    bottom: number;
+  };
+  const [soundboardOverlayPos, setSoundboardOverlayPos] =
+    React.useState<SoundboardOverlayPos | null>(null);
+  const [mutedSoundboardSeats, setMutedSoundboardSeats] = React.useState<Set<number>>(
+    () => new Set()
+  );
+  const [speakingSeat, setSpeakingSeat] = React.useState<number | null>(null);
+  const lastHandledSoundboardT = React.useRef<number>(0);
+
+  // Per-seat audio: a player can't have multiple sounds overlapping.
+  const seatAudioRef = React.useRef<Map<number, HTMLAudioElement>>(new Map());
+
+  const playSoundboardLocal = React.useCallback(
+    async (seatIndex: number, file: SoundboardSoundFile) => {
+      const prev = seatAudioRef.current.get(seatIndex);
+      if (prev) {
+        prev.pause();
+        prev.currentTime = 0;
+      }
+
+      const match = SOUNDBOARD_SOUNDS.find((s) => s.file === file);
+      const src = match?.src || `/assets/soundboard/${file}`;
+      const audio = new Audio(src);
+      audio.volume = 0.95;
+      seatAudioRef.current.set(seatIndex, audio);
+
+      try {
+        await audio.play();
+      } catch {
+        // ignore autoplay or load errors
+      }
+    },
+    []
+  );
+
+  React.useEffect(() => {
+    const seatAudio = seatAudioRef.current;
+    return () => {
+      for (const a of seatAudio.values()) {
+        try {
+          a.pause();
+          a.currentTime = 0;
+        } catch {
+          // ignore
+        }
+      }
+      seatAudio.clear();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!soundboardOpen) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const root = soundboardRef.current;
+      if (!root) return;
+      if (e.target instanceof Node && root.contains(e.target)) return;
+      setSoundboardOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+    };
+  }, [soundboardOpen]);
+
+  React.useEffect(() => {
+    if (!soundboardOpen) {
+      setSoundboardOverlayPos(null);
+      return;
+    }
+
+    const update = () => {
+      const anchor = soundboardAnchorRef.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+
+      const centerX = rect.left + rect.width / 2;
+      const left = Math.min(window.innerWidth - 12, Math.max(12, centerX));
+      // Place overlay directly above the bottom player's panel.
+      // Using `bottom` keeps us independent of the overlay height.
+      const gap = 10;
+      const bottom = Math.max(12, window.innerHeight - rect.top + gap);
+
+      setSoundboardOverlayPos({ left, bottom });
+    };
+
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, { passive: true });
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update);
+    };
+  }, [soundboardOpen]);
+
+  React.useEffect(() => {
+    if (!soundboardEvent) return;
+    // Avoid replaying the same event when unrelated state changes (e.g., mute toggles).
+    if (soundboardEvent.t <= lastHandledSoundboardT.current) return;
+    lastHandledSoundboardT.current = soundboardEvent.t;
+
+    const seatIndex = soundboardEvent.seatIndex as number;
+    const isMuted = seatIndex !== (mySeat ?? -1) && mutedSoundboardSeats.has(seatIndex);
+
+    setSpeakingSeat(seatIndex);
+    const t = window.setTimeout(() => {
+      setSpeakingSeat((cur) => (cur === seatIndex ? null : cur));
+    }, 1100);
+
+    if (!isMuted) {
+      void playSoundboardLocal(seatIndex, soundboardEvent.soundFile);
+    }
+
+    return () => window.clearTimeout(t);
+  }, [soundboardEvent, mutedSoundboardSeats, mySeat, playSoundboardLocal]);
+
   const selectedHandCard = React.useMemo(() => {
     if (mySeat == null || !gameState?.hands) return null;
     return (gameState.hands[mySeat] || []).find((c) => c.id === selectedHandId) || null;
@@ -377,8 +500,8 @@ export default function App() {
             }}
           />
         )}
-        <section className="sm:snap-start sm:snap-always h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
-          <div className="flex-1 min-h-0 flex items-stretch justify-stretch overflow-visible">
+        <section className="app-section app-section--game sm:snap-start sm:snap-always h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
+          <div className="game-table-area flex-1 min-h-0 flex items-stretch justify-stretch overflow-visible">
             <TableMat>
               {/* Round banner */}
               {/* Inline banner removed in favor of end overlay */}
@@ -414,10 +537,7 @@ export default function App() {
 
               {/* Opponents (relative to local seat) */}
               {(() => {
-                const idxBottom = mySeat ?? 0;
-                const idxRight = (idxBottom + 1) % 4;
-                const idxTop = (idxBottom + 2) % 4;
-                const idxLeft = (idxBottom + 3) % 4;
+                const { right: idxRight, top: idxTop, left: idxLeft } = getSeatIndices(mySeat);
                 const countAt = (i: number) => gameState?.hands?.[i]?.length ?? 0;
                 return (
                   <>
@@ -448,10 +568,12 @@ export default function App() {
                 const seats = snapshot?.seats || [null, null, null, null];
                 const profiles = snapshot?.profiles || {};
                 const current = gameState?.currentPlayerIndex ?? null;
-                const idxBottom = mySeat ?? 0;
-                const idxRight = (idxBottom + 1) % 4;
-                const idxTop = (idxBottom + 2) % 4;
-                const idxLeft = (idxBottom + 3) % 4;
+                const {
+                  bottom: idxBottom,
+                  right: idxRight,
+                  top: idxTop,
+                  left: idxLeft,
+                } = getSeatIndices(mySeat);
                 const teamForSeat = (i: number) => (i % 2 === 0 ? 0 : 1); // [0,2] -> Team A, [1,3] -> Team B
                 const teamName = (i: number) => (teamForSeat(i) === 0 ? 'Team A' : 'Team B');
                 const getProfile = (seatIndex: number) => {
@@ -479,6 +601,27 @@ export default function App() {
                       teamIndex={teamForSeat(idxTop) as 0 | 1}
                       compact
                       dense={phoneLandscape}
+                      actionIconSrc={
+                        seats[idxTop]
+                          ? mutedSoundboardSeats.has(idxTop)
+                            ? '/assets/icons/mute.ico'
+                            : '/assets/icons/play.ico'
+                          : undefined
+                      }
+                      actionIconAlt={mutedSoundboardSeats.has(idxTop) ? 'Muted' : 'Unmuted'}
+                      actionIconTitle={
+                        mutedSoundboardSeats.has(idxTop) ? 'Unmute soundboard' : 'Mute soundboard'
+                      }
+                      onActionClick={() => {
+                        if (!seats[idxTop]) return;
+                        setMutedSoundboardSeats((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(idxTop)) next.delete(idxTop);
+                          else next.add(idxTop);
+                          return next;
+                        });
+                      }}
+                      speaking={speakingSeat === idxTop && !!seats[idxTop]}
                     />
                     {/* Left opponent */}
                     <SeatPanel
@@ -490,6 +633,27 @@ export default function App() {
                       teamIndex={teamForSeat(idxLeft) as 0 | 1}
                       compact
                       dense={phoneLandscape}
+                      actionIconSrc={
+                        seats[idxLeft]
+                          ? mutedSoundboardSeats.has(idxLeft)
+                            ? '/assets/icons/mute.ico'
+                            : '/assets/icons/play.ico'
+                          : undefined
+                      }
+                      actionIconAlt={mutedSoundboardSeats.has(idxLeft) ? 'Muted' : 'Unmuted'}
+                      actionIconTitle={
+                        mutedSoundboardSeats.has(idxLeft) ? 'Unmute soundboard' : 'Mute soundboard'
+                      }
+                      onActionClick={() => {
+                        if (!seats[idxLeft]) return;
+                        setMutedSoundboardSeats((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(idxLeft)) next.delete(idxLeft);
+                          else next.add(idxLeft);
+                          return next;
+                        });
+                      }}
+                      speaking={speakingSeat === idxLeft && !!seats[idxLeft]}
                     />
                     {/* Right opponent */}
                     <SeatPanel
@@ -501,6 +665,27 @@ export default function App() {
                       teamIndex={teamForSeat(idxRight) as 0 | 1}
                       compact
                       dense={phoneLandscape}
+                      actionIconSrc={
+                        seats[idxRight]
+                          ? mutedSoundboardSeats.has(idxRight)
+                            ? '/assets/icons/mute.ico'
+                            : '/assets/icons/play.ico'
+                          : undefined
+                      }
+                      actionIconAlt={mutedSoundboardSeats.has(idxRight) ? 'Muted' : 'Unmuted'}
+                      actionIconTitle={
+                        mutedSoundboardSeats.has(idxRight) ? 'Unmute soundboard' : 'Mute soundboard'
+                      }
+                      onActionClick={() => {
+                        if (!seats[idxRight]) return;
+                        setMutedSoundboardSeats((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(idxRight)) next.delete(idxRight);
+                          else next.add(idxRight);
+                          return next;
+                        });
+                      }}
+                      speaking={speakingSeat === idxRight && !!seats[idxRight]}
                     />
                   </>
                 );
@@ -604,12 +789,14 @@ export default function App() {
           </div>
 
           {/* Player banner + action bar outside (below) the table */}
-          <div className="action-area w-full shrink-0 flex flex-col items-center justify-center">
+          <div
+            className={`action-area w-full shrink-0 flex flex-col items-center justify-center ${soundboardOpen ? 'soundboard-open' : ''}`}
+          >
             {(() => {
               const seats = snapshot?.seats || [null, null, null, null];
               const profiles = snapshot?.profiles || {};
               const current = gameState?.currentPlayerIndex ?? null;
-              const idxBottom = mySeat ?? 0;
+              const { bottom: idxBottom } = getSeatIndices(mySeat);
               const teamForSeat = (i: number) => (i % 2 === 0 ? 0 : 1);
               const teamName = (i: number) => (teamForSeat(i) === 0 ? 'Team A' : 'Team B');
 
@@ -623,16 +810,63 @@ export default function App() {
 
               return (
                 <div className="player-seat-row w-full flex items-center justify-center py-0.5 sm:py-1">
-                  <SeatPanel
-                    position="bottom"
-                    avatar={prof?.avatar}
-                    nickname={prof?.nickname}
-                    highlight={current === idxBottom}
-                    teamLabel={teamName(idxBottom)}
-                    teamIndex={teamForSeat(idxBottom) as 0 | 1}
-                    compact
-                    absolute={false}
-                  />
+                  <div ref={soundboardRef} className="flex flex-col items-center">
+                    <div ref={soundboardAnchorRef} className="relative">
+                      <SeatPanel
+                        position="bottom"
+                        avatar={prof?.avatar}
+                        nickname={prof?.nickname}
+                        highlight={current === idxBottom}
+                        teamLabel={teamName(idxBottom)}
+                        teamIndex={teamForSeat(idxBottom) as 0 | 1}
+                        compact
+                        absolute={false}
+                        actionIconSrc={roomCode ? '/assets/icons/play.ico' : undefined}
+                        actionIconAlt="Soundboard"
+                        actionIconTitle="Soundboard"
+                        onActionClick={() => {
+                          if (!roomCode) return;
+                          setSoundboardOpen((v) => !v);
+                        }}
+                        speaking={speakingSeat === idxBottom}
+                      />
+                    </div>
+
+                    {soundboardOpen && roomCode && soundboardOverlayPos && (
+                      <div
+                        className="fixed -translate-x-1/2 w-[min(92vw,260px)] max-h-[40vh] overflow-auto rounded-xl border border-gray-200 bg-white/95 shadow-lg p-2 z-[260]"
+                        style={{
+                          left: soundboardOverlayPos.left,
+                          bottom: soundboardOverlayPos.bottom,
+                        }}
+                      >
+                        <div className="text-xs font-semibold text-gray-700 px-2 py-1">
+                          Soundboard
+                        </div>
+                        {SOUNDBOARD_SOUNDS.length === 0 ? (
+                          <div className="px-2 py-2 text-xs text-gray-600">
+                            Add audio files to{' '}
+                            <span className="font-mono">client/public/assets/soundboard</span>
+                          </div>
+                        ) : (
+                          SOUNDBOARD_SOUNDS.map((s) => (
+                            <button
+                              key={s.file}
+                              type="button"
+                              className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-gray-100 text-gray-800"
+                              onClick={() => {
+                                void playSoundboard(roomCode, s.file);
+                                setSoundboardOpen(false);
+                              }}
+                            >
+                              <span className="text-sm font-medium truncate">{s.label}</span>
+                              <img src="/assets/icons/play.ico" alt="Play" className="w-4 h-4" />
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })()}
@@ -679,7 +913,7 @@ export default function App() {
           </div>
         </section>
 
-        <section className="sm:snap-start sm:snap-always min-h-full flex">
+        <section className="app-section app-section--tutorial sm:snap-start sm:snap-always min-h-full flex">
           <TutorialSection />
         </section>
       </Layout>

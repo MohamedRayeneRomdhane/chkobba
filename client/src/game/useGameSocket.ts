@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GameState, PlayerIndex, RoomSnapshot } from '../types';
+import type { SoundboardSoundFile } from '../lib/soundboard';
 
 // Resolve server URL: prefer env, fallback to localhost in dev, else Render
 const env = (import.meta as unknown as { env: { VITE_SERVER_URL?: string; DEV?: boolean } }).env;
@@ -16,6 +17,11 @@ export function useGameSocket() {
     null
   );
   const [replayWaiting, setReplayWaiting] = useState<{ count: number; total: number } | null>(null);
+  const [soundboardEvent, setSoundboardEvent] = useState<{
+    seatIndex: PlayerIndex;
+    soundFile: SoundboardSoundFile;
+    t: number;
+  } | null>(null);
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [mySeat, setMySeat] = useState<PlayerIndex | null>(null);
   const [dealTick, setDealTick] = useState<number>(0);
@@ -56,6 +62,13 @@ export function useGameSocket() {
       setReplayWaiting(payload);
       setRoundBanner(`Waiting for players: ${payload.count}/${payload.total}`);
     });
+    socket.on(
+      'game:soundboard',
+      (payload: { seatIndex: number; soundFile: SoundboardSoundFile }) => {
+        const seatIndex = payload.seatIndex as PlayerIndex;
+        setSoundboardEvent({ seatIndex, soundFile: payload.soundFile, t: Date.now() });
+      }
+    );
     socket.on('room:closed', () => {
       setRoundBanner(null);
       setReplayWaiting(null);
@@ -74,6 +87,7 @@ export function useGameSocket() {
       socket.off('game:update');
       socket.off('game:roundEnd');
       socket.off('game:replayStatus');
+      socket.off('game:soundboard');
       socket.off('room:closed');
     };
   }, [socket]);
@@ -115,6 +129,12 @@ export function useGameSocket() {
     });
   }
 
+  function playSoundboard(code: string, soundFile: SoundboardSoundFile) {
+    return new Promise<boolean>((resolve) => {
+      socket.emit('game:soundboard', { code, soundFile }, (ok: boolean) => resolve(ok));
+    });
+  }
+
   function quit(code: string) {
     return new Promise<boolean>((resolve) => {
       socket.emit('room:quit', { code }, (ok: boolean) => resolve(ok));
@@ -128,6 +148,7 @@ export function useGameSocket() {
     roundBanner,
     lastRound,
     replayWaiting,
+    soundboardEvent,
     snapshot,
     mySeat,
     dealTick,
@@ -136,6 +157,7 @@ export function useGameSocket() {
     play,
     setProfile,
     replay,
+    playSoundboard,
     quit,
   };
 }
