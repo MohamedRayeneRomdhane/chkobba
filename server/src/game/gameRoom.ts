@@ -192,12 +192,10 @@ export class GameRoomManager {
       const votes = this.replayVotes.get(code);
       if (votes) {
         votes.delete(socketId);
-        this.io
-          .to(code)
-          .emit('game:replayStatus', {
-            count: votes.size,
-            total: GameRoomManager.REPLAY_VOTES_REQUIRED,
-          });
+        this.io.to(code).emit('game:replayStatus', {
+          count: votes.size,
+          total: GameRoomManager.REPLAY_VOTES_REQUIRED,
+        });
       }
 
       this.emitRoomSnapshot(code);
