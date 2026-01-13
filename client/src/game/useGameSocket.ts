@@ -59,7 +59,12 @@ export function useGameSocket() {
     socket.on('game:update', (state: GameState) => setGameState(state));
     socket.on(
       'game:turnTimer',
-      (payload: { currentPlayerIndex: number; endsAt: number; durationMs: number; serverNow?: number }) => {
+      (payload: {
+        currentPlayerIndex: number;
+        endsAt: number;
+        durationMs: number;
+        serverNow?: number;
+      }) => {
         setTurn({ endsAt: payload.endsAt, durationMs: payload.durationMs });
         if (typeof payload.serverNow === 'number') {
           setClockSkewMs(payload.serverNow - Date.now());
