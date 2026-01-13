@@ -21,9 +21,14 @@ export class GameRoomManager {
   private cardsLeftInCurrentDeal: Map<string, number> = new Map(); // counts down per player turns in a 3-card deal
   private profiles: Map<string, PlayerProfile> = new Map(); // key: socketId
   private replayVotes: Map<string, Set<string>> = new Map(); // roomCode -> socketIds who clicked replay
+  private pendingNextRound: Map<
+    string,
+    { gameState: GameState; remainingDeck: Card[]; dealerIndex: PlayerIndex; cardsLeftInDeal: number }
+  > = new Map();
   private roomTurn: Map<string, TurnInfo> = new Map();
   private roomTurnTimeout: Map<string, NodeJS.Timeout> = new Map();
   private static readonly TURN_DURATION_MS = 60_000;
+  private static readonly REPLAY_VOTES_REQUIRED = 4;
   private avatarPool: string[] = [
     '/assets/avatars/avatar1.png',
     '/assets/avatars/avatar2.png',
@@ -102,6 +107,15 @@ export class GameRoomManager {
         });
       }
     }
+
+    // If we are waiting for replay votes, send the current replay status to the joiner.
+    const votes = this.replayVotes.get(code);
+    if (votes) {
+      socket.emit('game:replayStatus', {
+        count: votes.size,
+        total: GameRoomManager.REPLAY_VOTES_REQUIRED,
+      });
+    }
     this.emitRoomSnapshot(code);
     return room;
   }
@@ -171,7 +185,10 @@ export class GameRoomManager {
       // If we were waiting for replay, update total.
       const votes = this.replayVotes.get(code);
       if (votes) {
-        this.io.to(code).emit('game:replayStatus', { count: votes.size, total: room.players.length });
+        votes.delete(socketId);
+        this.io
+          .to(code)
+          .emit('game:replayStatus', { count: votes.size, total: GameRoomManager.REPLAY_VOTES_REQUIRED });
       }
 
       this.emitRoomSnapshot(code);
@@ -215,6 +232,19 @@ export class GameRoomManager {
       this.handleTurnTimeout(code, expectedPlayer, endsAt);
     }, GameRoomManager.TURN_DURATION_MS + 50);
     this.roomTurnTimeout.set(code, timeout);
+  }
+
+  private clearTurnTimer(code: string, room?: RoomInfo) {
+    const existing = this.roomTurnTimeout.get(code);
+    if (existing) {
+      clearTimeout(existing);
+      this.roomTurnTimeout.delete(code);
+    }
+    this.roomTurn.delete(code);
+    const r = room ?? this.rooms.get(code);
+    if (r) {
+      r.turn = undefined;
+    }
   }
 
   private handleTurnTimeout(code: string, expectedPlayer: PlayerIndex, expectedEndsAt: number) {
@@ -344,6 +374,12 @@ export class GameRoomManager {
 
     this.io.to(code).emit('game:update', room.gameState);
 
+    // If the round ended, we are now waiting for replay votes. Do not advance timers or auto-play.
+    if (this.replayVotes.has(code)) {
+      this.emitRoomSnapshot(code);
+      return;
+    }
+
     // If next player seat is vacant, immediately auto-play (don't wait 120s).
     if (room.seats[room.gameState.currentPlayerIndex] == null) {
       this.maybeAutoPlayVacantTurns(code, room);
@@ -357,7 +393,12 @@ export class GameRoomManager {
   handlePlay(code: string, socketId: string, playedCardId: string, combo?: string[]) {
     const room = this.rooms.get(code);
     if (!room || !room.gameState) throw new Error('Room not ready');
+
+    // Prevent plays while waiting for replay votes between rounds.
+    if (this.replayVotes.has(code)) throw new Error('Waiting for replay votes');
+
     const seatIndex = room.seats.findIndex((s) => s === socketId) as PlayerIndex;
+    if (seatIndex < 0) throw new Error('Not seated');
     if (seatIndex !== room.gameState.currentPlayerIndex) {
       console.warn(
         `[manager] Not your turn socket=${socketId} seat=${seatIndex} current=${room.gameState.currentPlayerIndex}`
@@ -392,6 +433,9 @@ export class GameRoomManager {
       this.roomDealerIndex.set(code, nextDealer);
     } else {
       console.log(`[manager] round end room=${code}`);
+
+      // Stop any running turn timer; we are transitioning to end-of-round state.
+      this.clearTurnTimer(code, room);
       // End of round: sweep any remaining table cards to lastCaptureTeam (no chkobba)
       const lastTeam = room.gameState!.lastCaptureTeam;
       if (lastTeam !== undefined && room.gameState!.tableCards.length > 0) {
@@ -413,8 +457,13 @@ export class GameRoomManager {
         details: roundScore.details,
       });
       this.replayVotes.set(code, new Set());
-      this.io.to(code).emit('game:replayStatus', { count: 0, total: room.players.length });
-      // Prepare next round: new deck, clear captures/chkobba, deal initial
+
+      // Do NOT auto-start the next round. Wait for explicit replay votes.
+      this.io
+        .to(code)
+        .emit('game:replayStatus', { count: 0, total: GameRoomManager.REPLAY_VOTES_REQUIRED });
+
+      // Prepare next round state, but keep it pending until replay votes complete.
       const newDeck = shuffle(createDeck());
       const hands: [Card[], Card[], Card[], Card[]] = [[], [], [], []];
       const tableCards: Card[] = [];
@@ -430,7 +479,8 @@ export class GameRoomManager {
         if (!c) throw new Error('Deck exhausted early');
         tableCards.push(c);
       }
-      room.gameState = {
+
+      const nextGameState: GameState = {
         tableCards,
         hands,
         capturesByTeam: [[], []],
@@ -439,14 +489,16 @@ export class GameRoomManager {
         roundNumber: room.gameState!.roundNumber + 1,
         chkobbaByTeam: [0, 0],
       };
-      // setup deck and dealer for new round
+
+      // Store pending round start so we can begin immediately once all votes are in.
       const remainingDeck = newDeck; // after initial 16 dealt
-      remainingDeck.splice(0, 0); // no-op to be explicit
-      this.roomDecks.set(code, remainingDeck);
-      this.roomDealerIndex.set(code, 0);
-      this.cardsLeftInCurrentDeal.set(code, 12);
-      this.io.to(code).emit('game:start', room.gameState);
-      this.startTurnTimer(code, room);
+      this.pendingNextRound.set(code, {
+        gameState: nextGameState,
+        remainingDeck,
+        dealerIndex: 0,
+        cardsLeftInDeal: 12,
+      });
+
       this.emitRoomSnapshot(code);
     }
   }
@@ -461,14 +513,34 @@ export class GameRoomManager {
     const existing = this.replayVotes.get(code);
     if (!existing) return;
 
+    // Only seated players can vote for replay.
+    const seatIndex = room.seats.findIndex((s) => s === socketId);
+    if (seatIndex < 0) return;
+
     const votes = existing;
     votes.add(socketId);
     this.replayVotes.set(code, votes);
     const count = votes.size;
-    this.io.to(code).emit('game:replayStatus', { count, total: room.players.length });
-    if (count >= room.players.length) {
-      this.replayVotes.delete(code);
-    }
+    this.io
+      .to(code)
+      .emit('game:replayStatus', { count, total: GameRoomManager.REPLAY_VOTES_REQUIRED });
+
+    if (count < GameRoomManager.REPLAY_VOTES_REQUIRED) return;
+
+    // All votes in: start the pending round (if prepared).
+    this.replayVotes.delete(code);
+    const pending = this.pendingNextRound.get(code);
+    if (!pending) return;
+    this.pendingNextRound.delete(code);
+
+    room.gameState = pending.gameState;
+    this.roomDecks.set(code, pending.remainingDeck);
+    this.roomDealerIndex.set(code, pending.dealerIndex);
+    this.cardsLeftInCurrentDeal.set(code, pending.cardsLeftInDeal);
+
+    this.io.to(code).emit('game:start', room.gameState);
+    this.startTurnTimer(code, room);
+    this.emitRoomSnapshot(code);
   }
 
   playSoundboard(code: string, socketId: string, soundFile: string) {
@@ -491,6 +563,7 @@ export class GameRoomManager {
     this.roomDealerIndex.delete(code);
     this.cardsLeftInCurrentDeal.delete(code);
     this.replayVotes.delete(code);
+    this.pendingNextRound.delete(code);
     this.roomTurn.delete(code);
     const t = this.roomTurnTimeout.get(code);
     if (t) clearTimeout(t);
