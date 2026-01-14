@@ -361,11 +361,19 @@ export default function SeatPanel({
 
   const showSpeakRing = (speaking || !!speakLevels) && !!ringGeom && !!ringPathD;
 
+  const throbMs = React.useMemo(() => {
+    // Slightly faster when the sound is louder; stays subtle.
+    const avg = speakLevels?.avg ?? 0.35;
+    const ms = 980 - avg * 360;
+    return Math.round(Math.max(620, Math.min(1050, ms)));
+  }, [speakLevels?.avg]);
+
   const eqOutsetPx = React.useMemo(() => {
     if (!ringGeom) return 10;
     // Scale with the seat so it reads well on both compact and larger panels.
     const minDim = Math.max(1, Math.min(ringGeom.w, ringGeom.h));
-    return Math.round(Math.max(10, Math.min(18, minDim * 0.12)));
+    // Keep the ring close to the seat edge.
+    return Math.round(Math.max(6, Math.min(12, minDim * 0.08)));
   }, [ringGeom]);
 
   const eqPathD = React.useMemo(() => {
@@ -438,8 +446,12 @@ export default function SeatPanel({
             // Do not animate/scale the entire overlay (reads like a pulsing box).
             // Spike intensity is driven per-bar.
             opacity: 1,
-            filter:
-              'drop-shadow(0 4px 16px rgba(0,0,0,0.28)) drop-shadow(0 0 26px rgba(0,245,255,0.55)) drop-shadow(0 0 24px rgba(139,92,246,0.42)) drop-shadow(0 0 22px rgba(255,45,149,0.34))',
+            // Throb: pulse glow/opacity only (no scaling).
+            animationName: 'seatEqThrob',
+            animationDuration: `${throbMs}ms`,
+            animationTimingFunction: 'ease-in-out',
+            animationIterationCount: 'infinite',
+            animationFillMode: 'both',
           }}
         >
           <defs>
@@ -473,8 +485,8 @@ export default function SeatPanel({
               const extraLen = Math.max(8, Math.round(minDim * 0.11));
               const len = baseLen + v * extraLen;
 
-              // Offset outward so the spikes don't visually merge into the seat border.
-              const startOut = 5;
+              // Offset outward: small so spikes hug the seat.
+              const startOut = 2;
               const x1 = a.x + a.nx * startOut;
               const y1 = a.y + a.ny * startOut;
               const x2 = a.x + a.nx * (startOut + len);
