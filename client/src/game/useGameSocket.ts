@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { GameState, PlayerIndex, RoomSnapshot } from '../types';
+import type { GameState, PlayerIndex, RoomSettings, RoomSnapshot } from '../types';
 import type { SoundboardSoundFile } from '../lib/soundboard';
 
 // Resolve server URL: prefer env, fallback to localhost in dev, else Render
@@ -10,6 +10,7 @@ const SERVER_URL: string =
 
 export function useGameSocket() {
   const [connected, setConnected] = useState(false);
+  const [socketId, setSocketId] = useState<string | null>(null);
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [roundBanner, setRoundBanner] = useState<string | null>(null);
@@ -37,8 +38,14 @@ export function useGameSocket() {
   }, []);
 
   useEffect(() => {
-    socket.on('connect', () => setConnected(true));
-    socket.on('disconnect', () => setConnected(false));
+    socket.on('connect', () => {
+      setConnected(true);
+      setSocketId(socket.id ?? null);
+    });
+    socket.on('disconnect', () => {
+      setConnected(false);
+      setSocketId(null);
+    });
     socket.on('room:update', (room: RoomSnapshot) => {
       setSnapshot(room);
       setTurn(room.turn ?? null);
@@ -138,6 +145,20 @@ export function useGameSocket() {
     });
   }
 
+  function updateRoomSettings(code: string, settings: Partial<RoomSettings>) {
+    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
+      socket.emit('room:settings', { code, settings }, (ok: boolean, msg?: string) =>
+        resolve({ ok, msg })
+      );
+    });
+  }
+
+  function launchGame(code: string) {
+    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
+      socket.emit('game:launch', { code }, (ok: boolean, msg?: string) => resolve({ ok, msg }));
+    });
+  }
+
   function setProfile(nickname?: string, avatar?: string) {
     return new Promise<boolean>((resolve) => {
       socket.emit('profile:set', { nickname, avatar }, (ok: boolean) => resolve(ok));
@@ -172,6 +193,7 @@ export function useGameSocket() {
 
   return {
     connected,
+    socketId,
     roomCode,
     gameState,
     roundBanner,
@@ -186,6 +208,8 @@ export function useGameSocket() {
     createRoom,
     join,
     play,
+    updateRoomSettings,
+    launchGame,
     setProfile,
     replay,
     playSoundboard,

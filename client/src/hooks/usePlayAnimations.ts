@@ -5,6 +5,30 @@ import type { GameState, Card } from '../types';
 import { getCardImage, CARD_BACK_IMAGE } from '../game/cardAssets';
 import type { FlightSpec } from '../components/PlayAnimationsLayer';
 
+function valueCardDataUri(value: number): string {
+  const v = Number.isFinite(value) ? Math.max(0, Math.min(99, Math.round(value))) : 0;
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00f5ff" stop-opacity="0.35"/>
+      <stop offset="55%" stop-color="#8b5cf6" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ff2d95" stop-opacity="0.20"/>
+    </linearGradient>
+    <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="184" height="284" rx="18" fill="#ffffff" filter="url(#s)"/>
+  <rect x="10" y="10" width="180" height="280" rx="16" fill="url(#g)" opacity="0.9"/>
+  <rect x="10" y="10" width="180" height="280" rx="16" fill="none" stroke="#111827" stroke-width="6" opacity="0.9"/>
+  <text x="100" y="172" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" font-size="96" font-weight="800" fill="#111827">${v}</text>
+  <text x="26" y="56" text-anchor="start" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" font-size="34" font-weight="800" fill="#111827">${v}</text>
+  <text x="174" y="284" text-anchor="end" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" font-size="34" font-weight="800" fill="#111827">${v}</text>
+</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 function getSeatPos(mySeat: number | null, seatIndex: number): 'bottom' | 'top' | 'left' | 'right' {
   const idxBottom = mySeat ?? 0;
   const idxTop = (idxBottom + 2) % 4;
@@ -119,14 +143,23 @@ export function usePlayAnimations(
       if (!prevIds.has(id)) addedIds.push(id);
     });
 
-    // Determine played seat by hand size decreased
     const prevHands = prev.hands || [];
     const nextHands = next.hands || [];
+
+    // Determine played seat by hand size decreased.
+    // Note: the server hides opponent hands (empty arrays) but provides `handSizes`.
+    const prevSizes: number[] = (prev as unknown as { handSizes?: number[] }).handSizes
+      ? ((prev as unknown as { handSizes: number[] }).handSizes ?? []).slice(0, 4)
+      : [0, 1, 2, 3].map((i) => (prevHands[i] || []).length);
+    const nextSizes: number[] = (next as unknown as { handSizes?: number[] }).handSizes
+      ? ((next as unknown as { handSizes: number[] }).handSizes ?? []).slice(0, 4)
+      : [0, 1, 2, 3].map((i) => (nextHands[i] || []).length);
+
     let playedSeat: number | null = null;
     for (let i = 0; i < 4; i++) {
-      const p = prevHands[i] || [];
-      const n = nextHands[i] || [];
-      if (n.length < p.length) {
+      const p = prevSizes[i] ?? 0;
+      const n = nextSizes[i] ?? 0;
+      if (n < p) {
         playedSeat = i;
         break;
       }
@@ -138,6 +171,31 @@ export function usePlayAnimations(
     const nextHand = nextHands[playedSeat] || [];
     const nextIdsSet = new Set(nextHand.map((c) => c.id));
     const playedCardObj: Card | null = prevHand.find((c) => !nextIdsSet.has(c.id)) || null;
+
+    // Decide what to show for the flying "played" card.
+    // Opponent hands may be hidden (empty arrays), so we use server-provided `lastPlay`
+    // (public metadata) and only fall back if we truly cannot resolve a face.
+    const lastPlay = (next as unknown as { lastPlay?: { seatIndex: number; played: Card } })
+      .lastPlay;
+    let playedImage: string =
+      lastPlay && lastPlay.seatIndex === playedSeat && lastPlay.played
+        ? getCardImage(lastPlay.played)
+        : playedCardObj
+          ? getCardImage(playedCardObj)
+          : CARD_BACK_IMAGE;
+
+    // Only use heuristics if we still have no face.
+    if (playedImage === CARD_BACK_IMAGE && addedIds.length > 0) {
+      const addedCard = nextTable.find((c) => c.id === addedIds[0]) || null;
+      if (addedCard) playedImage = getCardImage(addedCard);
+    }
+    if (playedImage === CARD_BACK_IMAGE && capturedIds.length > 0) {
+      const capCards = capturedIds
+        .map((id) => prevTable.find((c) => c.id === id) || null)
+        .filter((c): c is Card => !!c);
+      const sumValue = capCards.reduce((s, c) => s + (c.value ?? 0), 0);
+      if (sumValue > 0) playedImage = valueCardDataUri(sumValue);
+    }
 
     const flightsLocal: FlightSpec[] = [];
 
@@ -210,7 +268,7 @@ export function usePlayAnimations(
         }
         targetRect = best;
       }
-      const img = playedCardObj ? getCardImage(playedCardObj) : CARD_BACK_IMAGE;
+      const img = playedImage;
       const tableSize = getTableCardSize();
       const leg1DurationMs = 820;
       const leg1Ease = 'cubic-bezier(0.25, 0.9, 0.25, 1)';
@@ -247,7 +305,7 @@ export function usePlayAnimations(
       // Include the played card returning with the others
       returnFlights.push({
         id: `played-return-${playedSeat}-${Date.now()}`,
-        image: img,
+        image: playedImage,
         from: { x: targetRect.left, y: targetRect.top, w: tableSize.w, h: tableSize.h },
         // keep size constant on return to avoid growth effect
         to: { x: seatRect.left, y: seatRect.top, w: tableSize.w, h: tableSize.h },
@@ -266,7 +324,7 @@ export function usePlayAnimations(
       const targetRect = targetEl ? targetEl.getBoundingClientRect() : tableCenter;
       const sourceRect = myPlayedRect;
       const tableSize = getTableCardSize();
-      const img = playedCardObj ? getCardImage(playedCardObj) : CARD_BACK_IMAGE;
+      const img = playedImage;
       const leg1Ease = 'cubic-bezier(0.25, 0.9, 0.25, 1)';
       const start = centerAlign(sourceRect, tableSize.w, tableSize.h);
       // Hide the real table card until the overlay finishes to avoid early appearance

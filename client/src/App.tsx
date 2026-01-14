@@ -5,6 +5,8 @@ import TableMat from './components/TableMat';
 import PlayerHand from './components/PlayerHand';
 import OpponentHand from './components/OpponentHand';
 import SeatPanel from './components/SeatPanel';
+import RoomLobbyPanel from './components/RoomLobbyPanel';
+import TeammateHand from './components/TeammateHand';
 import CoffeeProp from './components/CoffeeProp';
 import ChichaProp from './components/ChichaProp';
 import CigarettesProp from './components/CigarettesProp';
@@ -25,8 +27,17 @@ import { loadAdsenseScript } from './lib/adsense';
 import { SOUNDBOARD_SOUNDS, type SoundboardSoundFile } from './lib/soundboard';
 import { usePhoneLandscape } from './hooks/usePhoneLandscape';
 
-function getSeatIndices(mySeat: number | null | undefined) {
+function getSeatIndices(mySeat: number | null | undefined, playerCount: 2 | 4 = 4) {
   const bottom = mySeat ?? 0;
+  if (playerCount === 2) {
+    const top = bottom === 0 ? 1 : 0;
+    return {
+      bottom,
+      right: top,
+      top,
+      left: top,
+    } as const;
+  }
   return {
     bottom,
     right: (bottom + 1) % 4,
@@ -38,6 +49,7 @@ function getSeatIndices(mySeat: number | null | undefined) {
 export default function App() {
   const {
     connected,
+    socketId,
     roomCode,
     gameState,
     roundBanner,
@@ -52,6 +64,8 @@ export default function App() {
     createRoom,
     join,
     play,
+    updateRoomSettings,
+    launchGame,
     setProfile,
     replay,
     playSoundboard,
@@ -85,12 +99,14 @@ export default function App() {
       }
 
       const msg = (res.msg || '').toLowerCase();
-      if (msg.includes('room full')) setJoinWarning('This room is full (4/4).');
+      if (msg.includes('room full')) setJoinWarning('This room is full.');
       else if (msg.includes('room not found')) setJoinWarning('No room found for that code.');
       else setJoinWarning(res.msg || 'Could not join that room.');
     },
     [join, normalizeRoomCode]
   );
+
+  const playerCount = (snapshot?.settings?.playerCount ?? 4) as 2 | 4;
 
   const { play: playTimerWarn, stop: stopTimerWarn } = useSound('/assets/soundeffects/Timer.mp3', {
     volume: 0.45,
@@ -198,17 +214,76 @@ export default function App() {
   );
   const [speakingSeat, setSpeakingSeat] = React.useState<number | null>(null);
   const lastHandledSoundboardT = React.useRef<number>(0);
+  const suppressNextSoundboardRef = React.useRef<{
+    seatIndex: number;
+    soundFile: SoundboardSoundFile;
+    until: number;
+  } | null>(null);
 
   // Per-seat audio: a player can't have multiple sounds overlapping.
   const seatAudioRef = React.useRef<Map<number, HTMLAudioElement>>(new Map());
 
+  // Shared WebAudio context + per-seat analysers for sound-reactive UI
+  const audioCtxRef = React.useRef<AudioContext | null>(null);
+  const seatAnalyserRef = React.useRef<
+    Map<
+      number,
+      {
+        analyser: AnalyserNode;
+        raf: number | null;
+        source: MediaStreamAudioSourceNode;
+      }
+    >
+  >(new Map());
+  const [seatBarsState, setSeatBarsState] = React.useState<Record<number, number[]>>({});
+
+  const stopSoundboardForSeat = React.useCallback((seatIndex: number) => {
+    const a = seatAudioRef.current.get(seatIndex);
+    if (a) {
+      try {
+        a.onended = null;
+        a.onerror = null;
+      } catch (e) {
+        void e;
+      }
+      try {
+        a.pause();
+        a.currentTime = 0;
+      } catch (e) {
+        void e;
+      }
+      seatAudioRef.current.delete(seatIndex);
+    }
+
+    setSeatBarsState((prev) => {
+      if (!prev[seatIndex]) return prev;
+      const next = { ...prev };
+      delete next[seatIndex];
+      return next;
+    });
+    setSpeakingSeat((cur) => (cur === seatIndex ? null : cur));
+
+    const node = seatAnalyserRef.current.get(seatIndex);
+    if (node) {
+      try {
+        if (node.raf != null) cancelAnimationFrame(node.raf);
+      } catch (e) {
+        void e;
+      }
+      try {
+        node.source.disconnect();
+        node.analyser.disconnect();
+      } catch (e) {
+        void e;
+      }
+      seatAnalyserRef.current.delete(seatIndex);
+    }
+  }, []);
+
   const playSoundboardLocal = React.useCallback(
     async (seatIndex: number, file: SoundboardSoundFile) => {
-      const prev = seatAudioRef.current.get(seatIndex);
-      if (prev) {
-        prev.pause();
-        prev.currentTime = 0;
-      }
+      // Always cleanup previous state first to avoid stuck rings.
+      stopSoundboardForSeat(seatIndex);
 
       const match = SOUNDBOARD_SOUNDS.find((s) => s.file === file);
       const src = match?.src || `/assets/soundboard/${file}`;
@@ -216,27 +291,159 @@ export default function App() {
       audio.volume = 0.95;
       seatAudioRef.current.set(seatIndex, audio);
 
+      const EQ_BARS = 24;
+
+      setSpeakingSeat(seatIndex);
+
+      // Setup analyser graph
+      try {
+        const maybeWebkit = window as typeof window & {
+          webkitAudioContext?: typeof AudioContext;
+        };
+        const Ctx = window.AudioContext || maybeWebkit.webkitAudioContext;
+        if (!Ctx) throw new Error('AudioContext not supported');
+        if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
+        const ctx = audioCtxRef.current!;
+
+        // Best-effort: browsers often require the ctx to be running to produce analyser data.
+        try {
+          await ctx.resume();
+        } catch {
+          // ignore
+        }
+
+        // Clean previous analyser for this seat
+        const existing = seatAnalyserRef.current.get(seatIndex);
+        if (existing) {
+          if (existing.raf != null) cancelAnimationFrame(existing.raf);
+          try {
+            existing.source.disconnect();
+            existing.analyser.disconnect();
+          } catch (e) {
+            void e;
+          }
+          seatAnalyserRef.current.delete(seatIndex);
+        }
+
+        const mediaAny = audio as unknown as {
+          captureStream?: () => MediaStream;
+          mozCaptureStream?: () => MediaStream;
+        };
+        const stream = mediaAny.captureStream?.() ?? mediaAny.mozCaptureStream?.();
+        if (!stream) throw new Error('captureStream not supported');
+
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256; // more bins => cleaner-looking ring
+        analyser.smoothingTimeConstant = 0.6;
+        // Analyser only: do not route to destination so the HTMLAudioElement plays normally.
+        source.connect(analyser);
+
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+
+        const tick = () => {
+          analyser.getByteFrequencyData(buf);
+          // Aggregate into EQ_BARS bars from low->high frequencies
+          const bars = EQ_BARS;
+          const slice = Math.floor(buf.length / bars) || 1;
+          const vals: number[] = [];
+          for (let i = 0; i < bars; i++) {
+            let sum = 0;
+            let count = 0;
+            const start = i * slice;
+            const end = Math.min(buf.length, start + slice);
+            for (let j = start; j < end; j++) {
+              sum += buf[j];
+              count++;
+            }
+            const avg = count ? sum / (count * 255) : 0; // 0..1
+            // Boost + curve for a more intense, readable visual.
+            const boosted = Math.min(1, Math.max(0, Math.pow(avg, 0.72) * 1.25));
+            // Quantize to reduce state churn.
+            vals.push(Math.round(boosted * 100) / 100);
+          }
+          setSeatBarsState((prev) => {
+            const prevVals = prev[seatIndex];
+            if (prevVals && prevVals.length === vals.length) {
+              const same = prevVals.every((v, idx) => v === vals[idx]);
+              if (same) return prev;
+            }
+            return { ...prev, [seatIndex]: vals };
+          });
+          const raf = requestAnimationFrame(tick);
+          const cur = seatAnalyserRef.current.get(seatIndex);
+          if (cur) cur.raf = raf;
+        };
+
+        seatAnalyserRef.current.set(seatIndex, { analyser, raf: null, source });
+        const raf = requestAnimationFrame(tick);
+        const cur = seatAnalyserRef.current.get(seatIndex);
+        if (cur) cur.raf = raf;
+      } catch (e) {
+        void e;
+        // ignore analyser failures (older browsers)
+      }
+
+      // Cleanup on end/error. Safety timeout prevents a stuck ring if media events don't fire.
+      const safetyMs = 6_000;
+      const safetyT = window.setTimeout(() => stopSoundboardForSeat(seatIndex), safetyMs);
+      audio.onended = () => {
+        window.clearTimeout(safetyT);
+        stopSoundboardForSeat(seatIndex);
+      };
+      audio.onerror = () => {
+        window.clearTimeout(safetyT);
+        stopSoundboardForSeat(seatIndex);
+      };
+
       try {
         await audio.play();
-      } catch {
-        // ignore autoplay or load errors
+      } catch (e) {
+        void e;
+        window.clearTimeout(safetyT);
+        stopSoundboardForSeat(seatIndex);
       }
     },
-    []
+    [stopSoundboardForSeat]
   );
 
   React.useEffect(() => {
     const seatAudio = seatAudioRef.current;
+    const seatAnalysers = seatAnalyserRef.current;
+    const audioCtx = audioCtxRef;
     return () => {
       for (const a of seatAudio.values()) {
         try {
           a.pause();
           a.currentTime = 0;
-        } catch {
+        } catch (e) {
+          void e;
           // ignore
         }
       }
       seatAudio.clear();
+      // cleanup analysers
+      for (const [seatIndex, node] of seatAnalysers.entries()) {
+        try {
+          if (node.raf != null) cancelAnimationFrame(node.raf);
+        } catch (e) {
+          void e;
+        }
+        try {
+          node.source.disconnect();
+        } catch (e) {
+          void e;
+        }
+        try {
+          node.analyser.disconnect();
+        } catch (e) {
+          void e;
+        }
+        seatAnalysers.delete(seatIndex);
+      }
+      audioCtx.current?.close?.().catch((e) => {
+        void e;
+      });
     };
   }, []);
 
@@ -293,19 +500,26 @@ export default function App() {
     lastHandledSoundboardT.current = soundboardEvent.t;
 
     const seatIndex = soundboardEvent.seatIndex as number;
-    const isMuted = seatIndex !== (mySeat ?? -1) && mutedSoundboardSeats.has(seatIndex);
-
-    setSpeakingSeat(seatIndex);
-    const t = window.setTimeout(() => {
-      setSpeakingSeat((cur) => (cur === seatIndex ? null : cur));
-    }, 1100);
-
-    if (!isMuted) {
-      void playSoundboardLocal(seatIndex, soundboardEvent.soundFile);
+    const isMutedForViewer = mutedSoundboardSeats.has(seatIndex);
+    if (isMutedForViewer) {
+      // Muted seats should not play OR animate.
+      stopSoundboardForSeat(seatIndex);
+      return;
     }
 
-    return () => window.clearTimeout(t);
-  }, [soundboardEvent, mutedSoundboardSeats, mySeat, playSoundboardLocal]);
+    const sup = suppressNextSoundboardRef.current;
+    if (
+      sup &&
+      sup.seatIndex === seatIndex &&
+      sup.soundFile === soundboardEvent.soundFile &&
+      Date.now() < sup.until
+    ) {
+      suppressNextSoundboardRef.current = null;
+      return;
+    }
+
+    void playSoundboardLocal(seatIndex, soundboardEvent.soundFile);
+  }, [soundboardEvent, mutedSoundboardSeats, playSoundboardLocal, stopSoundboardForSeat]);
 
   const selectedHandCard = React.useMemo(() => {
     if (mySeat == null || !gameState?.hands) return null;
@@ -524,7 +738,7 @@ export default function App() {
               <span className="text-sm whitespace-nowrap flex items-center gap-2 text-white/90">
                 <span>
                   {connected ? 'Connected' : 'Disconnected'}
-                  {snapshot ? ` • Players ${snapshot.players?.length || 0}/4` : ''}
+                  {snapshot ? ` • Players ${snapshot.players?.length || 0}/${playerCount}` : ''}
                   {mySeat !== null ? ` • You are seat ${mySeat + 1}` : ''}
                 </span>
                 {roomCode && (
@@ -612,6 +826,16 @@ export default function App() {
         <section className="app-section app-section--game sm:snap-start sm:snap-always h-full min-h-0 flex flex-col gap-0.5 sm:gap-0">
           <div className="game-table-area flex-1 min-h-0 flex items-stretch justify-stretch overflow-visible">
             <TableMat>
+              {roomCode && snapshot && (
+                <RoomLobbyPanel
+                  roomCode={roomCode}
+                  snapshot={snapshot}
+                  socketId={socketId}
+                  gameStarted={!!gameState}
+                  onUpdateSettings={(settings) => updateRoomSettings(roomCode, settings)}
+                  onLaunchGame={() => launchGame(roomCode)}
+                />
+              )}
               {/* Round banner */}
               {/* Inline banner removed in favor of end overlay */}
               {/* Table cards placeholder */}
@@ -646,28 +870,47 @@ export default function App() {
 
               {/* Opponents (relative to local seat) */}
               {(() => {
-                const { right: idxRight, top: idxTop, left: idxLeft } = getSeatIndices(mySeat);
-                const countAt = (i: number) => gameState?.hands?.[i]?.length ?? 0;
+                const {
+                  right: idxRight,
+                  top: idxTop,
+                  left: idxLeft,
+                } = getSeatIndices(mySeat, playerCount);
+                const countAt = (i: number) =>
+                  gameState?.handSizes?.[i] ?? gameState?.hands?.[i]?.length ?? 0;
+                const topCards = gameState?.hands?.[idxTop] ?? [];
+                const canSeeTopCards = playerCount === 4 && topCards.length > 0;
                 return (
                   <>
-                    <OpponentHand
-                      position="top"
-                      count={countAt(idxTop)}
-                      dealTick={dealTick}
-                      onDealAnimStart={playDealTick}
-                    />
-                    <OpponentHand
-                      position="left"
-                      count={countAt(idxLeft)}
-                      dealTick={dealTick}
-                      onDealAnimStart={playDealTick}
-                    />
-                    <OpponentHand
-                      position="right"
-                      count={countAt(idxRight)}
-                      dealTick={dealTick}
-                      onDealAnimStart={playDealTick}
-                    />
+                    {canSeeTopCards ? (
+                      <TeammateHand
+                        cards={topCards}
+                        dealTick={dealTick}
+                        onDealAnimStart={playDealTick}
+                      />
+                    ) : (
+                      <OpponentHand
+                        position="top"
+                        count={countAt(idxTop)}
+                        dealTick={dealTick}
+                        onDealAnimStart={playDealTick}
+                      />
+                    )}
+                    {playerCount === 4 && (
+                      <>
+                        <OpponentHand
+                          position="left"
+                          count={countAt(idxLeft)}
+                          dealTick={dealTick}
+                          onDealAnimStart={playDealTick}
+                        />
+                        <OpponentHand
+                          position="right"
+                          count={countAt(idxRight)}
+                          dealTick={dealTick}
+                          onDealAnimStart={playDealTick}
+                        />
+                      </>
+                    )}
                   </>
                 );
               })()}
@@ -682,7 +925,7 @@ export default function App() {
                   right: idxRight,
                   top: idxTop,
                   left: idxLeft,
-                } = getSeatIndices(mySeat);
+                } = getSeatIndices(mySeat, playerCount);
                 const teamForSeat = (i: number) => (i % 2 === 0 ? 0 : 1); // [0,2] -> Team A, [1,3] -> Team B
                 const names = snapshot?.teamNames ?? (['Team A', 'Team B'] as const);
                 const teamName = (i: number) => names[teamForSeat(i)];
@@ -733,6 +976,7 @@ export default function App() {
                       }
                       onActionClick={() => {
                         if (!seats[idxTop]) return;
+                        stopSoundboardForSeat(idxTop);
                         setMutedSoundboardSeats((prev) => {
                           const next = new Set(prev);
                           if (next.has(idxTop)) next.delete(idxTop);
@@ -741,77 +985,90 @@ export default function App() {
                         });
                       }}
                       speaking={speakingSeat === idxTop && !!seats[idxTop]}
+                      speakBars={seatBarsState[idxTop]}
                     />
-                    {/* Left opponent */}
-                    <SeatPanel
-                      position="left"
-                      avatar={getDisplay(idxLeft).avatar}
-                      nickname={getDisplay(idxLeft).nickname}
-                      highlight={current === idxLeft}
-                      turnEndsAt={current === idxLeft ? turn?.endsAt : undefined}
-                      turnDurationMs={current === idxLeft ? turn?.durationMs : undefined}
-                      clockSkewMs={current === idxLeft ? clockSkewMs : undefined}
-                      teamLabel={teamName(idxLeft)}
-                      teamIndex={teamForSeat(idxLeft) as 0 | 1}
-                      compact
-                      dense={phoneLandscape}
-                      actionIconSrc={
-                        seats[idxLeft]
-                          ? mutedSoundboardSeats.has(idxLeft)
-                            ? '/assets/icons/mute.ico'
-                            : '/assets/icons/play.ico'
-                          : undefined
-                      }
-                      actionIconAlt={mutedSoundboardSeats.has(idxLeft) ? 'Muted' : 'Unmuted'}
-                      actionIconTitle={
-                        mutedSoundboardSeats.has(idxLeft) ? 'Unmute soundboard' : 'Mute soundboard'
-                      }
-                      onActionClick={() => {
-                        if (!seats[idxLeft]) return;
-                        setMutedSoundboardSeats((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(idxLeft)) next.delete(idxLeft);
-                          else next.add(idxLeft);
-                          return next;
-                        });
-                      }}
-                      speaking={speakingSeat === idxLeft && !!seats[idxLeft]}
-                    />
-                    {/* Right opponent */}
-                    <SeatPanel
-                      position="right"
-                      avatar={getDisplay(idxRight).avatar}
-                      nickname={getDisplay(idxRight).nickname}
-                      highlight={current === idxRight}
-                      turnEndsAt={current === idxRight ? turn?.endsAt : undefined}
-                      turnDurationMs={current === idxRight ? turn?.durationMs : undefined}
-                      clockSkewMs={current === idxRight ? clockSkewMs : undefined}
-                      teamLabel={teamName(idxRight)}
-                      teamIndex={teamForSeat(idxRight) as 0 | 1}
-                      compact
-                      dense={phoneLandscape}
-                      actionIconSrc={
-                        seats[idxRight]
-                          ? mutedSoundboardSeats.has(idxRight)
-                            ? '/assets/icons/mute.ico'
-                            : '/assets/icons/play.ico'
-                          : undefined
-                      }
-                      actionIconAlt={mutedSoundboardSeats.has(idxRight) ? 'Muted' : 'Unmuted'}
-                      actionIconTitle={
-                        mutedSoundboardSeats.has(idxRight) ? 'Unmute soundboard' : 'Mute soundboard'
-                      }
-                      onActionClick={() => {
-                        if (!seats[idxRight]) return;
-                        setMutedSoundboardSeats((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(idxRight)) next.delete(idxRight);
-                          else next.add(idxRight);
-                          return next;
-                        });
-                      }}
-                      speaking={speakingSeat === idxRight && !!seats[idxRight]}
-                    />
+                    {playerCount === 4 && (
+                      <>
+                        {/* Left opponent */}
+                        <SeatPanel
+                          position="left"
+                          avatar={getDisplay(idxLeft).avatar}
+                          nickname={getDisplay(idxLeft).nickname}
+                          highlight={current === idxLeft}
+                          turnEndsAt={current === idxLeft ? turn?.endsAt : undefined}
+                          turnDurationMs={current === idxLeft ? turn?.durationMs : undefined}
+                          clockSkewMs={current === idxLeft ? clockSkewMs : undefined}
+                          teamLabel={teamName(idxLeft)}
+                          teamIndex={teamForSeat(idxLeft) as 0 | 1}
+                          compact
+                          dense={phoneLandscape}
+                          actionIconSrc={
+                            seats[idxLeft]
+                              ? mutedSoundboardSeats.has(idxLeft)
+                                ? '/assets/icons/mute.ico'
+                                : '/assets/icons/play.ico'
+                              : undefined
+                          }
+                          actionIconAlt={mutedSoundboardSeats.has(idxLeft) ? 'Muted' : 'Unmuted'}
+                          actionIconTitle={
+                            mutedSoundboardSeats.has(idxLeft)
+                              ? 'Unmute soundboard'
+                              : 'Mute soundboard'
+                          }
+                          onActionClick={() => {
+                            if (!seats[idxLeft]) return;
+                            stopSoundboardForSeat(idxLeft);
+                            setMutedSoundboardSeats((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(idxLeft)) next.delete(idxLeft);
+                              else next.add(idxLeft);
+                              return next;
+                            });
+                          }}
+                          speaking={speakingSeat === idxLeft && !!seats[idxLeft]}
+                          speakBars={seatBarsState[idxLeft]}
+                        />
+                        {/* Right opponent */}
+                        <SeatPanel
+                          position="right"
+                          avatar={getDisplay(idxRight).avatar}
+                          nickname={getDisplay(idxRight).nickname}
+                          highlight={current === idxRight}
+                          turnEndsAt={current === idxRight ? turn?.endsAt : undefined}
+                          turnDurationMs={current === idxRight ? turn?.durationMs : undefined}
+                          clockSkewMs={current === idxRight ? clockSkewMs : undefined}
+                          teamLabel={teamName(idxRight)}
+                          teamIndex={teamForSeat(idxRight) as 0 | 1}
+                          compact
+                          dense={phoneLandscape}
+                          actionIconSrc={
+                            seats[idxRight]
+                              ? mutedSoundboardSeats.has(idxRight)
+                                ? '/assets/icons/mute.ico'
+                                : '/assets/icons/play.ico'
+                              : undefined
+                          }
+                          actionIconAlt={mutedSoundboardSeats.has(idxRight) ? 'Muted' : 'Unmuted'}
+                          actionIconTitle={
+                            mutedSoundboardSeats.has(idxRight)
+                              ? 'Unmute soundboard'
+                              : 'Mute soundboard'
+                          }
+                          onActionClick={() => {
+                            if (!seats[idxRight]) return;
+                            stopSoundboardForSeat(idxRight);
+                            setMutedSoundboardSeats((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(idxRight)) next.delete(idxRight);
+                              else next.add(idxRight);
+                              return next;
+                            });
+                          }}
+                          speaking={speakingSeat === idxRight && !!seats[idxRight]}
+                          speakBars={seatBarsState[idxRight]}
+                        />
+                      </>
+                    )}
                   </>
                 );
               })()}
@@ -929,7 +1186,7 @@ export default function App() {
               const seats = snapshot?.seats || [null, null, null, null];
               const profiles = snapshot?.profiles || {};
               const current = gameState?.currentPlayerIndex ?? null;
-              const { bottom: idxBottom } = getSeatIndices(mySeat);
+              const { bottom: idxBottom } = getSeatIndices(mySeat, playerCount);
               const teamForSeat = (i: number) => (i % 2 === 0 ? 0 : 1);
               const names = snapshot?.teamNames ?? (['Team A', 'Team B'] as const);
               const teamName = (i: number) => names[teamForSeat(i)];
@@ -966,6 +1223,7 @@ export default function App() {
                           setSoundboardOpen((v) => !v);
                         }}
                         speaking={speakingSeat === idxBottom}
+                        speakBars={seatBarsState[idxBottom]}
                       />
                     </div>
 
@@ -1016,6 +1274,12 @@ export default function App() {
                                         type="button"
                                         className="group rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 px-3 py-2 text-left"
                                         onClick={() => {
+                                          suppressNextSoundboardRef.current = {
+                                            seatIndex: idxBottom,
+                                            soundFile: s.file,
+                                            until: Date.now() + 2500,
+                                          };
+                                          void playSoundboardLocal(idxBottom, s.file);
                                           void playSoundboard(roomCode, s.file);
                                           setSoundboardOpen(false);
                                         }}
@@ -1075,6 +1339,12 @@ export default function App() {
                                     type="button"
                                     className="group rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 px-3 py-2 text-left"
                                     onClick={() => {
+                                      suppressNextSoundboardRef.current = {
+                                        seatIndex: idxBottom,
+                                        soundFile: s.file,
+                                        until: Date.now() + 2500,
+                                      };
+                                      void playSoundboardLocal(idxBottom, s.file);
                                       void playSoundboard(roomCode, s.file);
                                       setSoundboardOpen(false);
                                     }}

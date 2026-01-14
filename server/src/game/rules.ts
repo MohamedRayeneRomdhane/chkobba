@@ -61,7 +61,8 @@ export function applyMove(
   state: GameState,
   player: PlayerIndex,
   playedCardId: string,
-  chosenCombinationIds?: string[]
+  chosenCombinationIds?: string[],
+  turnOrder?: readonly PlayerIndex[]
 ): MoveResult {
   const hand = state.hands[player];
   const playedIndex = hand.findIndex((c) => c.id === playedCardId);
@@ -117,6 +118,11 @@ export function applyMove(
     }
   }
 
-  const nextPlayer = ((player + 1) % 4) as PlayerIndex;
+  const order = (
+    turnOrder && turnOrder.length > 0 ? turnOrder : ([0, 1, 2, 3] as const)
+  ) as readonly PlayerIndex[];
+  const idx = order.indexOf(player);
+  if (idx < 0) throw new Error('Invalid turn order');
+  const nextPlayer = order[(idx + 1) % order.length] as PlayerIndex;
   return { captured, chkobba, newTable, newHand, nextPlayer, lastCaptureTeam };
 }
