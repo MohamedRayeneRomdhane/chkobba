@@ -857,9 +857,7 @@ export class GameRoomManager {
     room.gameState.lastPlay = {
       seatIndex,
       played: playedCard,
-      capturedTableCardIds: res.captured
-        .map((c) => c.id)
-        .filter((id) => id !== playedCardId),
+      capturedTableCardIds: res.captured.map((c) => c.id).filter((id) => id !== playedCardId),
       t: Date.now(),
     };
 
