@@ -9,6 +9,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Ensure ads.txt is reachable at the site root for ad network crawlers.
+// This is especially useful if the site domain points to this server.
+app.get('/ads.txt', (_req, res) => {
+  res.type('text/plain').send('google.com, pub-9124857144736473, DIRECT, f08c47fec0942fa0\n');
+});
+
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain').send('User-agent: *\nAllow: /\n');
+});
+
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 const manager = new GameRoomManager(io);
