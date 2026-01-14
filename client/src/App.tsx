@@ -559,6 +559,14 @@ export default function App() {
             <span>© Chkobba Café</span>
             <span className="hidden sm:inline">• Made for friendly games</span>
             <span className="hidden sm:inline">•</span>
+            <a className="underline hover:no-underline" href="/about.html">
+              About
+            </a>
+            <span>•</span>
+            <a className="underline hover:no-underline" href="/how-to-play.html">
+              How to play
+            </a>
+            <span>•</span>
             <a className="underline hover:no-underline" href="/privacy.html">
               Privacy
             </a>
