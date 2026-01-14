@@ -16,6 +16,7 @@ export type RoomMode = '1v1' | 'teams';
 export interface RoomSettings {
   mode: RoomMode;
   playerCount: 2 | 4;
+  turnTimerEnabled?: boolean;
   turnDurationMs: number;
   fillWithBots?: boolean;
 }

@@ -136,10 +136,15 @@ export class GameRoomManager {
       room.settings ?? {
         mode: 'teams',
         playerCount: 4,
+        turnTimerEnabled: true,
         turnDurationMs: GameRoomManager.DEFAULT_TURN_DURATION_MS,
         fillWithBots: false,
       }
     );
+  }
+
+  private isTurnTimerEnabled(room: RoomInfo): boolean {
+    return this.getRoomSettings(room).turnTimerEnabled !== false;
   }
 
   private static isBotId(id: string | null | undefined): boolean {
@@ -268,6 +273,7 @@ export class GameRoomManager {
       settings: {
         mode: 'teams',
         playerCount: 4,
+        turnTimerEnabled: true,
         turnDurationMs: GameRoomManager.DEFAULT_TURN_DURATION_MS,
         fillWithBots: false,
       },
@@ -376,6 +382,10 @@ export class GameRoomManager {
     if (next.playerCount !== 2 && next.playerCount !== 4) throw new Error('Invalid player count');
     next.mode = next.playerCount === 2 ? '1v1' : 'teams';
 
+    if (typeof next.turnTimerEnabled !== 'boolean') {
+      next.turnTimerEnabled = current.turnTimerEnabled !== false;
+    }
+
     if (typeof next.fillWithBots !== 'boolean') {
       next.fillWithBots = Boolean(current.fillWithBots);
     }
@@ -471,8 +481,42 @@ export class GameRoomManager {
     // 3 cards per active player in a deal
     this.cardsLeftInCurrentDeal.set(room.code, activeSeats.length * 3);
     this.emitGameState(room, 'game:start');
-    this.startTurnTimer(room.code, room);
+    this.maybeStartTurnTimer(room.code, room);
     this.emitRoomSnapshot(room.code);
+  }
+
+  private clearBotActTimer(code: string) {
+    const existingBot = this.roomBotActTimeout.get(code);
+    if (existingBot) {
+      clearTimeout(existingBot);
+      this.roomBotActTimeout.delete(code);
+    }
+  }
+
+  private scheduleBotTurnIfNeeded(code: string, room: RoomInfo) {
+    if (!room.gameState) return;
+    this.clearBotActTimer(code);
+
+    const cur = room.gameState.currentPlayerIndex;
+    const sid = room.seats[cur];
+    if (!GameRoomManager.isBotId(sid)) return;
+
+    const botTimeout = setTimeout(() => {
+      this.handleBotTurnNoTimer(code, cur);
+    }, 350);
+    this.roomBotActTimeout.set(code, botTimeout);
+  }
+
+  private maybeStartTurnTimer(code: string, room: RoomInfo) {
+    if (!this.isTurnTimerEnabled(room)) {
+      // No timer UI and no auto-timeout.
+      this.clearTurnTimer(code, room);
+      this.clearBotActTimer(code);
+      // Still let bots act quickly even without timers.
+      this.scheduleBotTurnIfNeeded(code, room);
+      return;
+    }
+    this.startTurnTimer(code, room);
   }
 
   handleDisconnect(socketId: string) {
@@ -499,7 +543,7 @@ export class GameRoomManager {
 
           // If it was this seat's turn, restart timers so the bot acts immediately.
           if (room.gameState.currentPlayerIndex === vacatedSeat) {
-            this.startTurnTimer(code, room);
+            this.maybeStartTurnTimer(code, room);
           }
         }
       }
@@ -585,6 +629,19 @@ export class GameRoomManager {
       }, 350);
       this.roomBotActTimeout.set(code, botTimeout);
     }
+  }
+
+  private handleBotTurnNoTimer(code: string, expectedPlayer: PlayerIndex) {
+    const room = this.rooms.get(code);
+    if (!room?.gameState) return;
+    if (room.gameState.currentPlayerIndex !== expectedPlayer) return;
+
+    const sid = room.seats[expectedPlayer];
+    if (!GameRoomManager.isBotId(sid)) return;
+
+    const played = this.autoPlayBotStrategic(code, room, expectedPlayer);
+    if (played) return;
+    this.autoPlayRandom(code, room, expectedPlayer, 'vacant');
   }
 
   private handleBotTurn(code: string, expectedPlayer: PlayerIndex, expectedEndsAt: number) {
@@ -698,7 +755,7 @@ export class GameRoomManager {
       return;
     }
 
-    this.startTurnTimer(code, room);
+    this.maybeStartTurnTimer(code, room);
     this.emitRoomSnapshot(code);
   }
 
@@ -714,7 +771,7 @@ export class GameRoomManager {
         continue;
       }
       if (room.seats[cur] != null) {
-        this.startTurnTimer(code, room);
+        this.maybeStartTurnTimer(code, room);
         this.emitRoomSnapshot(code);
         return;
       }
@@ -821,7 +878,7 @@ export class GameRoomManager {
       return;
     }
 
-    this.startTurnTimer(code, room);
+    this.maybeStartTurnTimer(code, room);
     this.emitRoomSnapshot(code);
   }
 
@@ -979,7 +1036,7 @@ export class GameRoomManager {
     this.cardsLeftInCurrentDeal.set(code, pending.cardsLeftInDeal);
 
     this.emitGameState(room, 'game:start');
-    this.startTurnTimer(code, room);
+    this.maybeStartTurnTimer(code, room);
     this.emitRoomSnapshot(code);
   }
 

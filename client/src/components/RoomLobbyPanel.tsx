@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS: RoomSettings = {
   mode: 'teams',
   playerCount: 4,
   turnDurationMs: 60_000,
+  turnTimerEnabled: true,
   fillWithBots: false,
 };
 
@@ -28,6 +29,7 @@ export default function RoomLobbyPanel({
   const settings = snapshot.settings ?? DEFAULT_SETTINGS;
   const isHost = !!socketId && snapshot.hostId === socketId;
   const fillWithBots = !!settings.fillWithBots;
+  const turnTimerEnabled = settings.turnTimerEnabled !== false;
 
   const requiredPlayers = settings.playerCount;
   const seated = (snapshot.seats ?? [null, null, null, null])
@@ -36,12 +38,14 @@ export default function RoomLobbyPanel({
 
   const [turnSec, setTurnSec] = React.useState<number>(Math.round(settings.turnDurationMs / 1000));
   const [mode, setMode] = React.useState<'1v1' | 'teams'>(settings.mode);
+  const [timerOn, setTimerOn] = React.useState<boolean>(turnTimerEnabled);
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setTurnSec(Math.round((snapshot.settings ?? DEFAULT_SETTINGS).turnDurationMs / 1000));
     setMode((snapshot.settings ?? DEFAULT_SETTINGS).mode);
+    setTimerOn((snapshot.settings ?? DEFAULT_SETTINGS).turnTimerEnabled !== false);
   }, [snapshot.settings]);
 
   if (!roomCode || !snapshot || gameStarted) return null;
@@ -134,31 +138,58 @@ export default function RoomLobbyPanel({
                 />
               </label>
 
-              {/* Turn time */}
-              <div className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2">
-                <div className="text-[12px] sm:text-sm text-white/75 whitespace-nowrap">
-                  Turn time (sec)
+              {/* Turn timer toggle */}
+              <label className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2 cursor-pointer select-none">
+                <div className="min-w-0">
+                  <div className="text-[12px] sm:text-sm text-white/85">Turn timer</div>
+                  <div className="text-[11px] sm:text-xs text-white/60">
+                    When off, turns have no time limit.
+                  </div>
                 </div>
                 <input
-                  type="number"
-                  min={10}
-                  max={180}
-                  step={5}
-                  value={turnSec}
+                  type="checkbox"
+                  checked={timerOn}
                   disabled={busy}
-                  onChange={(e) => setTurnSec(Number(e.currentTarget.value))}
-                  onBlur={async () => {
+                  onChange={async (e) => {
+                    const next = e.currentTarget.checked;
                     setMsg(null);
-                    const sec = Math.max(10, Math.min(180, Math.round(Number(turnSec) || 60)));
-                    setTurnSec(sec);
                     setBusy(true);
-                    const res = await onUpdateSettings({ turnDurationMs: sec * 1000 });
+                    setTimerOn(next);
+                    const res = await onUpdateSettings({ turnTimerEnabled: next });
                     setBusy(false);
                     if (!res.ok) setMsg(res.msg || 'Could not update settings');
                   }}
-                  className="w-[96px] rounded-lg bg-black/30 border border-white/15 px-2 py-1 text-[13px] sm:text-sm text-white text-right outline-none focus:ring-2 focus:ring-amber-300/60"
+                  className="h-5 w-5 accent-amber-300"
                 />
-              </div>
+              </label>
+
+              {/* Turn time */}
+              {timerOn && (
+                <div className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2">
+                  <div className="text-[12px] sm:text-sm text-white/75 whitespace-nowrap">
+                    Turn time (sec)
+                  </div>
+                  <input
+                    type="number"
+                    min={10}
+                    max={180}
+                    step={5}
+                    value={turnSec}
+                    disabled={busy}
+                    onChange={(e) => setTurnSec(Number(e.currentTarget.value))}
+                    onBlur={async () => {
+                      setMsg(null);
+                      const sec = Math.max(10, Math.min(180, Math.round(Number(turnSec) || 60)));
+                      setTurnSec(sec);
+                      setBusy(true);
+                      const res = await onUpdateSettings({ turnDurationMs: sec * 1000 });
+                      setBusy(false);
+                      if (!res.ok) setMsg(res.msg || 'Could not update settings');
+                    }}
+                    className="w-[96px] rounded-lg bg-black/30 border border-white/15 px-2 py-1 text-[13px] sm:text-sm text-white text-right outline-none focus:ring-2 focus:ring-amber-300/60"
+                  />
+                </div>
+              )}
 
               {/* Start */}
               <button
@@ -205,8 +236,13 @@ export default function RoomLobbyPanel({
 
         {!isHost && (
           <div className="mt-2 text-[11px] sm:text-xs text-white/70 text-center">
-            Turn: {Math.round(settings.turnDurationMs / 1000)}s • Mode:{' '}
-            {settings.playerCount === 2 ? '1v1' : 'Teams'} • Bots: {fillWithBots ? 'On' : 'Off'}
+            <span>
+              Timer: {turnTimerEnabled ? `${Math.round(settings.turnDurationMs / 1000)}s` : 'Off'}
+            </span>
+            <span>{' • '}</span>
+            <span>Mode: {settings.playerCount === 2 ? '1v1' : 'Teams'}</span>
+            <span>{' • '}</span>
+            <span>Bots: {fillWithBots ? 'On' : 'Off'}</span>
           </div>
         )}
       </div>
