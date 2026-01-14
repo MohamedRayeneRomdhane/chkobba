@@ -1,1 +1,9 @@
-export type { Card, GameState, PlayerIndex, TeamIndex, RoomSnapshot } from '../../../shared/types';
+export type {
+  Card,
+  GameState,
+  PlayerIndex,
+  TeamIndex,
+  RoomSnapshot,
+  RoomSettings,
+  RoomMode,
+} from '../../../shared/types';

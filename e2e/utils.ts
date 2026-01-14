@@ -58,6 +58,15 @@ export async function createAndJoinFour(browser: Browser) {
   await p4.getByRole('button', { name: 'Join', exact: true }).click();
   await Promise.all([waitPlayers(p1, 4), waitPlayers(p4, 4)]);
 
+  // Host must explicitly start the game now (no auto-start on room fill)
+  const startBtn = p1.getByTestId('start-game');
+  await expect(startBtn).toBeVisible({ timeout: 20_000 });
+  await expect(startBtn).toBeEnabled({ timeout: 20_000 });
+  await startBtn.click();
+
+  // Wait for initial deal to render for host page
+  await expect(p1.locator('#table-grid [data-card-id]')).toHaveCount(4, { timeout: 20_000 });
+
   return pages as [Page, Page, Page, Page];
 }
 
