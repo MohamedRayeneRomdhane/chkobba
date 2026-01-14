@@ -29,6 +29,33 @@
   }
 }
 
+@keyframes seatEqGlow {
+  0% {
+    transform: scale(1);
+    opacity: 0.94;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.94;
+  }
+}
+
+@keyframes seatEqGlow {
+  0% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.65;
+  }
+}
+
 /* Turn timer ring around the active seat (SVG stroke; avoids mask-composite repaint issues) */
 .seat-timer-ring {
   position: absolute;

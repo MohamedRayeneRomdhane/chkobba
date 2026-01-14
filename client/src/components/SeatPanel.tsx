@@ -18,6 +18,7 @@ type Props = {
   actionIconTitle?: string;
   onActionClick?: () => void;
   speaking?: boolean;
+  speakBars?: number[]; // 0..1 normalized per-bar levels for sound-reactive UI
 };
 
 export default function SeatPanel({
@@ -38,15 +39,19 @@ export default function SeatPanel({
   actionIconTitle,
   onActionClick,
   speaking,
+  speakBars,
 }: Props) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const uid = React.useId();
+  const svgUid = React.useMemo(() => uid.replace(/[^a-zA-Z0-9_-]/g, '_'), [uid]);
+  const eqPathRef = React.useRef<SVGPathElement | null>(null);
   const vertical = position === 'left' || position === 'right';
   const isLeft = position === 'left';
   const isRight = position === 'right';
   const showAction = !!actionIconSrc && typeof onActionClick === 'function';
   // Only reserve header space for vertical panels where the action badge/button is overlaid.
-  // Horizontal panels render the action inline (same row), so they don't need extra top padding.
-  const headerPadPx = vertical && (showAction || speaking) ? 30 : 0;
+  // Soundboard visuals are overlays and shouldn't affect layout.
+  const headerPadPx = vertical && showAction ? 30 : 0;
   // Responsive scales using CSS clamp to adapt across screen sizes
   const avatarSize = dense
     ? 'clamp(12px, 2vw, 18px)'
@@ -214,6 +219,36 @@ export default function SeatPanel({
     ].join(' ');
   }, [ringGeom]);
 
+  const makeRoundedRectPath = React.useCallback(
+    (geom: { w: number; h: number; r: number; inset: number }, extraOutsetPx: number) => {
+      const { w, h, r, inset } = geom;
+      const insetEq = inset - extraOutsetPx;
+
+      const left = insetEq;
+      const top = insetEq;
+      const right = w - insetEq;
+      const bottom = h - insetEq;
+
+      const rrTarget = r + extraOutsetPx;
+      const rr = Math.max(0, Math.min(rrTarget, (right - left) / 2, (bottom - top) / 2));
+      const startX = w / 2;
+
+      return [
+        `M ${startX} ${top}`,
+        `H ${right - rr}`,
+        `A ${rr} ${rr} 0 0 1 ${right} ${top + rr}`,
+        `V ${bottom - rr}`,
+        `A ${rr} ${rr} 0 0 1 ${right - rr} ${bottom}`,
+        `H ${left + rr}`,
+        `A ${rr} ${rr} 0 0 1 ${left} ${bottom - rr}`,
+        `V ${top + rr}`,
+        `A ${rr} ${rr} 0 0 1 ${left + rr} ${top}`,
+        `H ${startX}`,
+      ].join(' ');
+    },
+    []
+  );
+
   React.useEffect(() => {
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
@@ -253,8 +288,235 @@ export default function SeatPanel({
     };
   }, [highlight, turnEndsAt, turnDurationMs, clockSkewMs, ringPathD]);
 
+  const [fallbackBars, setFallbackBars] = React.useState<number[] | null>(null);
+
+  React.useEffect(() => {
+    // Some browsers don't support captureStream-based analysis. If we are "speaking" but
+    // have no bar data, show a synthetic spike pattern so it still reads like sound.
+    if (!speaking) {
+      setFallbackBars(null);
+      return;
+    }
+    if ((speakBars?.length ?? 0) > 0) {
+      setFallbackBars(null);
+      return;
+    }
+
+    const BARS = 48;
+    const startT = performance.now();
+    const phase = Math.random() * Math.PI * 2;
+    let raf: number | null = null;
+
+    const tick = () => {
+      const t = (performance.now() - startT) / 1000;
+      const vals: number[] = [];
+      for (let i = 0; i < BARS; i++) {
+        const x = i / BARS;
+        const wave = 0.55 + 0.45 * Math.sin(phase + t * 6.2 + x * Math.PI * 2);
+        const wobble = 0.18 * Math.sin(phase * 0.37 + t * 2.4 + i * 0.9);
+        const v = Math.max(0, Math.min(1, wave + wobble));
+        vals.push(Math.round(v * 100) / 100);
+      }
+      setFallbackBars(vals);
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => {
+      if (raf != null) cancelAnimationFrame(raf);
+    };
+  }, [speaking, speakBars]);
+
+  const effectiveBars = React.useMemo(() => {
+    const bars = (speakBars?.length ?? 0) > 0 ? speakBars : fallbackBars;
+    return bars ?? null;
+  }, [speakBars, fallbackBars]);
+
+  const speakLevels = React.useMemo(() => {
+    const raw = (effectiveBars ?? []).filter((v) => Number.isFinite(v)) as number[];
+    if (raw.length === 0) return null;
+
+    // Always render a dense ring so spikes appear all around the seat,
+    // even if the analyser provides fewer bars.
+    const TARGET = 48;
+    const base = raw.map((v) => Math.max(0, Math.min(1, v)));
+
+    const clamped: number[] = [];
+    if (base.length === 1) {
+      for (let i = 0; i < TARGET; i++) clamped.push(base[0]);
+    } else {
+      for (let i = 0; i < TARGET; i++) {
+        const t = i / (TARGET - 1);
+        const pos = t * (base.length - 1);
+        const i0 = Math.floor(pos);
+        const i1 = Math.min(base.length - 1, i0 + 1);
+        const f = pos - i0;
+        clamped.push(base[i0] * (1 - f) + base[i1] * f);
+      }
+    }
+
+    const avg = clamped.reduce((s, v) => s + v, 0) / clamped.length;
+    return { clamped, avg };
+  }, [effectiveBars]);
+
+  const showSpeakRing = (speaking || !!speakLevels) && !!ringGeom && !!ringPathD;
+
+  const eqOutsetPx = React.useMemo(() => {
+    if (!ringGeom) return 10;
+    // Scale with the seat so it reads well on both compact and larger panels.
+    const minDim = Math.max(1, Math.min(ringGeom.w, ringGeom.h));
+    return Math.round(Math.max(10, Math.min(18, minDim * 0.12)));
+  }, [ringGeom]);
+
+  const eqPathD = React.useMemo(() => {
+    if (!ringGeom) return null;
+    return makeRoundedRectPath(ringGeom, eqOutsetPx);
+  }, [ringGeom, eqOutsetPx, makeRoundedRectPath]);
+
+  const [spikeAnchors, setSpikeAnchors] = React.useState<Array<{
+    x: number;
+    y: number;
+    nx: number;
+    ny: number;
+  }> | null>(null);
+
+  React.useLayoutEffect(() => {
+    const path = eqPathRef.current;
+    const bars = speakLevels?.clamped.length ?? 0;
+    if (!path || !eqPathD || !ringGeom || bars <= 0) {
+      setSpikeAnchors(null);
+      return;
+    }
+
+    let total = 0;
+    try {
+      total = path.getTotalLength();
+    } catch (e) {
+      void e;
+      setSpikeAnchors(null);
+      return;
+    }
+    if (!Number.isFinite(total) || total <= 1) {
+      setSpikeAnchors(null);
+      return;
+    }
+
+    const eps = Math.max(0.5, total / 1200);
+    const anchors: Array<{ x: number; y: number; nx: number; ny: number }> = [];
+
+    for (let i = 0; i < bars; i++) {
+      const l = (i / bars) * total;
+      const p = path.getPointAtLength(l);
+      const p2 = path.getPointAtLength(Math.min(total, l + eps));
+      const dx = p2.x - p.x;
+      const dy = p2.y - p.y;
+      const mag = Math.max(1e-6, Math.hypot(dx, dy));
+
+      // Our path is clockwise; outward normal is to the "right" of the tangent.
+      const nx = dy / mag;
+      const ny = -dx / mag;
+      anchors.push({ x: p.x, y: p.y, nx, ny });
+    }
+
+    setSpikeAnchors(anchors);
+  }, [eqPathD, ringGeom, speakLevels?.clamped.length]);
+
   return (
     <div ref={containerRef} style={{ ...baseStyle, ...posStyle }}>
+      {showSpeakRing && ringGeom && eqPathD && (
+        <svg
+          viewBox={`0 0 ${ringGeom.w} ${ringGeom.h}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            // Keep spikes above other overlays like the turn timer ring.
+            zIndex: 4,
+            overflow: 'visible',
+            // Do not animate/scale the entire overlay (reads like a pulsing box).
+            // Spike intensity is driven per-bar.
+            opacity: 1,
+            filter:
+              'drop-shadow(0 4px 16px rgba(0,0,0,0.28)) drop-shadow(0 0 26px rgba(0,245,255,0.55)) drop-shadow(0 0 24px rgba(139,92,246,0.42)) drop-shadow(0 0 22px rgba(255,45,149,0.34))',
+          }}
+        >
+          <defs>
+            <linearGradient
+              id={`${svgUid}-seat-eq-grad`}
+              gradientUnits="userSpaceOnUse"
+              x1={0}
+              y1={0}
+              x2={ringGeom.w}
+              y2={ringGeom.h}
+            >
+              <stop offset="0%" stopColor="#00f5ff" />
+              <stop offset="32%" stopColor="#8b5cf6" />
+              <stop offset="62%" stopColor="#ff2d95" />
+              <stop offset="100%" stopColor="#ffd000" />
+            </linearGradient>
+          </defs>
+
+          {/* Hidden path used for measuring perimeter points */}
+          <path ref={eqPathRef} d={eqPathD} fill="none" stroke="transparent" strokeWidth={1} />
+
+          {/* Equalizer spikes: outward bars whose length follows audio */}
+          {spikeAnchors &&
+            (speakLevels?.clamped ?? []).map((v, i) => {
+              const a = spikeAnchors[i];
+              if (!a) return null;
+
+              const minDim = Math.max(1, Math.min(ringGeom.w, ringGeom.h));
+              // Shorter spikes: keep them punchy but not huge.
+              const baseLen = Math.max(6, Math.round(minDim * 0.05));
+              const extraLen = Math.max(8, Math.round(minDim * 0.11));
+              const len = baseLen + v * extraLen;
+
+              // Offset outward so the spikes don't visually merge into the seat border.
+              const startOut = 5;
+              const x1 = a.x + a.nx * startOut;
+              const y1 = a.y + a.ny * startOut;
+              const x2 = a.x + a.nx * (startOut + len);
+              const y2 = a.y + a.ny * (startOut + len);
+
+              // Thinner spikes: reduce width range.
+              const wMin = Math.max(2, Math.round(minDim * 0.01));
+              const wMax = Math.max(6, Math.round(minDim * 0.022));
+              const sw = wMin + v * (wMax - wMin);
+
+              const alpha = 0.35 + v * 0.65;
+
+              return (
+                <g key={i}>
+                  {/* Dark outline: keeps spikes visible on bright/white seat panels */}
+                  <line
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="rgba(0,0,0,0.48)"
+                    strokeWidth={sw + 1}
+                    strokeLinecap="round"
+                    opacity={alpha * 0.6}
+                  />
+                  {/* Neon spike */}
+                  <line
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke={`url(#${svgUid}-seat-eq-grad)`}
+                    strokeWidth={sw}
+                    strokeLinecap="round"
+                    opacity={alpha}
+                  />
+                </g>
+              );
+            })}
+        </svg>
+      )}
+
       {highlight &&
         typeof turnEndsAt === 'number' &&
         typeof turnDurationMs === 'number' &&
@@ -293,32 +555,6 @@ export default function SeatPanel({
             />
           </svg>
         )}
-      {speaking && (
-        <div
-          className="soundboard-speaking"
-          style={{
-            position: vertical ? 'absolute' : 'relative',
-            left: vertical ? '50%' : undefined,
-            top: vertical ? '6px' : undefined,
-            transform: vertical ? 'translateX(-50%)' : undefined,
-            pointerEvents: 'none',
-            background: 'rgba(255,255,255,0.92)',
-            border: '1px solid rgba(176,137,104,0.7)',
-            borderRadius: 999,
-            padding: '2px 6px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-            animation: 'soundboardPulse 900ms ease-in-out infinite',
-            zIndex: 4,
-            marginRight: vertical ? undefined : '6px',
-          }}
-        >
-          <img
-            src="/assets/icons/play.ico"
-            alt="Sound"
-            style={{ width: 14, height: 14, display: 'block' }}
-          />
-        </div>
-      )}
 
       {showAction && (
         <button

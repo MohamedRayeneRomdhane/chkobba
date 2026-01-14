@@ -214,17 +214,76 @@ export default function App() {
   );
   const [speakingSeat, setSpeakingSeat] = React.useState<number | null>(null);
   const lastHandledSoundboardT = React.useRef<number>(0);
+  const suppressNextSoundboardRef = React.useRef<{
+    seatIndex: number;
+    soundFile: SoundboardSoundFile;
+    until: number;
+  } | null>(null);
 
   // Per-seat audio: a player can't have multiple sounds overlapping.
   const seatAudioRef = React.useRef<Map<number, HTMLAudioElement>>(new Map());
 
+  // Shared WebAudio context + per-seat analysers for sound-reactive UI
+  const audioCtxRef = React.useRef<AudioContext | null>(null);
+  const seatAnalyserRef = React.useRef<
+    Map<
+      number,
+      {
+        analyser: AnalyserNode;
+        raf: number | null;
+        source: MediaStreamAudioSourceNode;
+      }
+    >
+  >(new Map());
+  const [seatBarsState, setSeatBarsState] = React.useState<Record<number, number[]>>({});
+
+  const stopSoundboardForSeat = React.useCallback((seatIndex: number) => {
+    const a = seatAudioRef.current.get(seatIndex);
+    if (a) {
+      try {
+        a.onended = null;
+        a.onerror = null;
+      } catch (e) {
+        void e;
+      }
+      try {
+        a.pause();
+        a.currentTime = 0;
+      } catch (e) {
+        void e;
+      }
+      seatAudioRef.current.delete(seatIndex);
+    }
+
+    setSeatBarsState((prev) => {
+      if (!prev[seatIndex]) return prev;
+      const next = { ...prev };
+      delete next[seatIndex];
+      return next;
+    });
+    setSpeakingSeat((cur) => (cur === seatIndex ? null : cur));
+
+    const node = seatAnalyserRef.current.get(seatIndex);
+    if (node) {
+      try {
+        if (node.raf != null) cancelAnimationFrame(node.raf);
+      } catch (e) {
+        void e;
+      }
+      try {
+        node.source.disconnect();
+        node.analyser.disconnect();
+      } catch (e) {
+        void e;
+      }
+      seatAnalyserRef.current.delete(seatIndex);
+    }
+  }, []);
+
   const playSoundboardLocal = React.useCallback(
     async (seatIndex: number, file: SoundboardSoundFile) => {
-      const prev = seatAudioRef.current.get(seatIndex);
-      if (prev) {
-        prev.pause();
-        prev.currentTime = 0;
-      }
+      // Always cleanup previous state first to avoid stuck rings.
+      stopSoundboardForSeat(seatIndex);
 
       const match = SOUNDBOARD_SOUNDS.find((s) => s.file === file);
       const src = match?.src || `/assets/soundboard/${file}`;
@@ -232,27 +291,159 @@ export default function App() {
       audio.volume = 0.95;
       seatAudioRef.current.set(seatIndex, audio);
 
+      const EQ_BARS = 24;
+
+      setSpeakingSeat(seatIndex);
+
+      // Setup analyser graph
+      try {
+        const maybeWebkit = window as typeof window & {
+          webkitAudioContext?: typeof AudioContext;
+        };
+        const Ctx = window.AudioContext || maybeWebkit.webkitAudioContext;
+        if (!Ctx) throw new Error('AudioContext not supported');
+        if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
+        const ctx = audioCtxRef.current!;
+
+        // Best-effort: browsers often require the ctx to be running to produce analyser data.
+        try {
+          await ctx.resume();
+        } catch {
+          // ignore
+        }
+
+        // Clean previous analyser for this seat
+        const existing = seatAnalyserRef.current.get(seatIndex);
+        if (existing) {
+          if (existing.raf != null) cancelAnimationFrame(existing.raf);
+          try {
+            existing.source.disconnect();
+            existing.analyser.disconnect();
+          } catch (e) {
+            void e;
+          }
+          seatAnalyserRef.current.delete(seatIndex);
+        }
+
+        const mediaAny = audio as unknown as {
+          captureStream?: () => MediaStream;
+          mozCaptureStream?: () => MediaStream;
+        };
+        const stream = mediaAny.captureStream?.() ?? mediaAny.mozCaptureStream?.();
+        if (!stream) throw new Error('captureStream not supported');
+
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256; // more bins => cleaner-looking ring
+        analyser.smoothingTimeConstant = 0.6;
+        // Analyser only: do not route to destination so the HTMLAudioElement plays normally.
+        source.connect(analyser);
+
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+
+        const tick = () => {
+          analyser.getByteFrequencyData(buf);
+          // Aggregate into EQ_BARS bars from low->high frequencies
+          const bars = EQ_BARS;
+          const slice = Math.floor(buf.length / bars) || 1;
+          const vals: number[] = [];
+          for (let i = 0; i < bars; i++) {
+            let sum = 0;
+            let count = 0;
+            const start = i * slice;
+            const end = Math.min(buf.length, start + slice);
+            for (let j = start; j < end; j++) {
+              sum += buf[j];
+              count++;
+            }
+            const avg = count ? sum / (count * 255) : 0; // 0..1
+            // Boost + curve for a more intense, readable visual.
+            const boosted = Math.min(1, Math.max(0, Math.pow(avg, 0.72) * 1.25));
+            // Quantize to reduce state churn.
+            vals.push(Math.round(boosted * 100) / 100);
+          }
+          setSeatBarsState((prev) => {
+            const prevVals = prev[seatIndex];
+            if (prevVals && prevVals.length === vals.length) {
+              const same = prevVals.every((v, idx) => v === vals[idx]);
+              if (same) return prev;
+            }
+            return { ...prev, [seatIndex]: vals };
+          });
+          const raf = requestAnimationFrame(tick);
+          const cur = seatAnalyserRef.current.get(seatIndex);
+          if (cur) cur.raf = raf;
+        };
+
+        seatAnalyserRef.current.set(seatIndex, { analyser, raf: null, source });
+        const raf = requestAnimationFrame(tick);
+        const cur = seatAnalyserRef.current.get(seatIndex);
+        if (cur) cur.raf = raf;
+      } catch (e) {
+        void e;
+        // ignore analyser failures (older browsers)
+      }
+
+      // Cleanup on end/error. Safety timeout prevents a stuck ring if media events don't fire.
+      const safetyMs = 6_000;
+      const safetyT = window.setTimeout(() => stopSoundboardForSeat(seatIndex), safetyMs);
+      audio.onended = () => {
+        window.clearTimeout(safetyT);
+        stopSoundboardForSeat(seatIndex);
+      };
+      audio.onerror = () => {
+        window.clearTimeout(safetyT);
+        stopSoundboardForSeat(seatIndex);
+      };
+
       try {
         await audio.play();
-      } catch {
-        // ignore autoplay or load errors
+      } catch (e) {
+        void e;
+        window.clearTimeout(safetyT);
+        stopSoundboardForSeat(seatIndex);
       }
     },
-    []
+    [stopSoundboardForSeat]
   );
 
   React.useEffect(() => {
     const seatAudio = seatAudioRef.current;
+    const seatAnalysers = seatAnalyserRef.current;
+    const audioCtx = audioCtxRef;
     return () => {
       for (const a of seatAudio.values()) {
         try {
           a.pause();
           a.currentTime = 0;
-        } catch {
+        } catch (e) {
+          void e;
           // ignore
         }
       }
       seatAudio.clear();
+      // cleanup analysers
+      for (const [seatIndex, node] of seatAnalysers.entries()) {
+        try {
+          if (node.raf != null) cancelAnimationFrame(node.raf);
+        } catch (e) {
+          void e;
+        }
+        try {
+          node.source.disconnect();
+        } catch (e) {
+          void e;
+        }
+        try {
+          node.analyser.disconnect();
+        } catch (e) {
+          void e;
+        }
+        seatAnalysers.delete(seatIndex);
+      }
+      audioCtx.current?.close?.().catch((e) => {
+        void e;
+      });
     };
   }, []);
 
@@ -309,19 +500,26 @@ export default function App() {
     lastHandledSoundboardT.current = soundboardEvent.t;
 
     const seatIndex = soundboardEvent.seatIndex as number;
-    const isMuted = seatIndex !== (mySeat ?? -1) && mutedSoundboardSeats.has(seatIndex);
-
-    setSpeakingSeat(seatIndex);
-    const t = window.setTimeout(() => {
-      setSpeakingSeat((cur) => (cur === seatIndex ? null : cur));
-    }, 1100);
-
-    if (!isMuted) {
-      void playSoundboardLocal(seatIndex, soundboardEvent.soundFile);
+    const isMutedForViewer = mutedSoundboardSeats.has(seatIndex);
+    if (isMutedForViewer) {
+      // Muted seats should not play OR animate.
+      stopSoundboardForSeat(seatIndex);
+      return;
     }
 
-    return () => window.clearTimeout(t);
-  }, [soundboardEvent, mutedSoundboardSeats, mySeat, playSoundboardLocal]);
+    const sup = suppressNextSoundboardRef.current;
+    if (
+      sup &&
+      sup.seatIndex === seatIndex &&
+      sup.soundFile === soundboardEvent.soundFile &&
+      Date.now() < sup.until
+    ) {
+      suppressNextSoundboardRef.current = null;
+      return;
+    }
+
+    void playSoundboardLocal(seatIndex, soundboardEvent.soundFile);
+  }, [soundboardEvent, mutedSoundboardSeats, playSoundboardLocal, stopSoundboardForSeat]);
 
   const selectedHandCard = React.useMemo(() => {
     if (mySeat == null || !gameState?.hands) return null;
@@ -778,6 +976,7 @@ export default function App() {
                       }
                       onActionClick={() => {
                         if (!seats[idxTop]) return;
+                        stopSoundboardForSeat(idxTop);
                         setMutedSoundboardSeats((prev) => {
                           const next = new Set(prev);
                           if (next.has(idxTop)) next.delete(idxTop);
@@ -786,6 +985,7 @@ export default function App() {
                         });
                       }}
                       speaking={speakingSeat === idxTop && !!seats[idxTop]}
+                      speakBars={seatBarsState[idxTop]}
                     />
                     {playerCount === 4 && (
                       <>
@@ -817,6 +1017,7 @@ export default function App() {
                           }
                           onActionClick={() => {
                             if (!seats[idxLeft]) return;
+                            stopSoundboardForSeat(idxLeft);
                             setMutedSoundboardSeats((prev) => {
                               const next = new Set(prev);
                               if (next.has(idxLeft)) next.delete(idxLeft);
@@ -825,6 +1026,7 @@ export default function App() {
                             });
                           }}
                           speaking={speakingSeat === idxLeft && !!seats[idxLeft]}
+                          speakBars={seatBarsState[idxLeft]}
                         />
                         {/* Right opponent */}
                         <SeatPanel
@@ -854,6 +1056,7 @@ export default function App() {
                           }
                           onActionClick={() => {
                             if (!seats[idxRight]) return;
+                            stopSoundboardForSeat(idxRight);
                             setMutedSoundboardSeats((prev) => {
                               const next = new Set(prev);
                               if (next.has(idxRight)) next.delete(idxRight);
@@ -862,6 +1065,7 @@ export default function App() {
                             });
                           }}
                           speaking={speakingSeat === idxRight && !!seats[idxRight]}
+                          speakBars={seatBarsState[idxRight]}
                         />
                       </>
                     )}
@@ -1019,6 +1223,7 @@ export default function App() {
                           setSoundboardOpen((v) => !v);
                         }}
                         speaking={speakingSeat === idxBottom}
+                        speakBars={seatBarsState[idxBottom]}
                       />
                     </div>
 
@@ -1069,6 +1274,12 @@ export default function App() {
                                         type="button"
                                         className="group rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 px-3 py-2 text-left"
                                         onClick={() => {
+                                          suppressNextSoundboardRef.current = {
+                                            seatIndex: idxBottom,
+                                            soundFile: s.file,
+                                            until: Date.now() + 2500,
+                                          };
+                                          void playSoundboardLocal(idxBottom, s.file);
                                           void playSoundboard(roomCode, s.file);
                                           setSoundboardOpen(false);
                                         }}
@@ -1128,6 +1339,12 @@ export default function App() {
                                     type="button"
                                     className="group rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 px-3 py-2 text-left"
                                     onClick={() => {
+                                      suppressNextSoundboardRef.current = {
+                                        seatIndex: idxBottom,
+                                        soundFile: s.file,
+                                        until: Date.now() + 2500,
+                                      };
+                                      void playSoundboardLocal(idxBottom, s.file);
                                       void playSoundboard(roomCode, s.file);
                                       setSoundboardOpen(false);
                                     }}
