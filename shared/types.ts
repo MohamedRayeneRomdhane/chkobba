@@ -32,6 +32,14 @@ export interface GameState {
   roundNumber: number;
   chkobbaByTeam: [number, number];
   lastCaptureTeam?: TeamIndex;
+
+  // Public move metadata for UI animations (does not reveal remaining hidden hands).
+  lastPlay?: {
+    seatIndex: PlayerIndex;
+    played: Card;
+    capturedTableCardIds: string[]; // ids removed from table (excludes the played card id)
+    t: number; // epoch ms
+  };
 }
 
 export interface TurnInfo {

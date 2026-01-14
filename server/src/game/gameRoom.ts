@@ -147,7 +147,7 @@ export class GameRoomManager {
     return this.getRoomSettings(room).turnTimerEnabled !== false;
   }
 
-  private static isBotId(id: string | null | undefined): boolean {
+  private static isBotId(id: string | null | undefined): id is string {
     return typeof id === 'string' && id.startsWith(GameRoomManager.BOT_PREFIX);
   }
 
@@ -823,6 +823,9 @@ export class GameRoomManager {
   ) {
     if (!room.gameState) throw new Error('Room not ready');
 
+    const playedCard = room.gameState.hands[seatIndex]?.find((c) => c.id === playedCardId) || null;
+    if (!playedCard) throw new Error('Card not in hand');
+
     const res = applyMove(
       room.gameState,
       seatIndex,
@@ -850,6 +853,15 @@ export class GameRoomManager {
     }
     room.gameState.currentPlayerIndex = res.nextPlayer;
     room.gameState.lastCaptureTeam = res.lastCaptureTeam;
+
+    room.gameState.lastPlay = {
+      seatIndex,
+      played: playedCard,
+      capturedTableCardIds: res.captured
+        .map((c) => c.id)
+        .filter((id) => id !== playedCardId),
+      t: Date.now(),
+    };
 
     // decrement turns left in current deal for each play
     const remaining = (this.cardsLeftInCurrentDeal.get(code) ?? 0) - 1;
