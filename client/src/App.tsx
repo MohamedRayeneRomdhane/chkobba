@@ -538,7 +538,8 @@ export default function App() {
   const { flights: pendingFlights, clearFlights } = usePlayAnimations(
     gameState,
     mySeat,
-    selectedHandCard
+    selectedHandCard,
+    playerCount
   );
 
   return (

@@ -13,6 +13,12 @@ export async function waitPlayers(page: Page, n: number) {
   await expect(page.getByText(new RegExp(`Players\\s+${n}/4`))).toBeVisible({ timeout: 20_000 });
 }
 
+export async function waitPlayersTotal(page: Page, seated: number, total: number) {
+  await expect(page.getByText(new RegExp(`Players\\s+${seated}/${total}`))).toBeVisible({
+    timeout: 20_000,
+  });
+}
+
 export async function getRoomCode(page: Page) {
   const copyBtn = page.getByRole('button', { name: 'Copy room code' });
   await expect(copyBtn).toBeVisible({ timeout: 20_000 });
@@ -68,6 +74,46 @@ export async function createAndJoinFour(browser: Browser) {
   await expect(p1.locator('#table-grid [data-card-id]')).toHaveCount(4, { timeout: 20_000 });
 
   return pages as [Page, Page, Page, Page];
+}
+
+export async function createAndJoinTwo(browser: Browser) {
+  const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
+  const pages = await Promise.all(contexts.map((c: any) => c.newPage()));
+  const [p1, p2] = pages;
+
+  await Promise.all([p1.goto('/'), p2.goto('/')]);
+
+  // Ensure sockets connected before any action
+  await expect(p1.getByText(/Connected/)).toBeVisible({ timeout: 20_000 });
+  await expect(p2.getByText(/Connected/)).toBeVisible({ timeout: 20_000 });
+
+  // Create room from p1
+  await p1.getByRole('button', { name: 'Create & Join' }).click();
+
+  // Switch to 1v1 mode (2 players) before anyone else joins
+  const oneVoneBtn = p1.getByRole('button', { name: '1v1 (2 players)' });
+  await expect(oneVoneBtn).toBeVisible({ timeout: 20_000 });
+  await oneVoneBtn.click();
+  await waitPlayersTotal(p1, 1, 2);
+
+  const code = await getRoomCode(p1);
+
+  // Join from p2
+  await p2.fill('#roomCode', code);
+  await p2.getByRole('button', { name: 'Join', exact: true }).click();
+  await Promise.all([waitPlayersTotal(p1, 2, 2), waitPlayersTotal(p2, 2, 2)]);
+
+  // Host starts the game
+  const startBtn = p1.getByTestId('start-game');
+  await expect(startBtn).toBeVisible({ timeout: 20_000 });
+  await expect(startBtn).toBeEnabled({ timeout: 20_000 });
+  await startBtn.click();
+
+  // Wait for initial deal to render
+  await expect(p1.locator('#table-grid [data-card-id]')).toHaveCount(4, { timeout: 20_000 });
+  await expect(p2.locator('#table-grid [data-card-id]')).toHaveCount(4, { timeout: 20_000 });
+
+  return pages as [Page, Page];
 }
 
 export async function getTableValues(page: Page): Promise<number[]> {

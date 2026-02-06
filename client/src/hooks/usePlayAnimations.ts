@@ -29,8 +29,16 @@ function valueCardDataUri(value: number): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-function getSeatPos(mySeat: number | null, seatIndex: number): 'bottom' | 'top' | 'left' | 'right' {
+function getSeatPos(
+  mySeat: number | null,
+  seatIndex: number,
+  playerCount: 2 | 4
+): 'bottom' | 'top' | 'left' | 'right' {
   const idxBottom = mySeat ?? 0;
+  if (playerCount === 2) {
+    // In 1v1 we render only bottom + top anchors; treat the other seat as top.
+    return seatIndex === idxBottom ? 'bottom' : 'top';
+  }
   const idxTop = (idxBottom + 2) % 4;
   const idxLeft = (idxBottom + 3) % 4;
   return seatIndex === idxBottom
@@ -42,13 +50,17 @@ function getSeatPos(mySeat: number | null, seatIndex: number): 'bottom' | 'top' 
         : 'right';
 }
 
-function getSeatSelector(mySeat: number | null, seatIndex: number): string {
-  const pos = getSeatPos(mySeat, seatIndex);
+function getSeatSelector(mySeat: number | null, seatIndex: number, playerCount: 2 | 4): string {
+  const pos = getSeatPos(mySeat, seatIndex, playerCount);
   return `[data-seat-anchor="${pos}"]`;
 }
 
-function getSeatCaptureSelector(mySeat: number | null, seatIndex: number): string {
-  const pos = getSeatPos(mySeat, seatIndex);
+function getSeatCaptureSelector(
+  mySeat: number | null,
+  seatIndex: number,
+  playerCount: 2 | 4
+): string {
+  const pos = getSeatPos(mySeat, seatIndex, playerCount);
   // Prefer an explicit capture anchor if present, else fall back to the general seat anchor.
   return `[data-seat-capture="${pos}"], [data-seat-anchor="${pos}"]`;
 }
@@ -63,8 +75,12 @@ function measureHandCardRect(cardId: string): DOMRect | null {
   return el ? el.getBoundingClientRect() : null;
 }
 
-function measureOpponentCardRect(mySeat: number | null, seatIndex: number): DOMRect | null {
-  const seatSel = getSeatSelector(mySeat, seatIndex);
+function measureOpponentCardRect(
+  mySeat: number | null,
+  seatIndex: number,
+  playerCount: 2 | 4
+): DOMRect | null {
+  const seatSel = getSeatSelector(mySeat, seatIndex, playerCount);
   const el = document.querySelector(`${seatSel} [data-op-card]`) as HTMLElement | null;
   if (el) return el.getBoundingClientRect();
   return measureRect(seatSel);
@@ -98,7 +114,8 @@ function centerAlign(rect: DOMRect, w: number, h: number): { x: number; y: numbe
 export function usePlayAnimations(
   gameState: GameState | null,
   mySeat: number | null,
-  selectedHandCard: Card | null
+  selectedHandCard: Card | null,
+  playerCount: 2 | 4 = 4
 ) {
   const tableRectsPrevRef = React.useRef<Map<string, DOMRect>>(new Map());
   const tableRectsCurrRef = React.useRef<Map<string, DOMRect>>(new Map());
@@ -203,8 +220,8 @@ export function usePlayAnimations(
     const myPlayedRect =
       selectedHandCard && playedSeat === (mySeat ?? -1)
         ? measureHandCardRect(selectedHandCard.id) ||
-          measureRect(getSeatSelector(mySeat, playedSeat))
-        : measureOpponentCardRect(mySeat, playedSeat);
+          measureRect(getSeatSelector(mySeat, playedSeat, playerCount))
+        : measureOpponentCardRect(mySeat, playedSeat, playerCount);
     if (!myPlayedRect) return;
 
     const tableCenter =
@@ -285,8 +302,8 @@ export function usePlayAnimations(
       // Prepare return flights (leg 2) for captured cards and the played card together
       const seatRect =
         playedSeat === (mySeat ?? -1)
-          ? measureRect(getSeatCaptureSelector(mySeat, playedSeat)) || myPlayedRect
-          : measureOpponentCardRect(mySeat, playedSeat) || myPlayedRect;
+          ? measureRect(getSeatCaptureSelector(mySeat, playedSeat, playerCount)) || myPlayedRect
+          : measureOpponentCardRect(mySeat, playedSeat, playerCount) || myPlayedRect;
       const returnFlights: FlightSpec[] = [];
       for (const id of capturedIds) {
         const capRect = tableRectsPrevRef.current.get(id);
