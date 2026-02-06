@@ -1,5 +1,5 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
-import { createAndJoinFour, waitPlayers } from './utils';
+import { createAndJoinFour, createAndJoinTwo, waitPlayers } from './utils';
 
 async function discardFirstPlayableCard(page: Page) {
   const firstCard = page.locator('[data-hand-card-id]').first();
@@ -36,4 +36,27 @@ test('discard overlay cleans up - no lingering image', async ({ browser, page })
   // Discard once from the creator tab (seat 0 starts)
   await discardFirstPlayableCard(p1);
   await expectNoLingeringFlights(p1);
+});
+
+test('1v1: viewer sees opponent throw/capture animation', async ({ browser }) => {
+  const [p1, p2] = await createAndJoinTwo(browser);
+
+  // If p2 happens to start, play once to hand turn back to p1.
+  const p2Starts = await p2.getByText('Your turn').isVisible().catch(() => false);
+  if (p2Starts) {
+    await discardFirstPlayableCard(p2);
+    await expectNoLingeringFlights(p2);
+  }
+
+  // p1 plays to give p2 a turn.
+  await discardFirstPlayableCard(p1);
+  await expectNoLingeringFlights(p1);
+
+  // Ensure we start from a clean state on viewer page.
+  await p1.waitForSelector('[data-flight-id]', { state: 'detached', timeout: 1500 }).catch(() => {});
+
+  // When p2 plays, p1 must see a flight (throw or capture).
+  await discardFirstPlayableCard(p2);
+  await p1.waitForSelector('[data-flight-id]', { state: 'attached', timeout: 2500 });
+  await p1.waitForSelector('[data-flight-id]', { state: 'detached', timeout: 5000 });
 });
