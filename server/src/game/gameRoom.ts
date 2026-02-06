@@ -493,6 +493,36 @@ export class GameRoomManager {
     }
   }
 
+  private getBotActionDelayMs(room: RoomInfo, opts?: { turnDurationMs?: number }): number {
+    const activeSeats = this.getActiveSeats(room);
+    let humans = 0;
+    let bots = 0;
+    for (const seat of activeSeats) {
+      const sid = room.seats[seat];
+      if (!sid) continue;
+      if (GameRoomManager.isBotId(sid)) bots += 1;
+      else humans += 1;
+    }
+
+    // Full-bot games feel unreadable if bots play instantly.
+    // Add a slightly longer baseline delay with jitter.
+    const fullBots = humans === 0 && bots > 0;
+    const base = fullBots ? 1100 : 850;
+    const jitter = fullBots ? 650 : 350;
+
+    let delay = base + Math.floor(Math.random() * jitter);
+
+    // If there's a turn timer, ensure the bot acts comfortably before timeout.
+    const turnDurationMs = opts?.turnDurationMs;
+    if (typeof turnDurationMs === 'number' && Number.isFinite(turnDurationMs)) {
+      // Keep at least ~750ms buffer so we don't race the timeout handler.
+      delay = Math.min(delay, Math.max(150, Math.round(turnDurationMs - 750)));
+    }
+
+    // Hard cap to avoid very slow bots.
+    return Math.max(150, Math.min(2_000, delay));
+  }
+
   private scheduleBotTurnIfNeeded(code: string, room: RoomInfo) {
     if (!room.gameState) return;
     this.clearBotActTimer(code);
@@ -503,7 +533,7 @@ export class GameRoomManager {
 
     const botTimeout = setTimeout(() => {
       this.handleBotTurnNoTimer(code, cur);
-    }, 350);
+    }, this.getBotActionDelayMs(room));
     this.roomBotActTimeout.set(code, botTimeout);
   }
 
@@ -624,9 +654,10 @@ export class GameRoomManager {
     // If it's a bot's turn, act quickly (do not wait for full turn duration).
     const sid = room.seats[expectedPlayer];
     if (GameRoomManager.isBotId(sid)) {
+      const botDelayMs = this.getBotActionDelayMs(room, { turnDurationMs: durationMs });
       const botTimeout = setTimeout(() => {
         this.handleBotTurn(code, expectedPlayer, endsAt);
-      }, 350);
+      }, botDelayMs);
       this.roomBotActTimeout.set(code, botTimeout);
     }
   }
