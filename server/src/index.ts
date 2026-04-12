@@ -5,12 +5,38 @@ import { Server } from 'socket.io';
 import { GameRoomManager } from './game/gameRoom';
 import type { PlayerProfile, RoomSettings } from '../../shared/types';
 
+// ─── CORS ───
+const IS_DEV = process.env.NODE_ENV !== 'production';
+const CORS_ORIGIN = process.env.CORS_ORIGIN
+  || (IS_DEV ? '*' : 'https://chkobagame.xyz');
+
 const app = express();
-app.use(cors());
+app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 
+// ─── Simple in-memory rate limiter ───
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimit(key: string, windowMs: number, maxHits: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  entry.count += 1;
+  return entry.count <= maxHits;
+}
+
+// Periodically prune expired rate-limit entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(key);
+  }
+}, 60_000).unref();
+
 // Ensure ads.txt is reachable at the site root for ad network crawlers.
-// This is especially useful if the site domain points to this server.
 app.get('/ads.txt', (_req, res) => {
   res.type('text/plain').send('google.com, pub-9124857144736473, DIRECT, f08c47fec0942fa0\n');
 });
@@ -20,10 +46,15 @@ app.get('/robots.txt', (_req, res) => {
 });
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, { cors: { origin: CORS_ORIGIN } });
 const manager = new GameRoomManager(io);
 
 app.post('/api/rooms', (req, res) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  if (!rateLimit(`createRoom:${ip}`, 60_000, 10)) {
+    res.status(429).json({ error: 'Too many rooms created. Try again later.' });
+    return;
+  }
   const room = manager.createRoom();
   res.json({ code: room.code });
 });
@@ -33,8 +64,7 @@ io.on('connection', (socket) => {
   socket.on('room:join', (code: string, ack?: (_ok: boolean, _msg?: string) => void) => {
     try {
       console.log(`[room:join] ${socket.id} -> ${code}`);
-      // Join the Socket.io room first, so any immediate emits (e.g., game:start) are received
-      socket.join(code);
+      // socket.join is now handled inside manager.joinRoom after validation
       const room = manager.joinRoom(code, socket);
       ack?.(true, room.code);
     } catch (e: unknown) {
@@ -137,6 +167,11 @@ io.on('connection', (socket) => {
     'game:soundboard',
     (payload: { code: string; soundFile: string }, ack?: (_ok: boolean, _msg?: string) => void) => {
       try {
+        // Rate limit soundboard: 5 per 10s per socket
+        if (!rateLimit(`soundboard:${socket.id}`, 10_000, 5)) {
+          ack?.(false, 'Too many sounds. Slow down.');
+          return;
+        }
         manager.playSoundboard(payload.code, socket.id, payload.soundFile);
         ack?.(true);
       } catch (e: unknown) {

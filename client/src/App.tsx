@@ -769,6 +769,7 @@ export default function App() {
           </>
         }
         footerLeft={<FooterNote />}
+        adsEnabled={cookieConsent.status === 'granted'}
         footerRight={
           <div className="shrink-0 ml-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm opacity-90">
             <span>© Chkobba Café</span>

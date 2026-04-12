@@ -17,7 +17,7 @@ interface EndOverlayProps {
   onQuit: () => void;
 }
 
-export default function EndOverlay({ banner, scores, details, onReplay, onQuit }: EndOverlayProps) {
+export default function EndOverlay({ banner, scores, details, replayWaiting, onReplay, onQuit }: EndOverlayProps) {
   return (
     <div className="end-overlay fixed inset-0 bg-black/40 z-[200] p-2 sm:p-0 flex items-center justify-center">
       <div className="end-overlay-frame chalkboard-frame w-[min(92vw,520px)] sm:w-auto max-h-[82svh] sm:max-h-[92svh]">
@@ -102,6 +102,11 @@ export default function EndOverlay({ banner, scores, details, onReplay, onQuit }
             >
               <span>Replay</span>
             </button>
+            {replayWaiting && replayWaiting.total > 0 && (
+              <span className="chalk-text text-sm opacity-80 text-center">
+                {replayWaiting.count}/{replayWaiting.total} players ready
+              </span>
+            )}
             <button
               onClick={onQuit}
               className="replay-btn replay-btn--danger w-full sm:w-auto max-w-[320px] mx-auto"

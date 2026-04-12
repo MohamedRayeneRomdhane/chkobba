@@ -38,6 +38,11 @@ export function useGameSocket() {
   }, []);
 
   useEffect(() => {
+    // Reconnect if the socket was disconnected (e.g. React StrictMode cleanup)
+    if (socket.disconnected) {
+      socket.connect();
+    }
+
     socket.on('connect', () => {
       setConnected(true);
       setSocketId(socket.id ?? null);
@@ -117,6 +122,7 @@ export function useGameSocket() {
       socket.off('game:replayStatus');
       socket.off('game:soundboard');
       socket.off('room:closed');
+      socket.disconnect();
     };
   }, [socket]);
 

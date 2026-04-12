@@ -1,14 +1,16 @@
 import React from 'react';
 import { usePhoneLandscape } from '../hooks/usePhoneLandscape';
+import AdsenseUnit from './AdsenseUnit';
 
 type Props = {
   headerRight?: React.ReactNode;
   children: React.ReactNode;
   footerLeft?: React.ReactNode;
   footerRight?: React.ReactNode;
+  adsEnabled?: boolean;
 };
 
-export default function Layout({ headerRight, children, footerLeft, footerRight }: Props) {
+export default function Layout({ headerRight, children, footerLeft, footerRight, adsEnabled = false }: Props) {
   const phoneLandscape = usePhoneLandscape();
   const [headerCollapsed, setHeaderCollapsed] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
@@ -126,8 +128,10 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
 
       {/* Content: keep it simple, robust, and centered */}
       <div className="flex-1 min-h-0 flex">
-        {/* Left margin (ads placeholder) on large screens */}
-        <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-r border-tableWood-dark" />
+        {/* Left margin (ad sidebar) on large screens */}
+        <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-r border-tableWood-dark">
+          <AdsenseUnit slot="left-sidebar" style={{ display: 'block', width: '100%', minHeight: 250 }} enabled={adsEnabled} />
+        </aside>
 
         {/* Main game area: centered; bottom padding matches footer height */}
         <main className="flex-1 min-h-0 flex items-stretch justify-center p-0 sm:p-3 overflow-hidden">
@@ -139,8 +143,10 @@ export default function Layout({ headerRight, children, footerLeft, footerRight 
           </div>
         </main>
 
-        {/* Right margin (ads placeholder) on large screens */}
-        <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-l border-tableWood-dark" />
+        {/* Right margin (ad sidebar) on large screens */}
+        <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-l border-tableWood-dark">
+          <AdsenseUnit slot="right-sidebar" style={{ display: 'block', width: '100%', minHeight: 250 }} enabled={adsEnabled} />
+        </aside>
       </div>
 
       {/* Footer */}
