@@ -8,8 +8,8 @@
     "shared"
   ],
   "devDependencies": {
-    "concurrently": "^8.2.2",
     "@playwright/test": "^1.48.2",
+    "concurrently": "^8.2.2",
     "cross-env": "^7.0.3"
   },
   "scripts": {
