@@ -21,6 +21,9 @@ export default function PlayAnimationsLayer({
   const [active, setActive] = React.useState<FlightSpec[]>([]);
   const watchdogsRef = React.useRef<Map<string, number>>(new Map());
 
+  // Derive a stable key from flight IDs instead of JSON.stringify on every render.
+  const flightKey = flights.map((f) => f.id).join(',');
+
   React.useEffect(() => {
     if (!flights || flights.length === 0) return;
     setActive((prev) => {
@@ -43,7 +46,7 @@ export default function PlayAnimationsLayer({
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(flights)]);
+  }, [flightKey]);
 
   // Clear watchdog when a flight ends
   const handleFlightEnd = React.useCallback(
