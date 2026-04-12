@@ -43,26 +43,28 @@ export function useGameSocket() {
       socket.connect();
     }
 
-    socket.on('connect', () => {
-      setConnected(true);
-      setSocketId(socket.id ?? null);
-    });
-    socket.on('disconnect', () => {
-      setConnected(false);
-      setSocketId(null);
-    });
-    socket.on('room:update', (room: RoomSnapshot) => {
-      setSnapshot(room);
-      setTurn(room.turn ?? null);
-      const idx = room.seats?.findIndex((s: string | null) => s === socket.id);
-      if (idx !== undefined && idx >= 0) setMySeat(idx as PlayerIndex);
-    });
-    socket.on('room:snapshot', (snap: RoomSnapshot) => {
+    function handleSnapshot(snap: RoomSnapshot) {
       setSnapshot(snap);
       setTurn(snap.turn ?? null);
       const idx = snap.seats?.findIndex((s: string | null) => s === socket.id);
       if (idx !== undefined && idx >= 0) setMySeat(idx as PlayerIndex);
+    }
+
+    socket.on('connect', () => {
+      setConnected(true);
+      setSocketId(socket.id ?? null);
     });
+    socket.on('connect_error', (err) => {
+      console.error('[socket] connect_error:', err.message);
+      setConnected(false);
+    });
+    socket.on('disconnect', (reason) => {
+      console.warn('[socket] disconnected:', reason);
+      setConnected(false);
+      setSocketId(null);
+    });
+    socket.on('room:update', handleSnapshot);
+    socket.on('room:snapshot', handleSnapshot);
     socket.on('game:start', (state: GameState) => {
       setGameState(state);
       setDealTick((x) => x + 1);
@@ -112,6 +114,7 @@ export function useGameSocket() {
     });
     return () => {
       socket.off('connect');
+      socket.off('connect_error');
       socket.off('disconnect');
       socket.off('room:update');
       socket.off('room:snapshot');
@@ -126,9 +129,30 @@ export function useGameSocket() {
     };
   }, [socket]);
 
+  /** Emit with a timeout so promises never hang indefinitely. */
+  function emitWithTimeout<T>(
+    event: string,
+    payload: unknown,
+    parse: (...args: unknown[]) => T,
+    timeoutMs = 8_000
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`Socket emit "${event}" timed out`));
+      }, timeoutMs);
+      socket.emit(event, payload, (...args: unknown[]) => {
+        clearTimeout(timer);
+        resolve(parse(...args));
+      });
+    });
+  }
+
   function createRoom() {
     return fetch(`${SERVER_URL}/api/rooms`, { method: 'POST' })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((j) => j.code as string)
       .then((code) => {
         setRoomCode(code);
@@ -136,65 +160,68 @@ export function useGameSocket() {
       });
   }
   function join(code: string) {
-    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
-      socket.emit('room:join', code, (ok: boolean, msg?: string) => {
-        if (ok) {
-          setRoomCode(code);
-        }
-        resolve({ ok, msg });
-      });
-    });
+    return emitWithTimeout(
+      'room:join', code,
+      (ok: unknown, msg: unknown) => {
+        if (ok) setRoomCode(code);
+        return { ok: !!ok, msg: msg as string | undefined };
+      }
+    ).catch((e) => ({ ok: false, msg: (e as Error).message }));
   }
   function play(code: string, cardId: string, combo?: string[]) {
-    return new Promise<boolean>((resolve) => {
-      socket.emit('game:play', { code, cardId, combo }, (ok: boolean) => resolve(ok));
-    });
+    return emitWithTimeout(
+      'game:play', { code, cardId, combo },
+      (ok: unknown) => !!ok
+    ).catch(() => false);
   }
 
   function updateRoomSettings(code: string, settings: Partial<RoomSettings>) {
-    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
-      socket.emit('room:settings', { code, settings }, (ok: boolean, msg?: string) =>
-        resolve({ ok, msg })
-      );
-    });
+    return emitWithTimeout(
+      'room:settings', { code, settings },
+      (ok: unknown, msg: unknown) => ({ ok: !!ok, msg: msg as string | undefined })
+    ).catch((e) => ({ ok: false, msg: (e as Error).message }));
   }
 
   function launchGame(code: string) {
-    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
-      socket.emit('game:launch', { code }, (ok: boolean, msg?: string) => resolve({ ok, msg }));
-    });
+    return emitWithTimeout(
+      'game:launch', { code },
+      (ok: unknown, msg: unknown) => ({ ok: !!ok, msg: msg as string | undefined })
+    ).catch((e) => ({ ok: false, msg: (e as Error).message }));
   }
 
   function setProfile(nickname?: string, avatar?: string) {
-    return new Promise<boolean>((resolve) => {
-      socket.emit('profile:set', { nickname, avatar }, (ok: boolean) => resolve(ok));
-    });
+    return emitWithTimeout(
+      'profile:set', { nickname, avatar },
+      (ok: unknown) => !!ok
+    ).catch(() => false);
   }
 
   function replay(code: string) {
-    return new Promise<boolean>((resolve) => {
-      socket.emit('game:replay', { code }, (ok: boolean) => resolve(ok));
-    });
+    return emitWithTimeout(
+      'game:replay', { code },
+      (ok: unknown) => !!ok
+    ).catch(() => false);
   }
 
   function playSoundboard(code: string, soundFile: SoundboardSoundFile) {
-    return new Promise<boolean>((resolve) => {
-      socket.emit('game:soundboard', { code, soundFile }, (ok: boolean) => resolve(ok));
-    });
+    return emitWithTimeout(
+      'game:soundboard', { code, soundFile },
+      (ok: unknown) => !!ok
+    ).catch(() => false);
   }
 
   function renameTeam(code: string, teamIndex: 0 | 1, name: string) {
-    return new Promise<{ ok: boolean; msg?: string }>((resolve) => {
-      socket.emit('team:rename', { code, teamIndex, name }, (ok: boolean, msg?: string) =>
-        resolve({ ok, msg })
-      );
-    });
+    return emitWithTimeout(
+      'team:rename', { code, teamIndex, name },
+      (ok: unknown, msg: unknown) => ({ ok: !!ok, msg: msg as string | undefined })
+    ).catch((e) => ({ ok: false, msg: (e as Error).message }));
   }
 
   function quit(code: string) {
-    return new Promise<boolean>((resolve) => {
-      socket.emit('room:quit', { code }, (ok: boolean) => resolve(ok));
-    });
+    return emitWithTimeout(
+      'room:quit', { code },
+      (ok: unknown) => !!ok
+    ).catch(() => false);
   }
 
   return {
