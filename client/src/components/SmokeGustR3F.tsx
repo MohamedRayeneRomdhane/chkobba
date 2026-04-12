@@ -2,10 +2,21 @@
 /* eslint-disable react/no-unknown-property */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { Suspense, useMemo } from 'react';
+import React, { Suspense, useMemo, Component } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+
+/** Catches WebGL / Three.js errors so they don't crash the host UI. */
+class CanvasErrorBoundary extends Component<
+  { children: React.ReactNode; onError?: () => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err: unknown) { console.warn('[SmokeGustR3F] canvas error:', err); this.props.onError?.(); }
+  render() { return this.state.failed ? null : this.props.children; }
+}
 
 type SmokeGustR3FProps = {
   duration?: number;
@@ -347,6 +358,7 @@ export default function SmokeGustR3F({
         }}
       >
         <div style={{ width: '60vmin', height: '40vmin', position: 'relative' }}>
+          <CanvasErrorBoundary onError={onComplete}>
           <Suspense fallback={null}>
             <Canvas
               gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
@@ -376,6 +388,7 @@ export default function SmokeGustR3F({
               />
             </Canvas>
           </Suspense>
+          </CanvasErrorBoundary>
         </div>
       </div>
     </div>
