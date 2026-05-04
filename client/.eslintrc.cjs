@@ -22,9 +22,20 @@ module.exports = {
   plugins: ['@typescript-eslint', 'react', 'react-hooks'],
   rules: {
     'react/react-in-jsx-scope': 'off',
-    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-non-null-assertion': 'warn',
     'no-unused-vars': 'off',
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     'react/prop-types': 'off',
+    'react-hooks/exhaustive-deps': 'error',
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'no-void': 'off',
+    '@typescript-eslint/no-floating-promises': 'off',
   },
+  overrides: [
+    {
+      files: ['**/*.test.ts', '**/*.test.tsx', 'src/test/**/*'],
+      env: { node: true },
+    },
+  ],
 };

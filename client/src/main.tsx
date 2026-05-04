@@ -3,10 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
@@ -14,15 +11,18 @@ class ErrorBoundary extends React.Component<
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  componentDidCatch(error: unknown, info: React.ErrorInfo) {
+  override componentDidCatch(error: unknown, info: React.ErrorInfo) {
     console.error('[ErrorBoundary]', error, info.componentStack);
   }
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '2rem', textAlign: 'center', color: '#fff' }}>
           <h2>Something went wrong.</h2>
-          <button onClick={() => window.location.reload()} style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
+          >
             Reload
           </button>
         </div>

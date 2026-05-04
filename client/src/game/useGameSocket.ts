@@ -160,68 +160,57 @@ export function useGameSocket() {
       });
   }
   function join(code: string) {
-    return emitWithTimeout(
-      'room:join', code,
-      (ok: unknown, msg: unknown) => {
-        if (ok) setRoomCode(code);
-        return { ok: !!ok, msg: msg as string | undefined };
-      }
-    ).catch((e) => ({ ok: false, msg: (e as Error).message }));
+    return emitWithTimeout('room:join', code, (ok: unknown, msg: unknown) => {
+      if (ok) setRoomCode(code);
+      return { ok: !!ok, msg: msg as string | undefined };
+    }).catch((e) => ({ ok: false, msg: (e as Error).message }));
   }
   function play(code: string, cardId: string, combo?: string[]) {
-    return emitWithTimeout(
-      'game:play', { code, cardId, combo },
-      (ok: unknown) => !!ok
-    ).catch(() => false);
+    return emitWithTimeout('game:play', { code, cardId, combo }, (ok: unknown) => !!ok).catch(
+      () => false
+    );
   }
 
   function updateRoomSettings(code: string, settings: Partial<RoomSettings>) {
-    return emitWithTimeout(
-      'room:settings', { code, settings },
-      (ok: unknown, msg: unknown) => ({ ok: !!ok, msg: msg as string | undefined })
-    ).catch((e) => ({ ok: false, msg: (e as Error).message }));
+    return emitWithTimeout('room:settings', { code, settings }, (ok: unknown, msg: unknown) => ({
+      ok: !!ok,
+      msg: msg as string | undefined,
+    })).catch((e) => ({ ok: false, msg: (e as Error).message }));
   }
 
   function launchGame(code: string) {
-    return emitWithTimeout(
-      'game:launch', { code },
-      (ok: unknown, msg: unknown) => ({ ok: !!ok, msg: msg as string | undefined })
-    ).catch((e) => ({ ok: false, msg: (e as Error).message }));
+    return emitWithTimeout('game:launch', { code }, (ok: unknown, msg: unknown) => ({
+      ok: !!ok,
+      msg: msg as string | undefined,
+    })).catch((e) => ({ ok: false, msg: (e as Error).message }));
   }
 
   function setProfile(nickname?: string, avatar?: string) {
-    return emitWithTimeout(
-      'profile:set', { nickname, avatar },
-      (ok: unknown) => !!ok
-    ).catch(() => false);
+    return emitWithTimeout('profile:set', { nickname, avatar }, (ok: unknown) => !!ok).catch(
+      () => false
+    );
   }
 
   function replay(code: string) {
-    return emitWithTimeout(
-      'game:replay', { code },
-      (ok: unknown) => !!ok
-    ).catch(() => false);
+    return emitWithTimeout('game:replay', { code }, (ok: unknown) => !!ok).catch(() => false);
   }
 
   function playSoundboard(code: string, soundFile: SoundboardSoundFile) {
-    return emitWithTimeout(
-      'game:soundboard', { code, soundFile },
-      (ok: unknown) => !!ok
-    ).catch(() => false);
+    return emitWithTimeout('game:soundboard', { code, soundFile }, (ok: unknown) => !!ok).catch(
+      () => false
+    );
   }
 
   function renameTeam(code: string, teamIndex: 0 | 1, name: string) {
     return emitWithTimeout(
-      'team:rename', { code, teamIndex, name },
+      'team:rename',
+      { code, teamIndex, name },
       (ok: unknown, msg: unknown) => ({ ok: !!ok, msg: msg as string | undefined })
     ).catch((e) => ({ ok: false, msg: (e as Error).message }));
   }
 
   function quit(code: string) {
-    return emitWithTimeout(
-      'room:quit', { code },
-      (ok: unknown) => !!ok
-    ).catch(() => false);
+    return emitWithTimeout('room:quit', { code }, (ok: unknown) => !!ok).catch(() => false);
   }
 
   return {

@@ -12,10 +12,10 @@ class CanvasErrorBoundary extends Component<
   { children: React.ReactNode; onError?: () => void },
   { failed: boolean }
 > {
-  state = { failed: false };
+  override state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(err: unknown) { console.warn('[SmokeGustR3F] canvas error:', err); this.props.onError?.(); }
-  render() { return this.state.failed ? null : this.props.children; }
+  override componentDidCatch(err: unknown) { console.warn('[SmokeGustR3F] canvas error:', err); this.props.onError?.(); }
+  override render() { return this.state.failed ? null : this.props.children; }
 }
 
 type SmokeGustR3FProps = {
@@ -167,8 +167,10 @@ function SmokePlane({
   );
 
   useFrame((state, delta) => {
-    mat.uniforms.u_time.value += delta;
-    mat.uniforms.u_opacity.value = baseOpacity * progress;
+    const tu = mat.uniforms.u_time;
+    const ou = mat.uniforms.u_opacity;
+    if (tu) tu.value += delta;
+    if (ou) ou.value = baseOpacity * progress;
   });
 
   const { viewport } = useThree();

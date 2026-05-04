@@ -11,6 +11,8 @@ function readStoredConsent(): CookieConsentStatus {
   return null;
 }
 
+export type CookieConsent = ReturnType<typeof useCookieConsent>;
+
 export function useCookieConsent() {
   const [status, setStatus] = useState<CookieConsentStatus>(() => readStoredConsent());
 

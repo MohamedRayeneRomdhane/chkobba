@@ -10,7 +10,13 @@ type Props = {
   adsEnabled?: boolean;
 };
 
-export default function Layout({ headerRight, children, footerLeft, footerRight, adsEnabled = false }: Props) {
+export default function Layout({
+  headerRight,
+  children,
+  footerLeft,
+  footerRight,
+  adsEnabled = false,
+}: Props) {
   const phoneLandscape = usePhoneLandscape();
   const [headerCollapsed, setHeaderCollapsed] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
@@ -34,9 +40,10 @@ export default function Layout({ headerRight, children, footerLeft, footerRight,
 
     const snapToNearest = (cur: number) => {
       const sections = Array.from(root.querySelectorAll<HTMLElement>('.app-section'));
-      if (sections.length === 0) return;
-      let best = sections[0];
-      let bestDist = Math.abs(sections[0].offsetTop - cur);
+      const first = sections[0];
+      if (!first) return;
+      let best: HTMLElement = first;
+      let bestDist = Math.abs(first.offsetTop - cur);
 
       for (const s of sections) {
         const d = Math.abs(s.offsetTop - cur);
@@ -130,7 +137,11 @@ export default function Layout({ headerRight, children, footerLeft, footerRight,
       <div className="flex-1 min-h-0 flex">
         {/* Left margin (ad sidebar) on large screens */}
         <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-r border-tableWood-dark">
-          <AdsenseUnit slot="left-sidebar" style={{ display: 'block', width: '100%', minHeight: 250 }} enabled={adsEnabled} />
+          <AdsenseUnit
+            slot="left-sidebar"
+            style={{ display: 'block', width: '100%', minHeight: 250 }}
+            enabled={adsEnabled}
+          />
         </aside>
 
         {/* Main game area: centered; bottom padding matches footer height */}
@@ -145,7 +156,11 @@ export default function Layout({ headerRight, children, footerLeft, footerRight,
 
         {/* Right margin (ad sidebar) on large screens */}
         <aside className="hidden lg:block w-24 bg-tableWood-dark/40 border-l border-tableWood-dark">
-          <AdsenseUnit slot="right-sidebar" style={{ display: 'block', width: '100%', minHeight: 250 }} enabled={adsEnabled} />
+          <AdsenseUnit
+            slot="right-sidebar"
+            style={{ display: 'block', width: '100%', minHeight: 250 }}
+            enabled={adsEnabled}
+          />
         </aside>
       </div>
 
