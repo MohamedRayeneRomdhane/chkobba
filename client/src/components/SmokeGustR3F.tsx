@@ -2,10 +2,21 @@
 /* eslint-disable react/no-unknown-property */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { Suspense, useMemo } from 'react';
+import React, { Suspense, useMemo, Component } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+
+/** Catches WebGL / Three.js errors so they don't crash the host UI. */
+class CanvasErrorBoundary extends Component<
+  { children: React.ReactNode; onError?: () => void },
+  { failed: boolean }
+> {
+  override state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  override componentDidCatch(err: unknown) { console.warn('[SmokeGustR3F] canvas error:', err); this.props.onError?.(); }
+  override render() { return this.state.failed ? null : this.props.children; }
+}
 
 type SmokeGustR3FProps = {
   duration?: number;
@@ -156,8 +167,10 @@ function SmokePlane({
   );
 
   useFrame((state, delta) => {
-    mat.uniforms.u_time.value += delta;
-    mat.uniforms.u_opacity.value = baseOpacity * progress;
+    const tu = mat.uniforms.u_time;
+    const ou = mat.uniforms.u_opacity;
+    if (tu) tu.value += delta;
+    if (ou) ou.value = baseOpacity * progress;
   });
 
   const { viewport } = useThree();
@@ -347,6 +360,7 @@ export default function SmokeGustR3F({
         }}
       >
         <div style={{ width: '60vmin', height: '40vmin', position: 'relative' }}>
+          <CanvasErrorBoundary onError={onComplete}>
           <Suspense fallback={null}>
             <Canvas
               gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
@@ -376,6 +390,7 @@ export default function SmokeGustR3F({
               />
             </Canvas>
           </Suspense>
+          </CanvasErrorBoundary>
         </div>
       </div>
     </div>

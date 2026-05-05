@@ -6,4 +6,5 @@ export type {
   RoomSnapshot,
   RoomSettings,
   RoomMode,
+  RoundScoreDetails,
 } from '../../../shared/types';

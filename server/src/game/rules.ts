@@ -14,8 +14,9 @@ export function findCombinationsForValue(tableCards: Card[], target: number): Ca
     }
     if (sum > target) return;
     for (let i = start; i < cards.length; i++) {
-      combo.push(cards[i]);
-      backtrack(i + 1, combo, sum + cards[i].value);
+      const card = cards[i] as Card;
+      combo.push(card);
+      backtrack(i + 1, combo, sum + card.value);
       combo.pop();
     }
   }
@@ -37,8 +38,9 @@ function findFirstCombinationForValue(tableCards: Card[], target: number): Card[
     if (sum === target) return [...combo];
     if (sum > target) return null;
     for (let i = start; i < cards.length; i++) {
-      combo.push(cards[i]);
-      const res = dfs(i + 1, sum + cards[i].value);
+      const card = cards[i] as Card;
+      combo.push(card);
+      const res = dfs(i + 1, sum + card.value);
       if (res) return res; // early exit on first found
       combo.pop();
     }
@@ -67,7 +69,7 @@ export function applyMove(
   const hand = state.hands[player];
   const playedIndex = hand.findIndex((c) => c.id === playedCardId);
   if (playedIndex === -1) throw new Error('Card not in hand');
-  const played = hand[playedIndex];
+  const played = hand[playedIndex] as Card;
 
   const single = canCaptureSingle(played, state.tableCards);
   let captured: Card[] = [];

@@ -343,7 +343,8 @@ export default function SeatPanel({
 
     const clamped: number[] = [];
     if (base.length === 1) {
-      for (let i = 0; i < TARGET; i++) clamped.push(base[0]);
+      const v0 = base[0] ?? 0;
+      for (let i = 0; i < TARGET; i++) clamped.push(v0);
     } else {
       for (let i = 0; i < TARGET; i++) {
         const t = i / (TARGET - 1);
@@ -351,7 +352,9 @@ export default function SeatPanel({
         const i0 = Math.floor(pos);
         const i1 = Math.min(base.length - 1, i0 + 1);
         const f = pos - i0;
-        clamped.push(base[i0] * (1 - f) + base[i1] * f);
+        const a = base[i0] ?? 0;
+        const b = base[i1] ?? 0;
+        clamped.push(a * (1 - f) + b * f);
       }
     }
 
@@ -540,6 +543,11 @@ export default function SeatPanel({
             preserveAspectRatio="none"
             aria-hidden="true"
             style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
               overflow: 'visible',
               clipPath: `inset(0 round ${ringGeom.clipR}px)`,
               WebkitClipPath: `inset(0 round ${ringGeom.clipR}px)`,

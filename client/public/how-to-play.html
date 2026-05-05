@@ -4,76 +4,335 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>How to Play • Chkobba Café</title>
-    <meta name="description" content="Learn the basics of capturing, scoring, and room play in Chkobba Café." />
+    <meta name="description" content="The complete Chkobba Café rulebook: deck, deal, capturing, scoring (most cards, most diamonds, most sevens, settebello, chkobba), strategy tips, glossary, and FAQ." />
     <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#6b4f2f" />
     <link rel="canonical" href="https://chkobagame.xyz/how-to-play.html" />
-    <style>
-      :root { color-scheme: light; }
-      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.55; color: #111827; background: #fffbeb; }
-      main { max-width: 920px; margin: 0 auto; padding: 24px 16px 56px; }
-      header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-      h1 { margin: 0; font-size: 24px; }
-      h2 { margin: 0 0 8px; font-size: 18px; }
-      a { color: #92400e; }
-      .card { margin-top: 16px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; }
-      ol, ul { margin: 8px 0 0; padding-left: 20px; }
-      .muted { color: #4b5563; }
-      .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #fde68a; border: 1px solid #f59e0b; color: #78350f; font-size: 12px; }
-    </style>
+    <link rel="icon" type="image/x-icon" href="/assets/icons/icon.ico" />
+    <link rel="stylesheet" href="/info.css" />
+
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Chkobba Café" />
+    <meta property="og:title" content="How to play Chkobba — full rulebook" />
+    <meta property="og:description" content="Deck, deal, captures, scoring and strategy for the Tunisian card game Chkobba." />
+    <meta property="og:url" content="https://chkobagame.xyz/how-to-play.html" />
+    <meta property="og:image" content="https://chkobagame.xyz/assets/avatars/avatar1.jpg" />
+    <meta name="twitter:card" content="summary" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "name": "How to play Chkobba",
+      "description": "Step-by-step guide to playing the Tunisian card game Chkobba in a 4-player 2-vs-2 setup.",
+      "totalTime": "PT15M",
+      "supply": [
+        { "@type": "HowToSupply", "name": "40-card Italian deck" }
+      ],
+      "step": [
+        { "@type": "HowToStep", "name": "Set up the room", "text": "Create a room, share the code with three friends, sit at the four seats. Teams are seat 0+2 vs 1+3." },
+        { "@type": "HowToStep", "name": "Deal", "text": "The dealer gives each player 3 cards and places 4 face-up on the table. If three or four kings appear on the table, the round is re-dealt." },
+        { "@type": "HowToStep", "name": "Take your turn", "text": "Pick a card from your hand. If a single table card has the same value, you must capture it. Otherwise you may capture a set of cards whose values sum to your card. If no capture is possible, your card is placed on the table." },
+        { "@type": "HowToStep", "name": "Sweep the table (Chkobba)", "text": "If your capture leaves the table empty, you score a chkobba — one bonus point — unless it was the very last card of the round." },
+        { "@type": "HowToStep", "name": "Score the round", "text": "After all hands are played, count: most cards (+1), most diamonds (+1), most sevens (+1), seven of diamonds / settebello (+1), and one point per chkobba captured during play." },
+        { "@type": "HowToStep", "name": "Win the match", "text": "Match continues round after round until a team reaches the agreed target (commonly 11 or 21 points)." }
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "How many players is Chkobba Café for?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Four players in two teams of two. Seats 0 and 2 are one team; seats 1 and 3 are the other." } },
+        { "@type": "Question", "name": "Do I need an account?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. You pick a nickname and an avatar, then create or join a room with a short code. There is no email, password, or social login." } },
+        { "@type": "Question", "name": "What does the chkobba bonus give you?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Each time you capture every card on the table in a single move, your team scores one bonus point. The exception is the very last move of the round, where a sweep is not counted." } },
+        { "@type": "Question", "name": "If I can capture by exact match and by sum, which one wins?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Exact single-card match always takes priority. You cannot ignore an exact match in order to grab a larger sum." } },
+        { "@type": "Question", "name": "How are the court cards valued?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Fante (J) = 8, cavallo (Q) = 9, re (K) = 10. Aces count as 1." } },
+        { "@type": "Question", "name": "Can I play Chkobba Café on mobile?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The game runs in any modern mobile browser. Landscape orientation gives the best experience for the table view." } }
+      ]
+    }
+    </script>
   </head>
   <body>
-    <main>
-      <header>
-        <h1>How to Play</h1>
-        <a href="/">Back to game</a>
-      </header>
-      <div class="muted"><span class="pill">Last updated: 2026-01-14</span></div>
+    <a href="#main" class="skip-link">Skip to content</a>
 
-      <section class="card">
-        <h2>Turn basics</h2>
-        <ol>
-          <li>Select a card from your hand.</li>
-          <li>Optionally select table cards that make an exact sum.</li>
-          <li>Press <strong>Play Selected</strong>.</li>
-          <li>If you can’t capture, your card is placed on the table.</li>
-        </ol>
-      </section>
+    <header class="cafe-bar">
+      <div class="cafe-bar__inner">
+        <a class="cafe-bar__brand" href="/"><span class="logo" aria-hidden="true">☕</span> Chkobba Café</a>
+        <nav class="cafe-bar__nav" aria-label="Site">
+          <a href="/">Play</a>
+          <a href="/how-to-play.html">How to play</a>
+          <a href="/about.html">About</a>
+          <a href="/privacy.html">Privacy</a>
+          <a href="/terms.html">Terms</a>
+          <a href="/cookies.html">Cookies</a>
+          <a href="/contact.html">Contact</a>
+        </nav>
+      </div>
+    </header>
 
-      <section class="card">
-        <h2>Capturing rules (high level)</h2>
-        <ul>
-          <li>You can capture with an exact single-card match.</li>
-          <li>You can also capture by selecting a set of cards whose sum equals your card.</li>
-          <li>If an exact match exists, it takes priority over sums.</li>
+    <main id="main">
+      <div class="page-header">
+        <h1>How to play Chkobba</h1>
+        <p class="lede">A friendly, complete rulebook for the 2-vs-2 Tunisian card game — deck, captures, scoring, and a few tips from the café regulars.</p>
+        <div class="meta"><span class="pill">Last updated: 2026-05-05</span></div>
+      </div>
+
+      <section class="card" aria-labelledby="toc">
+        <h2 id="toc">In this guide</h2>
+        <ul class="toc">
+          <li><a href="#deck">The deck</a></li>
+          <li><a href="#setup">Setup &amp; deal</a></li>
+          <li><a href="#turn">Your turn</a></li>
+          <li><a href="#capture">Capturing rules</a></li>
+          <li><a href="#example">Worked example</a></li>
+          <li><a href="#chkobba">The chkobba sweep</a></li>
+          <li><a href="#scoring">Scoring</a></li>
+          <li><a href="#match">Winning the match</a></li>
+          <li><a href="#strategy">Strategy tips</a></li>
+          <li><a href="#glossary">Glossary</a></li>
+          <li><a href="#faq">FAQ</a></li>
         </ul>
       </section>
 
-      <section class="card">
-        <h2>Scoring overview</h2>
+      <section class="card" aria-labelledby="deck">
+        <h2 id="deck">The deck</h2>
         <p>
-          Points are awarded at the end of each round. Common bonuses include most cards, most
-          diamonds, capturing the 7♦, and chkobba (clearing the table).
+          Chkobba uses the classic Italian 40-card deck. Four suits, ten ranks each. Court cards are
+          named in Italian; English equivalents are provided to keep things friendly.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <caption>Suits and card values</caption>
+            <thead>
+              <tr><th>Italian suit</th><th>English suit</th><th>Symbol</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><em>Denari</em></td><td>Diamonds</td><td>♦</td><td>Source of the "most diamonds" point and the <em>settebello</em> (7♦).</td></tr>
+              <tr><td><em>Coppe</em></td><td>Cups / Hearts</td><td>♥</td><td>—</td></tr>
+              <tr><td><em>Spade</em></td><td>Spades</td><td>♠</td><td>—</td></tr>
+              <tr><td><em>Bastoni</em></td><td>Clubs</td><td>♣</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <caption>Rank values used for capturing</caption>
+            <thead>
+              <tr><th>Rank</th><th>Italian</th><th>Value</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Ace</td><td><em>Asso</em></td><td>1</td></tr>
+              <tr><td>2 – 7</td><td><em>Due – Sette</em></td><td>2 – 7</td></tr>
+              <tr><td>Jack</td><td><em>Fante</em></td><td>8</td></tr>
+              <tr><td>Queen</td><td><em>Cavallo</em></td><td>9</td></tr>
+              <tr><td>King</td><td><em>Re</em></td><td>10</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="setup">
+        <h2 id="setup">Setup &amp; deal</h2>
+        <ol>
+          <li>Four players take seats around the table. Seats <strong>0 &amp; 2</strong> form one team, seats <strong>1 &amp; 3</strong> the other. Teammates sit across from each other so the play rotates between teams.</li>
+          <li>The dealer shuffles the 40-card deck.</li>
+          <li>Each player receives <strong>3 cards</strong>. The dealer turns <strong>4 cards face-up</strong> in the centre of the table.</li>
+          <li>Play begins with the seat to the dealer's left and proceeds clockwise.</li>
+          <li>When everyone has played their three cards, the dealer deals three more to each player (no new table cards). This continues until the deck is empty.</li>
+        </ol>
+        <p class="note">
+          <strong>Re-deal rule.</strong> If three or four kings appear on the initial table cards, the
+          round is re-dealt — too many high cards make the round mathematically broken.
         </p>
       </section>
 
-      <section class="card">
-        <h2>Playing with friends</h2>
+      <section class="card" aria-labelledby="turn">
+        <h2 id="turn">Your turn, step by step</h2>
+        <ol>
+          <li>Tap a card from your hand to select it.</li>
+          <li>If you want to capture a sum, tap the table cards that add up to your card's value.</li>
+          <li>Press <strong>Play Selected</strong>.</li>
+          <li>If you cannot capture anything, your card is placed face-up on the table.</li>
+        </ol>
+        <p>
+          The turn timer ring around your seat shows how long you have left. Run out and the server
+          plays a safe move on your behalf.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="capture">
+        <h2 id="capture">Capturing rules</h2>
+        <h3>Single match (priority)</h3>
+        <p>
+          If your card has the same value as <strong>one or more</strong> table cards, you must capture
+          one of those single cards. You cannot opt out of an exact match to take a larger sum. If
+          several single matches exist (e.g. two sevens on the table and you play a seven), the game
+          gives you a choice.
+        </p>
+        <h3>Sum capture</h3>
+        <p>
+          If <strong>no exact-value table card exists</strong>, you may capture any combination of
+          table cards whose values add up to your card's value. Combinations may use any number of
+          cards.
+        </p>
+        <h3>No capture</h3>
+        <p>
+          If neither a single match nor a valid sum exists, your card joins the table face-up and your
+          turn ends.
+        </p>
+        <p class="warn">
+          <strong>Tip.</strong> When several sum combinations are possible, the server lets you pick.
+          Choose carefully — a different combination can leave wildly different cards on the table for
+          your opponents.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="example">
+        <h2 id="example">Worked example</h2>
+        <p><strong>Table:</strong> 3♣, 4♦, 7♥, K♠ &nbsp; — &nbsp; <strong>Your hand:</strong> 7♦, 4♠, A♣</p>
         <ul>
-          <li>Create a room and share the room code.</li>
-          <li>Open the site in 4 tabs/devices and join the same code.</li>
-          <li>Edit your nickname/avatar so your seat is recognizable.</li>
+          <li>Play <strong>7♦</strong>: there is a 7♥ on the table, so the exact match wins. You capture <strong>7♥ + 7♦</strong>. Bonus: 7♦ is the <em>settebello</em> — that point is now yours at scoring.</li>
+          <li>Play <strong>4♠</strong>: there is a 4♦ — exact match. You capture <strong>4♦ + 4♠</strong>.</li>
+          <li>Play <strong>A♣</strong> (value 1): no 1 on the table and no combination summing to 1. The ace is placed on the table.</li>
+        </ul>
+        <p>
+          Now suppose your hand instead held a <strong>K♥</strong> with the same table. Playing K♥
+          captures K♠ outright (single match). If only the K♠ were absent, you could try sum captures —
+          for example, you have a J♣ (value 8): 4♦ + 3♣ + 1 = 8 isn't valid (no ace on table), but
+          7♥ + 1 = 8 also isn't (same issue). With only 3♣, 4♦, 7♥ visible, J♣ has no capture and is
+          placed on the table.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="chkobba">
+        <h2 id="chkobba">The chkobba sweep</h2>
+        <p>
+          A <em>chkobba</em> happens when a capture leaves the table empty. Each chkobba is worth
+          <strong>one bonus point</strong>, and a team can score multiple chkobbas in a single round.
+          The visual end-of-round chalkboard tallies them with a "✕ N" multiplier next to each team.
+        </p>
+        <p class="note">
+          <strong>Last-card exception.</strong> When the very last card of the deal is played and it
+          happens to clear the table, no chkobba is awarded. This prevents an artificial bonus on the
+          forced final move.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="scoring">
+        <h2 id="scoring">Scoring a round</h2>
+        <p>
+          When all hands are played, any cards remaining on the table go to the team that made the
+          <strong>last capture</strong>. Then the round is scored:
+        </p>
+        <div class="table-wrap">
+          <table>
+            <caption>Points awarded per round</caption>
+            <thead>
+              <tr><th>Category</th><th>Points</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Most captured cards</td><td>1</td><td>Whoever captured strictly more total cards. Ties = no point.</td></tr>
+              <tr><td>Most diamonds (<em>denari</em>)</td><td>1</td><td>Most cards of the diamonds suit. Ties = no point.</td></tr>
+              <tr><td>Most sevens</td><td>1</td><td>Most cards of rank 7. If tied with at least one 7 each, the team with more sixes wins; otherwise no point.</td></tr>
+              <tr><td><em>Settebello</em> (7♦)</td><td>1</td><td>The team that captured the seven of diamonds.</td></tr>
+              <tr><td>Each chkobba</td><td>+1 each</td><td>One bonus per sweep made during the round.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="match">
+        <h2 id="match">Winning the match</h2>
+        <p>
+          Rounds repeat until a team reaches the agreed target. Common targets: <strong>11</strong>
+          (short match) or <strong>21</strong> (long match). Chkobba Café defaults to 11; you can change
+          this in room settings before the first deal.
+        </p>
+        <p>
+          If both teams cross the target in the same round, the higher total wins. If they tie on the
+          total, an extra round is played to break the tie.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="strategy">
+        <h2 id="strategy">Strategy tips</h2>
+        <ul>
+          <li><strong>Hunt the settebello.</strong> The 7♦ is one of the most contested cards. If it lands on the table, play any 7 in your hand to grab it — the exact match priority makes it automatic.</li>
+          <li><strong>Watch the diamonds count.</strong> Six or more diamonds wins the suit point. Track which suits opponents have piled up.</li>
+          <li><strong>Don't feed sweeps.</strong> Leaving 1–2 small cards plus a king on the table is dangerous: any king or matching value clears the table for a chkobba. Stack the table when safe.</li>
+          <li><strong>Court cards are heavy.</strong> J/Q/K only pair with their own rank — there is no way to sum to 8, 9, or 10 with face cards. A solitary king on the table is safe unless someone has another king.</li>
+          <li><strong>Save 7s for the right moment.</strong> Holding a 7 to capture a 7 placed mid-round is often worth more than a routine sum capture.</li>
+          <li><strong>Communicate by play.</strong> Like Briscola, careful play can signal to your partner. Capturing diamonds when down on the suit is a way to silently say "we still need this".</li>
         </ul>
       </section>
 
-      <section class="card">
-        <h2>More</h2>
+      <section class="card" aria-labelledby="glossary">
+        <h2 id="glossary">Glossary</h2>
         <ul>
-          <li><a href="/about.html">About</a></li>
-          <li><a href="/privacy.html">Privacy</a></li>
-          <li><a href="/terms.html">Terms</a></li>
-          <li><a href="/contact.html">Contact</a></li>
+          <li><strong>Chkobba</strong> — clearing the table with one move. +1 bonus.</li>
+          <li><strong>Settebello</strong> — the seven of diamonds (7♦). +1 to whoever captures it.</li>
+          <li><strong>Denari</strong> — Italian for "coins"; the diamonds suit.</li>
+          <li><strong>Fante / Cavallo / Re</strong> — Italian names for J / Q / K (values 8 / 9 / 10).</li>
+          <li><strong>Capture</strong> — take cards from the table by exact match or sum.</li>
+          <li><strong>Sweep</strong> — synonym for chkobba.</li>
+          <li><strong>Last-capture rule</strong> — leftover table cards at the end of the round go to the team that made the most recent capture.</li>
         </ul>
       </section>
+
+      <section class="card" aria-labelledby="faq">
+        <h2 id="faq">FAQ</h2>
+        <details class="faq">
+          <summary>How many players is Chkobba Café for?</summary>
+          <p>Four players in two fixed teams of two (seats 0 + 2 vs 1 + 3). Solo and 2-player modes are not currently supported.</p>
+        </details>
+        <details class="faq">
+          <summary>Do I need an account?</summary>
+          <p>No. Pick a nickname and avatar, then create or join a room with a short code. No email, no password, no social login.</p>
+        </details>
+        <details class="faq">
+          <summary>What if I lose connection mid-round?</summary>
+          <p>The server keeps your seat warm. Reconnect within the timeout window and you'll resume exactly where you left. Otherwise the round may be auto-played.</p>
+        </details>
+        <details class="faq">
+          <summary>Are there bots if a friend doesn't show?</summary>
+          <p>Yes. Empty seats can be filled by bots so the game still gets played. Bots use a heuristic strategy — they're competitive but beatable.</p>
+        </details>
+        <details class="faq">
+          <summary>Can I save my stats?</summary>
+          <p>Currently no. Each match is self-contained, no leaderboard. We may add optional, opt-in stats in the future — see the Privacy Policy for what would change.</p>
+        </details>
+        <details class="faq">
+          <summary>Found a bug or rules disagreement?</summary>
+          <p>Please report it on the <a href="/contact.html">Contact</a> page. Include the room code, your seat number, and what you expected vs. what happened.</p>
+        </details>
+      </section>
     </main>
+
+    <footer class="cafe-foot">
+      <div class="cafe-foot__inner">
+        <span>© <span data-year>2026</span> Chkobba Café</span>
+        <span>•</span>
+        <span>Made for friendly games</span>
+        <nav class="cafe-foot__nav" aria-label="Footer">
+          <a href="/about.html">About</a>
+          <a href="/how-to-play.html">How to play</a>
+          <a href="/privacy.html">Privacy</a>
+          <a href="/terms.html">Terms</a>
+          <a href="/cookies.html">Cookies</a>
+          <a href="/contact.html">Contact</a>
+          <a href="#" data-cookies-revoke role="button">Manage consent</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script src="/info.js" defer></script>
   </body>
 </html>
