@@ -39,3 +39,8 @@ logs/
 # Misc
 tmp/
 temp/
+
+#calude
+.calude/
+.CLAUDE/
+CLAUDE.md
