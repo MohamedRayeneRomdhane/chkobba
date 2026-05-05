@@ -7,7 +7,17 @@ import { RateLimiter } from './lib/rateLimit';
 import { bindSocket } from './lib/socketHandlers';
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
-const CORS_ORIGIN = process.env.CORS_ORIGIN || (IS_DEV ? '*' : 'https://chkobagame.xyz');
+const DEFAULT_CORS_ORIGIN = IS_DEV
+  ? 'http://localhost:3000'
+  : 'https://chkobagame.xyz';
+const ALLOWED_ORIGINS = new Set([
+  'https://chkobagame.xyz',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+]);
+const CORS_ORIGIN = ALLOWED_ORIGINS.has(process.env.CORS_ORIGIN || '')
+  ? (process.env.CORS_ORIGIN as string)
+  : DEFAULT_CORS_ORIGIN;
 
 const app = express();
 app.use(cors({ origin: CORS_ORIGIN }));
