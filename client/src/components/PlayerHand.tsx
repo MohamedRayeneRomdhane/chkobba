@@ -110,7 +110,7 @@ export default function PlayerHand({
     >
       {items.map((c, i) => (
         <div
-          key={c === '__ghost__' ? `ghost-${dealTick}-${i}` : `${(c as Card).id}-${dealTick}`}
+          key={c === '__ghost__' ? `ghost-${i}` : (c as Card).id}
           data-slot-id={c === '__ghost__' ? `ghost-${i}` : (c as Card).id}
           onClick={() => {
             if (isDisabled) return;

@@ -29,6 +29,7 @@ export default function GameTable({ net, localProfile, phoneLandscape }: Props) 
   const { gameState, lastRound, replayWaiting, roundBanner } = useGame();
   const { roomCode, snapshot } = useRoom();
   const setHandGhostIndex = useGameStore((s) => s.setHandGhostIndex);
+  const setFlightInProgressId = useGameStore((s) => s.setFlightInProgressId);
 
   const playerCount = (snapshot?.settings?.playerCount ?? 4) as 2 | 4;
 
@@ -39,7 +40,14 @@ export default function GameTable({ net, localProfile, phoneLandscape }: Props) 
   });
 
   const mySeat = useGameStore((s) => s.mySeat);
-  const { flights } = useFlightChoreographer(gameState, mySeat, playerCount);
+  const opponentGhostSeat = useGameStore((s) => s.opponentGhostSeat);
+  const setOpponentGhostSeat = useGameStore((s) => s.setOpponentGhostSeat);
+  const { flights, notifyFlightDone } = useFlightChoreographer(
+    gameState,
+    mySeat,
+    playerCount,
+    setOpponentGhostSeat
+  );
 
   const soundboardOpen = useGameStore((s) => s.soundboardOpen);
 
@@ -84,6 +92,7 @@ export default function GameTable({ net, localProfile, phoneLandscape }: Props) 
             playerCount={playerCount}
             phoneLandscape={phoneLandscape}
             onDealAnimStart={playDealTick}
+            ghostSeat={opponentGhostSeat}
           />
 
           <PlayerHandWell net={net} onDealAnimStart={playDealTick} />
@@ -104,7 +113,17 @@ export default function GameTable({ net, localProfile, phoneLandscape }: Props) 
         </TableMat>
       </div>
 
-      <PlayAnimationsLayer flights={flights} onDone={() => setHandGhostIndex(null)} />
+      <PlayAnimationsLayer
+        flights={flights}
+        onDone={(id) => {
+          const allDone = notifyFlightDone(id);
+          if (allDone) {
+            setHandGhostIndex(null);
+            setOpponentGhostSeat(null);
+            setFlightInProgressId(null);
+          }
+        }}
+      />
 
       <div
         className={`action-area w-full shrink-0 flex flex-col items-center justify-center ${

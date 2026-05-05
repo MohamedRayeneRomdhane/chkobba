@@ -145,10 +145,14 @@ function Flight({ spec, onEnd }: { spec: FlightSpec; onEnd: () => void }) {
     window.addEventListener('resize', onResize);
 
     return () => {
+      // Only clean up listeners/timers here.
+      // Do NOT call onEnd in cleanup — React 18 StrictMode fires cleanup
+      // immediately after every effect run, which would kill the animation
+      // before it starts. PlayAnimationsLayer's watchdog timer handles any
+      // cases where transitionend never fires.
       n.removeEventListener('transitionend', handle);
       window.clearTimeout(timer);
       window.removeEventListener('resize', onResize);
-      if (!endedRef.current) { endedRef.current = true; onEndRef.current(); }
     };
   }, [spec.id, spec.from, spec.to, spec.durationMs, spec.easing]);
 

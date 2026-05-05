@@ -46,7 +46,7 @@ describe('gameSlice phase machine', () => {
 
   it('setLastRound flips phase to roundEnd', () => {
     useGameStore.getState().setGameState({} as GameState);
-    useGameStore.getState().setLastRound({ scores: [10, 5], details: null });
+    useGameStore.getState().setLastRound({ scores: [10, 5], details: undefined });
     expect(useGameStore.getState().phase).toBe('roundEnd');
   });
 });
@@ -77,5 +77,50 @@ describe('audioSlice', () => {
     expect(useGameStore.getState().mutedSoundboardSeats.has(2)).toBe(true);
     toggleMutedSeat(2);
     expect(useGameStore.getState().mutedSoundboardSeats.has(2)).toBe(false);
+  });
+});
+
+describe('phase transitions (regression)', () => {
+  it('setLastRound(null) returns phase to playing', () => {
+    useGameStore.getState().setGameState({} as GameState);
+    useGameStore.getState().setLastRound({ scores: [10, 5], details: undefined });
+    expect(useGameStore.getState().phase).toBe('roundEnd');
+    useGameStore.getState().setLastRound(null);
+    expect(useGameStore.getState().phase).toBe('playing');
+  });
+
+  it('setGameState(null) drops phase from playing to lobby', () => {
+    useGameStore.getState().setRoomCode('ABCD');
+    useGameStore.getState().setGameState({} as GameState);
+    expect(useGameStore.getState().phase).toBe('playing');
+    useGameStore.getState().setGameState(null);
+    expect(useGameStore.getState().phase).toBe('lobby');
+  });
+
+  it('resetRoom clears all room+game state', () => {
+    useGameStore.getState().setRoomCode('ABCD');
+    useGameStore.getState().setGameState({} as GameState);
+    useGameStore.getState().setLastRound({ scores: [1, 2], details: undefined });
+    useGameStore.getState().setRoundBanner('hello');
+    useGameStore.getState().setReplayWaiting({ count: 1, total: 2 });
+
+    useGameStore.getState().resetRoom();
+
+    const s = useGameStore.getState();
+    expect(s.phase).toBe('idle');
+    expect(s.roomCode).toBeNull();
+    expect(s.gameState).toBeNull();
+    expect(s.lastRound).toBeNull();
+    expect(s.replayWaiting).toBeNull();
+    expect(s.roundBanner).toBeNull();
+    expect(s.snapshot).toBeNull();
+    expect(s.mySeat).toBeNull();
+  });
+
+  it('bumpDealTick increments monotonically', () => {
+    const initial = useGameStore.getState().dealTick;
+    useGameStore.getState().bumpDealTick();
+    useGameStore.getState().bumpDealTick();
+    expect(useGameStore.getState().dealTick).toBe(initial + 2);
   });
 });

@@ -90,8 +90,8 @@ export class Room {
   nextActivePlayer(current: PlayerIndex): PlayerIndex {
     const order = this.activeSeats;
     const idx = order.indexOf(current);
-    if (idx < 0) return order[0];
-    return order[(idx + 1) % order.length];
+    if (idx < 0) return order[0] as PlayerIndex;
+    return order[(idx + 1) % order.length] as PlayerIndex;
   }
 
   /** Number of human players who must vote for replay. */

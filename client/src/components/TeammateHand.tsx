@@ -29,7 +29,7 @@ export default function TeammateHand({ cards, dealTick, onDealAnimStart }: Props
     >
       {cards.map((c, i) => (
         <div
-          key={`${c.id}-${dealTick}`}
+          key={c.id}
           className={`${dealTick ? 'deal-in-top' : ''} relative group`}
           style={{
             animationDelay: dealTick ? `${Math.round(phaseMs + i * delaySpacingMs)}ms` : undefined,
@@ -48,7 +48,7 @@ export default function TeammateHand({ cards, dealTick, onDealAnimStart }: Props
           </div>
           <div
             className="w-[clamp(56px,8.2vmin,124px)] aspect-[2/3] rounded-lg border-2 border-gray-800 shadow-md overflow-hidden"
-            data-teammate-card
+            data-hand-card-id={c.id}
           >
             <img
               src={getCardImage(c)}

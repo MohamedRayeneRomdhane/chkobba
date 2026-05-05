@@ -5,7 +5,7 @@ import Seat from './Seat';
 import { seatIndices } from '../../animations/geometry';
 import { useGame, useRoom } from '../../store/selectors';
 import type { Profile } from '../../hooks/useProfile';
-import type { RoomSnapshot } from '../../types';
+import type { PlayerIndex, RoomSnapshot } from '../../types';
 
 type Props = {
   snapshot: RoomSnapshot | null;
@@ -13,6 +13,7 @@ type Props = {
   playerCount: 2 | 4;
   phoneLandscape: boolean;
   onDealAnimStart: () => void;
+  ghostSeat?: PlayerIndex | null;
 };
 
 function OpponentSeats({
@@ -21,6 +22,7 @@ function OpponentSeats({
   playerCount,
   phoneLandscape,
   onDealAnimStart,
+  ghostSeat = null,
 }: Props) {
   const { mySeat } = useRoom();
   const { gameState, dealTick } = useGame();
@@ -39,6 +41,7 @@ function OpponentSeats({
           count={countAt(seats.top)}
           dealTick={dealTick}
           onDealAnimStart={onDealAnimStart}
+          showGhost={ghostSeat === seats.top}
         />
       )}
       {playerCount === 4 && (
@@ -48,12 +51,14 @@ function OpponentSeats({
             count={countAt(seats.left)}
             dealTick={dealTick}
             onDealAnimStart={onDealAnimStart}
+            showGhost={ghostSeat === seats.left}
           />
           <OpponentHand
             position="right"
             count={countAt(seats.right)}
             dealTick={dealTick}
             onDealAnimStart={onDealAnimStart}
+            showGhost={ghostSeat === seats.right}
           />
         </>
       )}

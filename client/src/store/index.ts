@@ -42,6 +42,7 @@ const roomSlice = (set: (fn: (s: FullStore) => Partial<FullStore>) => void): Roo
       mySeat: null,
       phase: 'idle',
       gameState: null,
+      displayedTableCards: [],
       turn: null,
       lastRound: null,
       replayWaiting: null,
@@ -51,6 +52,7 @@ const roomSlice = (set: (fn: (s: FullStore) => Partial<FullStore>) => void): Roo
 
 const gameSlice = (set: (fn: (s: FullStore) => Partial<FullStore>) => void): GameSlice => ({
   gameState: null,
+  displayedTableCards: [],
   turn: null,
   lastRound: null,
   replayWaiting: null,
@@ -61,6 +63,7 @@ const gameSlice = (set: (fn: (s: FullStore) => Partial<FullStore>) => void): Gam
       gameState: g,
       phase: g ? 'playing' : s.phase === 'playing' ? 'lobby' : s.phase,
     })),
+  setDisplayedTableCards: (cards) => set(() => ({ displayedTableCards: cards })),
   setTurn: (t) => set(() => ({ turn: t })),
   setLastRound: (r) => set(() => ({ lastRound: r, phase: r ? 'roundEnd' : 'playing' })),
   setReplayWaiting: (r) => set(() => ({ replayWaiting: r })),
@@ -72,6 +75,8 @@ const uiSlice = (set: (fn: (s: FullStore) => Partial<FullStore>) => void): UISli
   selectedHandId: null,
   selectedTableIds: [],
   handGhostIndex: null,
+  opponentGhostSeat: null,
+  flightInProgressId: null,
   profileModalOpen: false,
   legalOpen: false,
   legalSection: 'privacy',
@@ -89,6 +94,8 @@ const uiSlice = (set: (fn: (s: FullStore) => Partial<FullStore>) => void): UISli
     })),
   clearSelection: () => set(() => ({ selectedHandId: null, selectedTableIds: [] })),
   setHandGhostIndex: (i) => set(() => ({ handGhostIndex: i })),
+  setOpponentGhostSeat: (seat) => set(() => ({ opponentGhostSeat: seat })),
+  setFlightInProgressId: (id) => set(() => ({ flightInProgressId: id })),
   setProfileModalOpen: (v) => set(() => ({ profileModalOpen: v })),
   setLegal: (open, section) =>
     set((s) => ({

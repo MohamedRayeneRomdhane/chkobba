@@ -3,6 +3,7 @@ import type {
   PlayerIndex,
   RoomSettings,
   RoomSnapshot,
+  RoundScoreDetails,
 } from './types';
 
 export type SoundboardSoundFile = string;
@@ -10,7 +11,7 @@ export type SoundboardSoundFile = string;
 export type ServerToClient = {
   'room:update': (snap: RoomSnapshot) => void;
   'room:snapshot': (snap: RoomSnapshot) => void;
-  'room:closed': () => void;
+  'room:closed': (payload: { code: string }) => void;
   'game:start': (state: GameState) => void;
   'game:update': (state: GameState) => void;
   'game:turnTimer': (payload: {
@@ -19,7 +20,10 @@ export type ServerToClient = {
     durationMs: number;
     serverNow?: number;
   }) => void;
-  'game:roundEnd': (payload: { scores: [number, number]; details: unknown }) => void;
+  'game:roundEnd': (payload: {
+    scores: [number, number];
+    details?: RoundScoreDetails;
+  }) => void;
   'game:replayStatus': (payload: { count: number; total: number }) => void;
   'game:soundboard': (payload: {
     seatIndex: PlayerIndex;

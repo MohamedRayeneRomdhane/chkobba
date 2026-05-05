@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Room } from '../game/Room';
 
 const ROOM_CODE = z.string().regex(/^[A-Z0-9]{4,8}$/, 'invalid room code');
 const CARD_ID = z.string().min(1).max(64);
@@ -14,7 +15,12 @@ export const RoomSettingsSchema = z.object({
     mode: z.enum(['1v1', 'teams']).optional(),
     playerCount: z.union([z.literal(2), z.literal(4)]).optional(),
     turnTimerEnabled: z.boolean().optional(),
-    turnDurationMs: z.number().int().positive().max(600_000).optional(),
+    turnDurationMs: z
+      .number()
+      .int()
+      .min(Room.MIN_TURN_DURATION_MS)
+      .max(Room.MAX_TURN_DURATION_MS)
+      .optional(),
     fillWithBots: z.boolean().optional(),
   }),
 });

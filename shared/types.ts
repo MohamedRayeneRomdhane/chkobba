@@ -74,6 +74,14 @@ export interface PlayCardPayload {
   chosenCombinationIds?: string[]; // card ids on table chosen to capture
 }
 
+export interface RoundScoreDetails {
+  mostCards?: TeamIndex;
+  mostDiamonds?: TeamIndex;
+  mostSevens?: TeamIndex | 'tie';
+  sevenDiamonds?: TeamIndex;
+  chkobba: [number, number];
+}
+
 export const TEAM_FOR_SEAT: Record<PlayerIndex, TeamIndex> = {
   0: 0,
   1: 1,

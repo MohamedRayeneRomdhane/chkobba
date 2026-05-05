@@ -276,6 +276,10 @@ export class GameRoomManager {
     const room = this.rooms.get(code);
     if (!room) return;
 
+    // Cancel any pending turn/bot timers tied to this socket's seat. If a bot
+    // backfill or vacant-turn handler needs a new timer it will start one.
+    room.clearTimers();
+
     room.players = room.players.filter((p) => p !== socketId);
     let vacatedSeat: PlayerIndex | null = null;
     for (let i = 0; i < room.seats.length; i++) {
@@ -577,14 +581,15 @@ export class GameRoomManager {
       if (Room.isBotId(sid)) bots++; else humans++;
     }
     const fullBots = humans === 0 && bots > 0;
-    const base = fullBots ? 1100 : 850;
-    const jitter = fullBots ? 650 : 350;
+    // Minimum 1500ms so card-flight animations (~920ms max) finish before next play.
+    const base = fullBots ? 1200 : 1600;
+    const jitter = fullBots ? 600 : 500;
     let delay = base + Math.floor(Math.random() * jitter);
 
     if (typeof turnDurationMs === 'number' && Number.isFinite(turnDurationMs)) {
-      delay = Math.min(delay, Math.max(150, Math.round(turnDurationMs - 750)));
+      delay = Math.min(delay, Math.max(500, Math.round(turnDurationMs - 750)));
     }
-    return Math.max(150, Math.min(2_000, delay));
+    return Math.max(1500, Math.min(3_000, delay));
   }
 
   private generateBotId(roomCode: string, seat: PlayerIndex): string {
