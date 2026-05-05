@@ -4,63 +4,188 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>About • Chkobba Café</title>
-    <meta name="description" content="Learn what Chkobba is and how Chkobba Café works." />
+    <meta name="description" content="Chkobba Café is a free, browser-based version of the Tunisian card game Chkobba. Learn about the game's origins, our mission, and the people behind the site." />
     <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#6b4f2f" />
     <link rel="canonical" href="https://chkobagame.xyz/about.html" />
-    <style>
-      :root { color-scheme: light; }
-      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.55; color: #111827; background: #fffbeb; }
-      main { max-width: 920px; margin: 0 auto; padding: 24px 16px 56px; }
-      header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-      h1 { margin: 0; font-size: 24px; }
-      h2 { margin: 0 0 8px; font-size: 18px; }
-      a { color: #92400e; }
-      .card { margin-top: 16px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; }
-      ul { margin: 8px 0 0; padding-left: 20px; }
-      .muted { color: #4b5563; }
-      .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #fde68a; border: 1px solid #f59e0b; color: #78350f; font-size: 12px; }
-    </style>
+    <link rel="icon" type="image/x-icon" href="/assets/icons/icon.ico" />
+    <link rel="stylesheet" href="/info.css" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Chkobba Café" />
+    <meta property="og:title" content="About • Chkobba Café" />
+    <meta property="og:description" content="A free, browser-based version of the Tunisian card game Chkobba — built for friendly games with friends." />
+    <meta property="og:url" content="https://chkobagame.xyz/about.html" />
+    <meta property="og:image" content="https://chkobagame.xyz/assets/avatars/avatar1.jpg" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="About • Chkobba Café" />
+    <meta name="twitter:description" content="A free, browser-based version of the Tunisian card game Chkobba." />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "AboutPage",
+      "name": "About Chkobba Café",
+      "url": "https://chkobagame.xyz/about.html",
+      "description": "About the Chkobba Café online card game and its operators.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Chkobba Café",
+        "url": "https://chkobagame.xyz/",
+        "logo": "https://chkobagame.xyz/assets/icons/icon.ico"
+      }
+    }
+    </script>
   </head>
   <body>
-    <main>
-      <header>
-        <h1>About Chkobba Café</h1>
-        <a href="/">Back to game</a>
-      </header>
-      <div class="muted"><span class="pill">Last updated: 2026-01-14</span></div>
+    <a href="#main" class="skip-link">Skip to content</a>
 
-      <section class="card">
-        <h2>What is Chkobba?</h2>
+    <header class="cafe-bar">
+      <div class="cafe-bar__inner">
+        <a class="cafe-bar__brand" href="/"><span class="logo" aria-hidden="true">☕</span> Chkobba Café</a>
+        <nav class="cafe-bar__nav" aria-label="Site">
+          <a href="/">Play</a>
+          <a href="/how-to-play.html">How to play</a>
+          <a href="/about.html">About</a>
+          <a href="/privacy.html">Privacy</a>
+          <a href="/terms.html">Terms</a>
+          <a href="/cookies.html">Cookies</a>
+          <a href="/contact.html">Contact</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="page-header">
+        <h1>About Chkobba Café</h1>
+        <p class="lede">A small, friendly home for one of Tunisia's most-loved card games.</p>
+        <div class="meta"><span class="pill">Last updated: 2026-05-05</span></div>
+      </div>
+
+      <section class="card" aria-labelledby="mission">
+        <h2 id="mission">Our mission</h2>
         <p>
-          Chkobba is a classic Tunisian card game played with an Italian deck. The goal is to
-          capture cards from the table and score points across rounds — with a bonus for making a
-          <em>chkobba</em> (clearing the table).
+          Chkobba Café exists for one reason: keep <em>chkobba</em> alive online without ads-everywhere
+          dark patterns, sign-up walls, or pay-to-win tricks. We want a calm, café-like place where you
+          can spin up a room in seconds, send the code to three friends, and play a couple of quick
+          rounds during a coffee break — exactly like sitting at a real café table with a worn deck.
+        </p>
+        <p>
+          The game is and will remain <strong>free to play</strong>. There is <strong>no real-money
+          wagering</strong> of any kind: no in-game purchases, no virtual chips you can trade for cash,
+          no leaderboards tied to prizes. Just the cards.
         </p>
       </section>
 
-      <section class="card">
-        <h2>What is this website?</h2>
+      <section class="card" aria-labelledby="game">
+        <h2 id="game">What is Chkobba?</h2>
         <p>
-          Chkobba Café is a lightweight online version designed for friendly play with friends.
-          Rooms use short codes (private by default): create a room, share the code, and join from
-          multiple devices.
+          <em>Chkobba</em> (also written <em>Chkoba</em>, <em>Skoba</em>, or <em>Scopa</em> in its
+          Italian cousin) is a fishing-style card game played across the western Mediterranean. In
+          Tunisia it is the household game — played at family gatherings, on long ferry rides, and at
+          every neighbourhood café from Bab Bhar to Sfax. The name comes from the Italian
+          <em>scopa</em>, "broom", because clearing the table in a single move "sweeps" it clean.
+        </p>
+        <p>
+          The deck is a 40-card Italian deck: four suits (<em>denari</em>/coins, <em>coppe</em>/cups,
+          <em>spade</em>/swords, <em>bastoni</em>/clubs), values 1 through 7 plus three court cards
+          (<em>fante</em>/J = 8, <em>cavallo</em>/Q = 9, <em>re</em>/K = 10). Two teams of two compete
+          to capture cards from a shared table; at the end of each round, points are awarded for who
+          captured the most cards, the most coins, the seven of coins (<em>settebello</em>), the best
+          <em>primiera</em>, and every <em>chkobba</em> achieved during play.
+        </p>
+        <p>
+          A full rulebook with worked examples is on the
+          <a href="/how-to-play.html">How to Play</a> page.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="site">
+        <h2 id="site">What is this website?</h2>
+        <p>
+          Chkobba Café is a browser-based 4-player (2 vs 2) version of the game with a relaxed café
+          aesthetic — wood and felt textures, a chalkboard scoreboard, a soundboard for that classic
+          café banter. Rooms are private by default: you create a short code, share it with three
+          friends, and only people with that code can sit at the table.
         </p>
         <ul>
-          <li>Fast multiplayer rooms (4 players, 2v2).</li>
-          <li>Works on desktop and mobile.</li>
-          <li>Includes an in-game tutorial and end-of-round scoring breakdown.</li>
+          <li>Fast multiplayer rooms (4 players, 2 vs 2).</li>
+          <li>No account or email required to play.</li>
+          <li>Works on desktop, tablet, and mobile.</li>
+          <li>Built-in tutorial and end-of-round scoring breakdown.</li>
+          <li>Works in any modern browser — Chrome, Firefox, Safari, Edge.</li>
         </ul>
       </section>
 
-      <section class="card">
-        <h2>Links</h2>
-        <ul>
-          <li><a href="/how-to-play.html">How to play</a></li>
-          <li><a href="/privacy.html">Privacy</a></li>
-          <li><a href="/terms.html">Terms</a></li>
-          <li><a href="/contact.html">Contact</a></li>
+      <section class="card" aria-labelledby="who">
+        <h2 id="who">Who runs the café?</h2>
+        <p>
+          Chkobba Café is operated by <strong>Mohamed Rayene Romdhane</strong>, a small independent project based
+          in <strong>France</strong>, European Union. We are not affiliated with any casino,
+          gambling operator, or commercial card-game company. This is a hobby project funded by display
+          advertising (kept light and out of the way) so that the game itself can stay free.
+        </p>
+        <p>
+          For any question, bug report, or legal request, see the
+          <a href="/contact.html">Contact</a> page. Privacy and data-protection requests go to
+          <a href="mailto:privacy@chkobagame.xyz">privacy@chkobagame.xyz</a>.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="fairplay">
+        <h2 id="fairplay">Fair play &amp; community</h2>
+        <p>
+          The café is for friendly games. We don't tolerate harassment, slurs, or cheating — the
+          nickname and avatar fields are not a stage for hate speech. If someone in your room is
+          spoiling the fun, kick them and try a fresh room code.
+        </p>
+        <p>
+          The card-shuffling and dealing logic runs on our server; clients receive only what their seat
+          should see. We use server-authoritative rules to prevent client-side tampering. If you spot a
+          bug or an exploit, please tell us — see <a href="/contact.html">Contact</a>.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="a11y">
+        <h2 id="a11y">Accessibility</h2>
+        <p>
+          We aim for WCAG 2.1 AA on all static pages. Every page has a skip link, visible focus rings,
+          and respects <code>prefers-reduced-motion</code>. The in-game UI is more dynamic — if you
+          encounter an accessibility blocker (screen-reader issues, contrast problems, keyboard traps)
+          please reach out via <a href="/contact.html">Contact</a> and we'll prioritise it.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="links">
+        <h2 id="links">More from the café</h2>
+        <ul class="toc">
+          <li><a href="/how-to-play.html">How to play (full rulebook)</a></li>
+          <li><a href="/privacy.html">Privacy Policy</a></li>
+          <li><a href="/terms.html">Terms of Service</a></li>
+          <li><a href="/cookies.html">Cookie Policy</a></li>
+          <li><a href="/contact.html">Contact &amp; bug reports</a></li>
+          <li><a href="/">Back to the table</a></li>
         </ul>
       </section>
     </main>
+
+    <footer class="cafe-foot">
+      <div class="cafe-foot__inner">
+        <span>© <span data-year>2026</span> Chkobba Café</span>
+        <span>•</span>
+        <span>Made for friendly games</span>
+        <nav class="cafe-foot__nav" aria-label="Footer">
+          <a href="/about.html">About</a>
+          <a href="/how-to-play.html">How to play</a>
+          <a href="/privacy.html">Privacy</a>
+          <a href="/terms.html">Terms</a>
+          <a href="/cookies.html">Cookies</a>
+          <a href="/contact.html">Contact</a>
+          <a href="#" data-cookies-revoke role="button">Manage consent</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script src="/info.js" defer></script>
   </body>
 </html>

@@ -1,11 +1,18 @@
 import React from 'react';
 import { useGameStore } from '../../store';
 import type { CookieConsent } from '../../hooks/useCookieConsent';
+import { showConsentRevocationDialog } from '../../lib/adsense';
 
 type Props = { cookieConsent: CookieConsent };
 
 export default function FooterLinks({ cookieConsent }: Props) {
   const setLegal = useGameStore((s) => s.setLegal);
+
+  const onManageConsent = () => {
+    if (!showConsentRevocationDialog()) {
+      cookieConsent.reset();
+    }
+  };
 
   return (
     <div className="shrink-0 ml-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm opacity-90">
@@ -28,6 +35,10 @@ export default function FooterLinks({ cookieConsent }: Props) {
         Terms
       </a>
       <span>•</span>
+      <a className="underline hover:no-underline" href="/cookies.html">
+        Cookies
+      </a>
+      <span>•</span>
       <a className="underline hover:no-underline" href="/contact.html">
         Contact
       </a>
@@ -35,10 +46,10 @@ export default function FooterLinks({ cookieConsent }: Props) {
       <button
         type="button"
         className="underline hover:no-underline"
-        onClick={() => cookieConsent.reset()}
-        title="Change cookie preferences"
+        onClick={onManageConsent}
+        title="Manage cookie / ad-personalization consent"
       >
-        Cookies
+        Manage consent
       </button>
       {/* Legal modal trigger left as global; setLegal kept available for future deep links. */}
       <span className="sr-only" aria-hidden onClick={() => setLegal(false)} />

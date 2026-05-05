@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#6b4f2f" />
     <link rel="icon" type="image/x-icon" href="/assets/icons/icon.ico" />
     <link rel="shortcut icon" type="image/x-icon" href="/assets/icons/icon.ico" />
     <link rel="canonical" href="https://chkobagame.xyz/" />
@@ -10,6 +11,9 @@
       name="description"
       content="Chkobba Café — a fast, friendly online chkobba card game with a cozy café feel. Create a room, invite friends, and play."
     />
+
+    <!-- AdSense / Funding Choices verification -->
+    <meta name="google-adsense-account" content="ca-pub-9124857144736473" />
 
     <!-- Open Graph / social previews -->
     <meta property="og:type" content="website" />
@@ -42,6 +46,44 @@
         "url": "https://chkobagame.xyz/"
       }
     </script>
+
+    <!-- Google Consent Mode v2 — defaults DENIED until Funding Choices reports the user choice -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { window.dataLayer.push(arguments); }
+      gtag('consent', 'default', {
+        'ad_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied',
+        'analytics_storage': 'denied',
+        'functionality_storage': 'granted',
+        'security_storage': 'granted',
+        'wait_for_update': 500
+      });
+    </script>
+
+    <!-- Google Funding Choices (consent management platform, IAB TCF v2.2 certified).
+         Loads before AdSense so a TC string is available before any ads are requested. -->
+    <script async src="https://fundingchoicesmessages.google.com/i/pub-9124857144736473?ers=1"></script>
+    <script>
+      (function () {
+        function signalGooglefcPresent() {
+          if (!window.frames['googlefcPresent']) {
+            if (document.body) {
+              var iframe = document.createElement('iframe');
+              iframe.style.cssText =
+                'width:0;height:0;border:none;z-index:-1000;left:-1000px;top:-1000px;display:none';
+              iframe.name = 'googlefcPresent';
+              document.body.appendChild(iframe);
+            } else {
+              setTimeout(signalGooglefcPresent, 0);
+            }
+          }
+        }
+        signalGooglefcPresent();
+      })();
+    </script>
+
     <title>Chkobba Café</title>
   </head>
   <body class="bg-tableWood min-h-screen">

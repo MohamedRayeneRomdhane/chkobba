@@ -1,7 +1,6 @@
 import React from 'react';
 import Layout from './components/Layout';
 import ProfileModal from './components/ProfileModal';
-import CookieConsentBanner from './components/CookieConsentBanner';
 import FooterNote from './components/FooterNote';
 import HeaderControls from './features/lobby/HeaderControls';
 import FooterLinks from './features/lobby/FooterLinks';
@@ -36,7 +35,9 @@ export default function App() {
   useTurnSounds();
 
   React.useEffect(() => {
-    if (cookieConsent.status === 'granted') {
+    if (cookieConsent.status !== null) {
+      // Funding Choices + Consent Mode v2 handle PA vs NPA based on the user's
+      // answer; we just need the script loaded once a decision is recorded.
       loadAdsenseScript().catch(() => {
         /* ads optional */
       });
@@ -48,7 +49,7 @@ export default function App() {
       <Layout
         headerRight={<HeaderControls net={net} playerCount={playerCount} />}
         footerLeft={<FooterNote />}
-        adsEnabled={cookieConsent.status === 'granted'}
+        adsEnabled={cookieConsent.status !== null}
         footerRight={<FooterLinks cookieConsent={cookieConsent} />}
       >
         <GameTable net={net} localProfile={localProfile} phoneLandscape={phoneLandscape} />
@@ -69,13 +70,6 @@ export default function App() {
           net.setProfile(nickname, avatar);
           setLocalProfile(nickname || undefined, avatar || undefined);
         }}
-      />
-
-      <CookieConsentBanner
-        open={cookieConsent.status === null}
-        onAccept={cookieConsent.accept}
-        onDecline={cookieConsent.decline}
-        onLearnMore={() => setLegal(true, 'privacy')}
       />
 
       {legalOpen && (

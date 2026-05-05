@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type React from 'react';
+import { loadAdsenseScript } from '../lib/adsense';
 
 declare global {
   interface Window {
@@ -24,12 +25,23 @@ export default function AdsenseUnit({
 }: Props) {
   useEffect(() => {
     if (!enabled) return;
-    try {
-      if (!window.adsbygoogle) return;
-      window.adsbygoogle.push({});
-    } catch {
-      // ignore
-    }
+    let cancelled = false;
+    loadAdsenseScript()
+      .then(() => {
+        if (cancelled) return;
+        try {
+          window.adsbygoogle = window.adsbygoogle || [];
+          window.adsbygoogle.push({});
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {
+        /* ads optional */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [slot, enabled]);
 
   if (!enabled) return null;
