@@ -17,8 +17,9 @@ const normalizeRoomCode = (raw: string) => raw.trim().toUpperCase();
 export default function HeaderControls({ net, playerCount }: Props) {
   const [roomCodeInput, setRoomCodeInput] = React.useState('');
   const [joinWarning, setJoinWarning] = React.useState<string | null>(null);
+  const [confirmCreate, setConfirmCreate] = React.useState(false);
 
-  const { roomCode, mySeat, snapshot } = useRoom();
+  const { roomCode, mySeat, snapshot, phase } = useRoom();
   const { connected } = useConnection();
 
   const mobileMenuOpen = useGameStore((s) => s.mobileMenuOpen);
@@ -55,6 +56,17 @@ export default function HeaderControls({ net, playerCount }: Props) {
     [net, tryJoin]
   );
 
+  const handleCreateAndJoin = React.useCallback(
+    (closeMobileMenu = false) => {
+      if (phase === 'playing' || phase === 'roundEnd') {
+        setConfirmCreate(true);
+        return;
+      }
+      void createAndJoin(closeMobileMenu);
+    },
+    [phase, createAndJoin]
+  );
+
   const flashCopy = (input: HTMLInputElement | null) => {
     if (!input) return;
     input.classList.add('ring', 'ring-white/40');
@@ -81,6 +93,36 @@ export default function HeaderControls({ net, playerCount }: Props) {
 
   return (
     <>
+      {confirmCreate && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-[min(92vw,360px)] rounded-2xl border border-white/15 bg-tableWood-dark/95 shadow-caféGlow p-5 flex flex-col gap-4 text-white">
+            <div className="text-base font-semibold">Leave current game?</div>
+            <div className="text-sm text-white/75">
+              You are in an active game. Creating a new room will remove you from it.
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
+                onClick={() => setConfirmCreate(false)}
+              >
+                Stay
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-sm"
+                onClick={() => {
+                  setConfirmCreate(false);
+                  void createAndJoin(false);
+                }}
+              >
+                Leave & Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile burger menu */}
       <div className="header-controls-mobile sm:hidden w-full flex items-center justify-end">
         <div className="relative">
@@ -109,7 +151,7 @@ export default function HeaderControls({ net, playerCount }: Props) {
                 <button
                   type="button"
                   className="w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white"
-                  onClick={() => createAndJoin(true)}
+                  onClick={() => handleCreateAndJoin(true)}
                 >
                   Create & Join
                 </button>
@@ -183,7 +225,7 @@ export default function HeaderControls({ net, playerCount }: Props) {
 
       {/* Desktop */}
       <div className="header-controls-desktop hidden sm:flex items-center gap-4">
-        <button className="btn btn--mint" onClick={() => createAndJoin(false)}>
+        <button className="btn btn--mint" onClick={() => handleCreateAndJoin(false)}>
           Create & Join
         </button>
 

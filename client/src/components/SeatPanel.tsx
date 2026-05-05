@@ -543,6 +543,11 @@ export default function SeatPanel({
             preserveAspectRatio="none"
             aria-hidden="true"
             style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
               overflow: 'visible',
               clipPath: `inset(0 round ${ringGeom.clipR}px)`,
               WebkitClipPath: `inset(0 round ${ringGeom.clipR}px)`,
