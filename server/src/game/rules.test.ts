@@ -36,11 +36,7 @@ describe('canCaptureSingle', () => {
 
 describe('findCombinationsForValue', () => {
   it('finds simple sums', () => {
-    const table = [
-      c('a', 'spades', '2', 2),
-      c('b', 'hearts', '3', 3),
-      c('c', 'clubs', '5', 5),
-    ];
+    const table = [c('a', 'spades', '2', 2), c('b', 'hearts', '3', 3), c('c', 'clubs', '5', 5)];
     const combos = findCombinationsForValue(table, 5);
     // expected: [5], [2+3]
     expect(combos).toHaveLength(2);
@@ -115,7 +111,9 @@ describe('applyMove', () => {
       tableCards: [c('t1', 'spades', '2', 2), c('t2', 'clubs', '3', 3)],
       hands: [[played], [], [], []],
     });
-    expect(() => applyMove(state, 0, 'p', ['t1', 'nonexistent'])).toThrow(/Invalid combination id/i);
+    expect(() => applyMove(state, 0, 'p', ['t1', 'nonexistent'])).toThrow(
+      /Invalid combination id/i
+    );
   });
 
   it('flags chkobba when capture clears the table', () => {

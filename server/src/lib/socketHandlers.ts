@@ -52,11 +52,9 @@ export function bindSocket(
   socket.on('room:settings', (raw: unknown, ack?: AckFn) => {
     const p = parseOrAck(RoomSettingsSchema, raw, ack);
     if (!p) return;
-    wrap(
-      () => manager.updateRoomSettings(p.code, socket.id, p.settings),
-      ack,
-      { logTag: 'room:settings' }
-    );
+    wrap(() => manager.updateRoomSettings(p.code, socket.id, p.settings), ack, {
+      logTag: 'room:settings',
+    });
   });
 
   socket.on('game:launch', (raw: unknown, ack?: AckFn) => {
@@ -95,11 +93,9 @@ export function bindSocket(
   socket.on('team:rename', (raw: unknown, ack?: AckFn) => {
     const p = parseOrAck(TeamRenameSchema, raw, ack);
     if (!p) return;
-    wrap(
-      () => manager.renameTeam(p.code, socket.id, p.teamIndex, p.name),
-      ack,
-      { logTag: 'team:rename' }
-    );
+    wrap(() => manager.renameTeam(p.code, socket.id, p.teamIndex, p.name), ack, {
+      logTag: 'team:rename',
+    });
   });
 
   socket.on('game:soundboard', (raw: unknown, ack?: AckFn) => {

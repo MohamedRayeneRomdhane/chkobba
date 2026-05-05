@@ -28,9 +28,26 @@ export class GameRoomManager {
     '/assets/avatars/avatar11.jpg',
   ];
   private botArabicNames: string[] = [
-    'Noor', 'Saif', 'Laith', 'Raad', 'Fajr', 'Badr', 'Najm', 'Qamar',
-    'Ward', 'Ghaith', 'Zayn', 'Saad', 'Amin', 'Karim', 'Hakim', 'Joud',
-    'Fahd', 'Bahr', 'Tayyib', 'Saqr',
+    'Noor',
+    'Saif',
+    'Laith',
+    'Raad',
+    'Fajr',
+    'Badr',
+    'Najm',
+    'Qamar',
+    'Ward',
+    'Ghaith',
+    'Zayn',
+    'Saad',
+    'Amin',
+    'Karim',
+    'Hakim',
+    'Joud',
+    'Fahd',
+    'Bahr',
+    'Tayyib',
+    'Saqr',
   ];
 
   private cleanupInterval: NodeJS.Timeout;
@@ -66,12 +83,18 @@ export class GameRoomManager {
     // Find open seat
     let openSeat = -1;
     for (let i = 0; i < room.settings.playerCount; i++) {
-      if (room.seats[i] == null) { openSeat = i; break; }
+      if (room.seats[i] == null) {
+        openSeat = i;
+        break;
+      }
     }
     // Allow replacing a bot mid-game
     if (openSeat < 0 && room.gameState) {
       for (let i = 0; i < room.settings.playerCount; i++) {
-        if (Room.isBotId(room.seats[i])) { openSeat = i; break; }
+        if (Room.isBotId(room.seats[i])) {
+          openSeat = i;
+          break;
+        }
       }
     }
     if (openSeat < 0) throw new Error('Room full');
@@ -83,7 +106,9 @@ export class GameRoomManager {
     // Join the Socket.IO room HERE so emits are immediate
     void socket.join(code);
 
-    console.log(`[manager] joinRoom ${code} player=${socket.id} seat=${openSeat} count=${room.players.length}`);
+    console.log(
+      `[manager] joinRoom ${code} player=${socket.id} seat=${openSeat} count=${room.players.length}`
+    );
 
     if (!room.hostId) room.hostId = socket.id;
 
@@ -131,12 +156,16 @@ export class GameRoomManager {
 
     if (next.playerCount !== 2 && next.playerCount !== 4) throw new Error('Invalid player count');
     next.mode = next.playerCount === 2 ? '1v1' : 'teams';
-    if (typeof next.turnTimerEnabled !== 'boolean') next.turnTimerEnabled = current.turnTimerEnabled !== false;
+    if (typeof next.turnTimerEnabled !== 'boolean')
+      next.turnTimerEnabled = current.turnTimerEnabled !== false;
     if (typeof next.fillWithBots !== 'boolean') next.fillWithBots = Boolean(current.fillWithBots);
 
     const ms = Math.round(Number(next.turnDurationMs));
     if (!Number.isFinite(ms)) throw new Error('Invalid turn time');
-    next.turnDurationMs = Math.max(Room.MIN_TURN_DURATION_MS, Math.min(Room.MAX_TURN_DURATION_MS, ms));
+    next.turnDurationMs = Math.max(
+      Room.MIN_TURN_DURATION_MS,
+      Math.min(Room.MAX_TURN_DURATION_MS, ms)
+    );
 
     const seated = room.seats.filter((s) => s != null).length;
     if (seated > next.playerCount) throw new Error('Too many players already seated');
@@ -252,7 +281,7 @@ export class GameRoomManager {
       nickname: this.generateReadableName(),
       avatar: '/assets/avatars/default.svg',
     };
-    let nickname = (payload.nickname?.trim()) || current.nickname || this.generateReadableName();
+    let nickname = payload.nickname?.trim() || current.nickname || this.generateReadableName();
     // Enforce length limit to prevent abuse
     if ([...nickname].length > Room.MAX_NICKNAME_LENGTH) {
       nickname = [...nickname].slice(0, Room.MAX_NICKNAME_LENGTH).join('');
@@ -315,7 +344,10 @@ export class GameRoomManager {
       let nextHost: string | undefined;
       for (let i = 0; i < room.settings.playerCount; i++) {
         const sid = room.seats[i];
-        if (sid && !Room.isBotId(sid)) { nextHost = sid; break; }
+        if (sid && !Room.isBotId(sid)) {
+          nextHost = sid;
+          break;
+        }
       }
       room.hostId = nextHost;
     }
@@ -353,12 +385,21 @@ export class GameRoomManager {
     this.emitRoomSnapshot(room);
   }
 
-  private applyPlayInternal(room: Room, seatIndex: PlayerIndex, playedCardId: string, combo?: string[]) {
+  private applyPlayInternal(
+    room: Room,
+    seatIndex: PlayerIndex,
+    playedCardId: string,
+    combo?: string[]
+  ) {
     room.applyPlay(seatIndex, playedCardId, combo);
-    console.log(`[manager] turn advanced next=${room.gameState!.currentPlayerIndex} remainingInDeal=${room.cardsLeftInCurrentDeal}`);
+    console.log(
+      `[manager] turn advanced next=${room.gameState!.currentPlayerIndex} remainingInDeal=${room.cardsLeftInCurrentDeal}`
+    );
 
     if (room.cardsLeftInCurrentDeal <= 0) {
-      console.log(`[manager] deal completed for room=${room.code}; proceeding next deal or end round`);
+      console.log(
+        `[manager] deal completed for room=${room.code}; proceeding next deal or end round`
+      );
       const result = room.nextDealOrEndRound();
 
       if (result === 'roundEnd') {
@@ -368,7 +409,9 @@ export class GameRoomManager {
           scores: room.gameState!.scoresByTeam,
           details: roundScore?.details,
         });
-        this.io.to(room.code).emit('game:replayStatus', { count: 0, total: room.replayVotesRequired });
+        this.io
+          .to(room.code)
+          .emit('game:replayStatus', { count: 0, total: room.replayVotesRequired });
         this.emitGameState(room, 'game:update');
         this.emitRoomSnapshot(room);
         return;
@@ -392,11 +435,21 @@ export class GameRoomManager {
   }
 
   private emitGameState(room: Room, event: 'game:start' | 'game:update') {
-    void this.io.in(room.code).fetchSockets().then((sockets) => {
-      for (const s of sockets) {
-        try { s.emit(event, room.getClientGameState(s.id)); } catch { /* ignore */ }
-      }
-    }).catch(() => { /* ignore */ });
+    void this.io
+      .in(room.code)
+      .fetchSockets()
+      .then((sockets) => {
+        for (const s of sockets) {
+          try {
+            s.emit(event, room.getClientGameState(s.id));
+          } catch {
+            /* ignore */
+          }
+        }
+      })
+      .catch(() => {
+        /* ignore */
+      });
   }
 
   private emitRoomSnapshot(room: Room) {
@@ -574,11 +627,13 @@ export class GameRoomManager {
   // ─── Bot helpers ───
 
   private getBotActionDelayMs(room: Room, turnDurationMs?: number): number {
-    let humans = 0, bots = 0;
+    let humans = 0,
+      bots = 0;
     for (const seat of room.activeSeats) {
       const sid = room.seats[seat];
       if (!sid) continue;
-      if (Room.isBotId(sid)) bots++; else humans++;
+      if (Room.isBotId(sid)) bots++;
+      else humans++;
     }
     const fullBots = humans === 0 && bots > 0;
     // Minimum 1500ms so card-flight animations (~920ms max) finish before next play.
@@ -605,9 +660,10 @@ export class GameRoomManager {
       if (p?.nickname) used.add(p.nickname);
     }
     const available = this.botArabicNames.filter((n) => !used.has(n));
-    const base = (available.length > 0
-      ? available[Math.floor(Math.random() * available.length)]
-      : this.botArabicNames[Math.floor(Math.random() * this.botArabicNames.length)]) || 'Noor';
+    const base =
+      (available.length > 0
+        ? available[Math.floor(Math.random() * available.length)]
+        : this.botArabicNames[Math.floor(Math.random() * this.botArabicNames.length)]) || 'Noor';
     if (!used.has(base)) return base;
     let i = 2;
     while (used.has(`${base}${i}`) && i < 99) i++;
@@ -617,7 +673,11 @@ export class GameRoomManager {
   private ensureBotProfile(room: Room, botId: string) {
     const existing = this.profiles.get(botId);
     if (existing) {
-      if (!existing.avatar || existing.avatar.endsWith('.png') || existing.avatar === '/assets/avatars/default.png') {
+      if (
+        !existing.avatar ||
+        existing.avatar.endsWith('.png') ||
+        existing.avatar === '/assets/avatars/default.png'
+      ) {
         existing.avatar = this.randomAvatar();
       }
       if (!existing.nickname || !/^[A-Za-z0-9]+$/.test(existing.nickname)) {
@@ -666,7 +726,10 @@ export class GameRoomManager {
   // ─── Utility ───
 
   private randomAvatar(): string {
-    return this.avatarPool[Math.floor(Math.random() * this.avatarPool.length)] || '/assets/avatars/default.svg';
+    return (
+      this.avatarPool[Math.floor(Math.random() * this.avatarPool.length)] ||
+      '/assets/avatars/default.svg'
+    );
   }
 
   private generateReadableName(): string {

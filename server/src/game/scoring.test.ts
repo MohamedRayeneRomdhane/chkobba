@@ -20,11 +20,7 @@ describe('computeRoundScore', () => {
 
   it('grants seven-of-diamonds point regardless of card count', () => {
     const t0 = [c('a', 'diamonds', '7')];
-    const t1 = [
-      c('b', 'spades', 'A'),
-      c('c', 'spades', '2'),
-      c('d', 'spades', '3'),
-    ];
+    const t1 = [c('b', 'spades', 'A'), c('c', 'spades', '2'), c('d', 'spades', '3')];
     const r = computeRoundScore([t0, t1], [0, 0]);
     expect(r.details.sevenDiamonds).toBe(0);
   });

@@ -320,7 +320,7 @@ export function useFlightChoreographer(
         nextHandRects.set(id, { x: r.left, y: r.top, w: r.width, h: r.height });
     });
     prevHandRectsRef.current = nextHandRects;
-  }, [gameState, mySeat, playerCount, displayedTableCards]);
+  }, [gameState, mySeat, playerCount, displayedTableCards, setOpponentGhostSeat]);
 
   React.useEffect(() => {
     return () => {

@@ -54,11 +54,7 @@ export const SoundboardSchema = z.object({
 export type AckFn = (ok: boolean, msg?: string) => void;
 
 /** Parse a payload with a zod schema; ack with a 400-style error if it fails. */
-export function parseOrAck<T>(
-  schema: z.ZodSchema<T>,
-  payload: unknown,
-  ack?: AckFn
-): T | null {
+export function parseOrAck<T>(schema: z.ZodSchema<T>, payload: unknown, ack?: AckFn): T | null {
   const r = schema.safeParse(payload);
   if (!r.success) {
     const msg = r.error.issues.map((i) => i.message).join('; ');
